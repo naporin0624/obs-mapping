@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { surf } from '../geometry/fixtures';
+import { mapOf, surf } from '../geometry/fixtures';
 import { initialEditorState } from './state';
 import { useStageDrag } from './use-stage-drag';
 
@@ -20,7 +20,7 @@ const pointer = (x: number, y: number, altKey = false): Pointer => ({ clientX: x
 
 const setup = () => {
   const surfaces = [surf('a', 0, 0, 100, 100), surf('b', 1000, 300, 100, 50)];
-  const state = initialEditorState({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: 1000 }, surfaces });
+  const state = initialEditorState({ ...mapOf(...surfaces), grid: { size: 1000 } });
   const ref: RefObject<SVGSVGElement | null> = { current: svg() };
   return renderHook(() => useStageDrag({ state, dispatch: vi.fn(), svgRef: ref, scale: 1 }));
 };

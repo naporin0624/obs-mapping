@@ -14,16 +14,17 @@ const points = (s: Surface): string => s.corners.map((p) => `${String(p[0])},${S
 
 const center = (s: Surface): readonly [number, number] => [s.corners.reduce((a, p) => a + p[0], 0) / 4, s.corners.reduce((a, p) => a + p[1], 0) / 4];
 
-const classOf = (s: Surface, selected: boolean, warning: QuadWarning): string => [outlineCls, selected ? selectedCls : '', s.visible ? '' : hiddenCls, warning === null ? '' : warnCls].join(' ');
+const classOf = (selected: boolean, visible: boolean, warning: QuadWarning): string => [outlineCls, selected ? selectedCls : '', visible ? '' : hiddenCls, warning === null ? '' : warnCls].join(' ');
 
 type SurfaceProps = { surface: Surface; scale: number; drag: StageDrag };
+type OutlineProps = SurfaceProps & { selected: boolean; visible: boolean };
 
-const SurfaceOutline = ({ surface, selected, scale, drag }: SurfaceProps & { selected: boolean }) => {
+const SurfaceOutline = ({ surface, selected, visible, scale, drag }: OutlineProps) => {
   const warning = quadWarning(surface.corners);
   const [cx, cy] = center(surface);
   return (
     <g>
-      <polygon points={points(surface)} className={classOf(surface, selected, warning)} vectorEffect="non-scaling-stroke" onPointerDown={(e) => drag.onSurfaceDown(e, surface.id)} />
+      <polygon points={points(surface)} className={classOf(selected, visible, warning)} vectorEffect="non-scaling-stroke" onPointerDown={(e) => drag.onSurfaceDown(e, surface.id)} />
       {warning === null ? null : (
         <text x={cx} y={cy} textAnchor="middle" fontSize={12 / scale} className={warnTextCls}>
           {WARNING_TEXT[warning]}
@@ -85,15 +86,15 @@ const Guides = ({ drag, mapping }: { drag: StageDrag; mapping: Mapping }) => (
   </g>
 );
 
-type Props = { mapping: Mapping; selection: Selection; scale: number; drag: StageDrag };
+type Props = { mapping: Mapping; selection: Selection; visibleIds: ReadonlySet<string>; scale: number; drag: StageDrag };
 
 /** SVG layer in canvas px: grid, surface outlines (danger dashed + text for bad quads), then corner handles. */
-export const StageOverlay = ({ mapping, selection, scale, drag }: Props) => (
+export const StageOverlay = ({ mapping, selection, visibleIds, scale, drag }: Props) => (
   <>
     <rect x={0} y={0} width={mapping.canvas.width} height={mapping.canvas.height} fill="transparent" onPointerDown={() => drag.onBackgroundDown()} />
     <Grid mapping={mapping} scale={scale} />
     {mapping.surfaces.map((s) => (
-      <SurfaceOutline key={s.id} surface={s} selected={selection.surfaceIds.includes(s.id)} scale={scale} drag={drag} />
+      <SurfaceOutline key={s.id} surface={s} selected={selection.surfaceIds.includes(s.id)} visible={visibleIds.has(s.id)} scale={scale} drag={drag} />
     ))}
     <Guides drag={drag} mapping={mapping} />
     {mapping.surfaces

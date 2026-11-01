@@ -82,15 +82,16 @@ describe('snapTargets', () => {
     [100, 100],
     [0, 100],
   ]);
+  const all = new Set(['a', 'b']);
   it('excludes the surfaces being dragged', () => {
-    expect(snapTargets([a, other], ['a']).map((s) => s.id)).toEqual(['b']);
+    expect(snapTargets([a, other], ['a'], all).map((s) => s.id)).toEqual(['b']);
   });
   it('never snaps to the extended lines of the dragged surface itself', () => {
-    expect(snapCorner([300, 3], opts({ others: snapTargets([a], ['a']) }))).toEqual([300, 3]);
-    expect(snapCorner([300, 3], opts({ others: snapTargets([a], []) }))).toEqual([300, 0]);
+    expect(snapCorner([300, 3], opts({ others: snapTargets([a], ['a'], all) }))).toEqual([300, 3]);
+    expect(snapCorner([300, 3], opts({ others: snapTargets([a], [], all) }))).toEqual([300, 0]);
   });
-  it('excludes hidden surfaces', () => {
-    expect(snapTargets([{ ...a, visible: false }, other], []).map((s) => s.id)).toEqual(['b']);
+  it('excludes surfaces that are not effectively visible', () => {
+    expect(snapTargets([a, other], [], new Set(['b'])).map((s) => s.id)).toEqual(['b']);
   });
 });
 

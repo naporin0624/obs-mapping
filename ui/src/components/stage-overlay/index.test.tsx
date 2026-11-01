@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mapOf } from '../../geometry/fixtures';
 import { emptySelection } from '../../editor/state';
 import type { StageDrag } from '../../editor/use-stage-drag';
 import { StageOverlay } from '.';
@@ -8,12 +9,12 @@ import { StageOverlay } from '.';
 afterEach(cleanup);
 
 const drag = (guides: StageDrag['guides']): StageDrag => ({ guides, onBackgroundDown: vi.fn(), onCornerDown: vi.fn(), onSurfaceDown: vi.fn(), onMove: vi.fn(), onUp: vi.fn() });
-const mapping = { version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: 1 }, surfaces: [] } as const;
+const mapping = { ...mapOf(), grid: { size: 1 } };
 
 const renderOverlay = (guides: StageDrag['guides']) =>
   render(
     <svg>
-      <StageOverlay mapping={mapping} selection={emptySelection()} scale={1} drag={drag(guides)} />
+      <StageOverlay mapping={mapping} selection={emptySelection()} visibleIds={new Set()} scale={1} drag={drag(guides)} />
     </svg>,
   );
 

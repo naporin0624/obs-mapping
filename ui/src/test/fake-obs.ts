@@ -1,8 +1,9 @@
 import { vi } from 'vitest';
+import { mapOf } from '../geometry/fixtures';
 import type { Mapping } from '../model/mapping';
 import type { MappingChangedHandler, ObsClient, ObsConnection, VendorResult } from '../obs/client';
 
-export const mapping = (grid: number): Mapping => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: grid }, surfaces: [] });
+export const mapping = (grid: number): Mapping => ({ ...mapOf(), grid: { size: grid } });
 
 export const fakeObs = (initial: Mapping) => {
   const plugin = { mapping: initial };

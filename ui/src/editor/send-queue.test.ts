@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VendorResult } from '../obs/client';
+import { mapOf } from '../geometry/fixtures';
 import type { Mapping } from '../model/mapping';
 import { createSendQueue } from './send-queue';
 
-const mapping = (n: number): Mapping => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: n }, surfaces: [] });
+const mapping = (n: number): Mapping => ({ ...mapOf(), grid: { size: n } });
 
 type Deferred = { resolve: (r: VendorResult<{}>) => void; reject: (e: Error) => void };
 

@@ -1,37 +1,20 @@
 import type { Mapping } from '../model/mapping';
+import { readMapping } from '../model/read';
 
 export type Canvas = Mapping['canvas'];
 
 export type ImportResult = { kind: 'ok'; mapping: Mapping } | { kind: 'mismatch'; mapping: Mapping; current: Canvas } | { kind: 'error'; message: string };
 
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const isPositive = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
-
-const fail = (message: string): ImportResult => ({ kind: 'error', message });
-
-const checkStructure = (json: Record<string, unknown>): string | null => {
-  const { version, canvas, surfaces } = json;
-  if (version === undefined) return 'version: missing';
-  if (version !== 1) return `version: unsupported version ${JSON.stringify(version)}`;
-  if (!isRecord(canvas)) return 'canvas: expected an object';
-  if (!isPositive(canvas['width'])) return 'canvas.width: expected a positive number';
-  if (!isPositive(canvas['height'])) return 'canvas.height: expected a positive number';
-  if (!Array.isArray(surfaces)) return 'surfaces: expected an array';
-  return null;
-};
-
-/** Structural checks only; the plugin does the full validation when the mapping is sent. */
 export const parseImport = (text: string, current: Canvas): ImportResult => {
   let json: unknown;
   try {
     json = JSON.parse(text);
   } catch (e) {
-    return fail(`json: ${e instanceof Error ? e.message : String(e)}`);
+    return { kind: 'error', message: `json: ${e instanceof Error ? e.message : String(e)}` };
   }
-  if (!isRecord(json)) return fail('json: expected an object');
-  const problem = checkStructure(json);
-  if (problem !== null) return fail(problem);
-  const mapping = json as unknown as Mapping;
+  const read = readMapping(json);
+  if (read.kind === 'error') return read;
+  const { mapping } = read;
   const same = mapping.canvas.width === current.width && mapping.canvas.height === current.height;
   return same ? { kind: 'ok', mapping } : { kind: 'mismatch', mapping, current: { width: current.width, height: current.height } };
 };

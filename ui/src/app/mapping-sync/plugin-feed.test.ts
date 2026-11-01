@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+import { mapOf } from '../../geometry/fixtures';
 import type { Mapping } from '../../model/mapping';
 import type { MappingChangedHandler, ObsClient } from '../../obs/client';
 import { createPluginFeed } from './plugin-feed';
 
-const mapping: Mapping = { version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: 10 }, surfaces: [] };
+const mapping: Mapping = mapOf();
 
 const feedWith = () => {
   let fire: MappingChangedHandler = () => undefined;

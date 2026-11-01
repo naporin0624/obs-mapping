@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mapOf } from '../../geometry/fixtures';
 import type { Mapping } from '../../model/mapping';
 import type { MappingChangedHandler, ObsClient, VendorResult } from '../../obs/client';
 import { createMappingSync, type MappingSync, type MappingSyncEvent } from '.';
 
-const mapping = (grid: number): Mapping => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: grid }, surfaces: [] });
+const mapping = (grid: number): Mapping => ({ ...mapOf(), grid: { size: grid } });
 
 type Fake = {
   client: ObsClient;

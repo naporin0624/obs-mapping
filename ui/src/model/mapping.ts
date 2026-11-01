@@ -1,4 +1,4 @@
-// Same shape as the plugin's JSON v1 (see plan-globals).
+// Same shape as the plugin's JSON v2 (see plan-globals).
 export type Point = readonly [number, number];
 
 export type Surface = {
@@ -11,9 +11,17 @@ export type Surface = {
   visible: boolean;
 };
 
-export type Mapping = {
-  version: 1;
-  canvas: { width: number; height: number };
-  grid: { size: number };
-  surfaces: readonly Surface[];
-};
+export type Direction = 'row' | 'column';
+export type LayoutAlign = 'start' | 'center' | 'end';
+export type GroupLayout = { direction: Direction; gap: number; align: LayoutAlign; padding: number };
+export type Group = { id: string; name: string; visible: boolean; origin: Point; layout: GroupLayout };
+
+export type SurfaceNode = { surface: string };
+export type GroupNode = { group: string; children: readonly LayerNode[] };
+export type LayerNode = SurfaceNode | GroupNode;
+
+type Base = { canvas: { width: number; height: number }; grid: { size: number }; surfaces: readonly Surface[] };
+
+export type Mapping = Base & { version: 2; groups: readonly Group[]; layers: readonly LayerNode[] };
+
+export type MappingV1 = Base & { version: 1 };
