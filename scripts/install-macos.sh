@@ -6,12 +6,17 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 src="${root}/build_macos/RelWithDebInfo/obs-mapping.plugin"
 dest_dir="${HOME}/Library/Application Support/obs-studio/plugins"
 
-# Build the UI first: it is emitted to data/ui, which the cmake build copies into Contents/Resources/ui.
+# Order matters: the UI is emitted to data/ui, and cmake copies data/ into Contents/Resources.
 pnpm -C "${root}/ui" install --frozen-lockfile
 pnpm -C "${root}/ui" build
+(cd "${root}" && cmake --preset macos && cmake --build --preset macos)
 
 if [[ ! -d "${src}" ]]; then
-	echo "not found: ${src} (run: cmake --preset macos && cmake --build --preset macos)" >&2
+	echo "not found: ${src} (the cmake build did not produce the plugin)" >&2
+	exit 1
+fi
+if [[ ! -f "${src}/Contents/Resources/ui/index.html" ]]; then
+	echo "UI missing from the bundle: ${src}/Contents/Resources/ui/index.html" >&2
 	exit 1
 fi
 

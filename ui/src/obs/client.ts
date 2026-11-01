@@ -41,6 +41,7 @@ const mappingChangedHandler =
   (cb: (sourceName: string, mapping: Mapping) => void) =>
   (ev: VendorEventPayload): void => {
     if (ev.vendorName !== VENDOR || ev.eventType !== 'MappingChanged') return;
+    if (typeof ev.eventData !== 'object' || ev.eventData === null) return;
     const data = ev.eventData as { sourceName?: string; mappingJson?: string };
     const parsed = parseMapping(data.mappingJson);
     if (parsed.ok && typeof data.sourceName === 'string') cb(data.sourceName, parsed.mapping);

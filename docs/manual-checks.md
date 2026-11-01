@@ -91,7 +91,7 @@ OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD='<パスワード>' OBS_MAPPING_S
 OBS の実機でしか確認できない項目。UI のビルド・型検査・lint・接続状態機械のテストは Task 7 の時点で確認済み。
 
 前提:
-- OBS を終了してから `bash scripts/install-macos.sh` を実行する（UI のビルドも走る）。OBS を起動し、「ツール > WebSocket サーバー設定」でサーバーを有効にして、ポートとパスワードを確認する。
+- OBS を終了してから `bash scripts/install-macos.sh` を実行する（UI のビルド、cmake のビルド、インストールの順に走る。バンドルに UI がなければ失敗する）。OBS を起動し、「ツール > WebSocket サーバー設定」でサーバーを有効にして、ポートとパスワードを確認する。
 - Mapping ソースを 1 つ以上作っておく。
 
 手順:
