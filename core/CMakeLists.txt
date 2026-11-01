@@ -17,7 +17,7 @@ if(NOT TARGET nlohmann_json::nlohmann_json)
   FetchContent_MakeAvailable(nlohmann_json)
 endif()
 
-add_library(obs_mapping_core STATIC src/mapping_json.cpp src/homography.cpp src/wire.cpp)
+add_library(obs_mapping_core STATIC src/mapping_json.cpp src/homography.cpp src/selection.cpp)
 target_include_directories(obs_mapping_core PUBLIC include)
 target_link_libraries(obs_mapping_core PUBLIC nlohmann_json::nlohmann_json)
 set_target_properties(

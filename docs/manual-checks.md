@@ -65,7 +65,47 @@ OBS の実機でしか確認できない項目。ビルドとコアのテスト�
 
 ## Task 6
 
-OBS の実機でしか確認できない項目。ビルドとコアのテスト（`wire` 変換を含む）は Task 6 の時点で確認済み。obs-websocket は OBS 33 に同梱されている。スモークテストは Mapping ソースのマッピングを書き換える（最後に元へ戻す）ので、ライブ配信中の OBS には向けないこと。
+OBS の実機でしか確認できない項目。ビルドとコアのテスト（`selectionJson` のパーサーを含む）は Task 6 の時点で確認済み。obs-websocket は OBS 33 に同梱されている。スモークテストは Mapping ソースのマッピングを書き換える（最後に元へ戻す）ので、ライブ配信中の OBS には向けないこと。
+
+前提:
+- OBS を終了してから `bash scripts/install-macos.sh` を実行し、OBS を起動する。
+- OBS の「ツール > WebSocket サーバー設定」でサーバーを有効にし、ポートとパスワードを確認する。
+- Mapping ソースを 1 つ作っておく（複数ある場合は `OBS_MAPPING_SOURCE` で指定する）。
+- 初回のみ `cd scripts && pnpm install`。
+
+実行:
+
+```sh
+OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD='<パスワード>' OBS_MAPPING_SOURCE='<ソース名>' node scripts/vendor-smoke.mjs
+```
+
+- [ ] (a) `smoke: all passed` が出て終了コードが 0 になる。途中で失敗した場合も `restored the original mapping` が出て、マッピングが元に戻っている。
+- [ ] (b) OBS のログに `obs-websocket vendor "obs-mapping" registered` が出ていて、警告 `obs-websocket not found` は出ていない。
+- [ ] (c) obs-websocket を無効にした状態（またはモジュールを外した状態）で OBS を起動しても、Mapping ソースは今まで通り使える。ログに `obs-websocket not found; the obs-mapping vendor API is unavailable` の警告だけが出る。
+- [ ] (d) ペイロード形式の確認: マッピングと選択状態は JSON 文字列で運ぶ（`mappingJson` / `selectionJson`）。スモークテストはこの形式を使っている。
+- [ ] (e) 存在しない名前を割り当て、後からその名前のソースを作る。表示される。
+- [ ] (f) 3 点を一直線に並べる。クラッシュせず、その面だけ消える。凹形や蝶ネクタイ形でも描画され、クラッシュしない。消えるのは 3 点が一直線などで変換が作れないときだけ。
+- [ ] (g) OBS を再起動し、シーンコレクションを切り替えて戻す。マッピングが残っている。
+- [ ] (h) 追加: 割り当てたソースを削除する。ログにエラーが出ず、そのソースをもう一度作ると表示が復活する。削除後に OBS 側でそのソースのメモリが解放される（削除がブロックされない）。
+- [ ] (i) 追加: 自分自身（Mapping ソース）や、Mapping を含むシーンを面のソースに指定する。無限再帰せず、ログに警告が 1 回だけ出る。
+- [ ] (j) 追加: 半透明の PNG を割り当てる。縁や半透明部分に黒い縁取りや白飛びが出ない。
+
+## Task 5
+
+OBS の実機でしか確認できない項目。ビルドとコアのテスト（破線の分割など）は Task 5 の時点で確認済み。`set_overlay` を呼ぶ obs-websocket 経由の操作は Task 6 以降なので、ここではプロパティのチェックボックスで確認する。
+
+前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する。Task 4 のサンプル `mapping_json` を使う。
+
+- [ ] (a) Mapping ソースのプロパティで「Edit overlay」にチェックを入れると、ソースプロジェクターにグリッド（白の薄い線、`grid_size` 間隔）、面の輪郭（シアン）、四隅のハンドル（白の小さな正方形）が出る。
+- [ ] (b) チェックを外すと、グリッド・輪郭・ハンドルが完全に消える（面の描画だけが残る）。
+- [ ] (c) 3 点が一直線に近い凹形・蝶ネクタイ形の面では、輪郭が赤の破線になる。
+- [ ] (d) 重要: チェックを入れたまま OBS を終了し、再起動する。「Edit overlay」は外れていて、ハンドルは出ない。シーンコレクションを切り替えて戻した場合も同様に外れている。
+- [ ] (e) オーバーレイを出していてもログにエラーが出ない（`failed to load warp.effect` を含む）。
+- [ ] (f) 目視: 面の凸形の輪郭が 2px、グリッドが 1px、ハンドルが 12px 四方で出ている（選択状態は Task 6 以降の API から設定するため、ここでは確認しない）。
+
+## Task 6
+
+OBS の実機でしか確認できない項目。ビルドとコアのテスト（`selectionJson` のパーサーを含む）は Task 6 の時点で確認済み。obs-websocket は OBS 33 に同梱されている。スモークテストは Mapping ソースのマッピングを書き換える（最後に元へ戻す）ので、ライブ配信中の OBS には向けないこと。
 
 前提:
 - OBS を終了してから `bash scripts/install-macos.sh` を実行し、OBS を起動する。

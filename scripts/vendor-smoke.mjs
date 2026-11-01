@@ -50,8 +50,9 @@ async function run() {
 
   // 2. Get
   const got = await call("GetMapping", { sourceName: target });
-  check(got?.ok === true && got.mapping?.version === 1, "GetMapping returns a version 1 mapping");
-  const original = got.mapping;
+  check(got?.ok === true && typeof got.mappingJson === "string", "GetMapping returns mappingJson");
+  const original = JSON.parse(got.mappingJson);
+  check(original.version === 1, "GetMapping returns a version 1 mapping");
   let restoreNeeded = false;
 
   try {
@@ -63,33 +64,34 @@ async function run() {
       source: "",
       crop: { x: 0, y: 0, width: 1, height: 1 },
       corners: [
-        { x: 100, y: 100 },
-        { x: 500, y: 100 },
-        { x: 500, y: 400 },
-        { x: 100, y: 400 },
+        [100, 100],
+        [500, 100],
+        [500, 400],
+        [100, 400],
       ],
       visible: true,
     };
     const next = { ...original, surfaces: [...original.surfaces, added] };
     const eventsBefore = events.length;
     restoreNeeded = true;
-    const set = await call("SetMapping", { sourceName: target, mapping: next });
+    const set = await call("SetMapping", { sourceName: target, mappingJson: JSON.stringify(next) });
     check(set?.ok === true, "SetMapping with an added surface succeeds");
 
     // 4. Get again
     const again = await call("GetMapping", { sourceName: target });
+    const againMapping = JSON.parse(again?.mappingJson ?? "{}");
     check(
-      again?.ok === true && again.mapping.surfaces.length === original.surfaces.length + 1,
+      again?.ok === true && againMapping.surfaces.length === original.surfaces.length + 1,
       "GetMapping reflects the added surface",
     );
-    check(again.mapping.surfaces.at(-1)?.id === added.id, "the added surface is the last one");
+    check(againMapping.surfaces.at(-1)?.id === added.id, "the added surface is the last one");
 
     // 6 (checked after the valid Set, before the invalid one). MappingChanged exactly once.
     check(await waitFor(() => events.length > eventsBefore, 2000), "MappingChanged event received");
     await sleep(300);
     check(events.length - eventsBefore === 1, "MappingChanged received exactly once for the valid Set");
     const ev = events.at(-1);
-    check(ev.sourceName === target && ev.mapping?.surfaces?.length === next.surfaces.length, "event carries sourceName and the new mapping");
+    check(ev.sourceName === target && JSON.parse(ev.mappingJson ?? "{}").surfaces?.length === next.surfaces.length, "event carries sourceName and the new mappingJson");
 
     // 5. Invalid Set (3 corners)
     const bad = {
@@ -97,7 +99,7 @@ async function run() {
       surfaces: [{ ...added, id: "smoke-bad", corners: added.corners.slice(0, 3) }],
     };
     const eventsBeforeBad = events.length;
-    const rejected = await call("SetMapping", { sourceName: target, mapping: bad });
+    const rejected = await call("SetMapping", { sourceName: target, mappingJson: JSON.stringify(bad) });
     check(rejected?.ok === false, "SetMapping with 3 corners is rejected");
     check(
       typeof rejected.error === "string" && rejected.error.includes("surfaces[0].corners"),
@@ -109,8 +111,7 @@ async function run() {
     const overlay = await call("SetOverlay", {
       sourceName: target,
       enabled: false,
-      selectedSurfaceIds: [],
-      selectedCorner: null,
+      selectionJson: JSON.stringify({ selectedSurfaceIds: [], selectedCorner: null }),
     });
     check(overlay?.ok === true, "SetOverlay succeeds");
 
@@ -118,7 +119,7 @@ async function run() {
     check(missing?.ok === false && missing.error.startsWith("source not found"), "unknown source is reported");
   } finally {
     if (restoreNeeded) {
-      const restored = await call("SetMapping", { sourceName: target, mapping: original });
+      const restored = await call("SetMapping", { sourceName: target, mappingJson: JSON.stringify(original) });
       if (restored?.ok !== true) throw new SmokeFailure(`could not restore the original mapping: ${restored?.error}`);
       console.log("restored the original mapping");
     }
