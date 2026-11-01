@@ -3,7 +3,9 @@ import { css } from '../../styled-system/css';
 import type { Action } from '../editor/reducer';
 import type { Selection } from '../editor/state';
 import type { Mapping } from '../model/mapping';
-import { buttonCls, buttonSolidCls, inputCls, rowCls } from './styles';
+import { countSurfacesBySource, surfaceCountLabel } from '../model/source-usage';
+import { SourceSelect } from './SourceSelect';
+import { buttonCls, buttonSolidCls, rowCls } from './styles';
 
 const sectionCls = css({ display: 'flex', flexDirection: 'column', gap: '2', p: '2', borderBottomWidth: 'default', borderBottomStyle: 'solid', borderBottomColor: 'border.subtle' });
 const headingCls = css({ fontFamily: 'mono', fontWeight: 700, color: 'fg.muted' });
@@ -94,6 +96,7 @@ export const SurfaceList = ({ mapping, selection, inputs, dispatch, onReloadInpu
   const [overId, setOverId] = useState<string | null>(null);
   const [pick, setPick] = useState('');
   const chosen = inputs.includes(pick) ? pick : (inputs[0] ?? '');
+  const counts = countSurfacesBySource(mapping);
   const drag = { id: dragId, setId: setDragId, setOver: setOverId };
 
   return (
@@ -115,14 +118,18 @@ export const SurfaceList = ({ mapping, selection, inputs, dispatch, onReloadInpu
       </ul>
       {mapping.surfaces.length === 0 ? <div className={hintCls}>面がありません。ソースを選んで追加してください。</div> : null}
       <div className={rowCls}>
-        <select className={`${inputCls} ${css({ flex: 1 })}`} aria-label="Source" value={chosen} onChange={(e) => setPick(e.target.value)} onFocus={onReloadInputs}>
-          {inputs.length === 0 ? <option value="">No inputs</option> : null}
-          {inputs.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <SourceSelect
+          className={css({ flex: 1 })}
+          ariaLabel="Source"
+          placeholder="No inputs"
+          items={inputs.map((name) => ({ id: name, label: name, detail: surfaceCountLabel(counts.get(name) ?? 0) }))}
+          value={chosen === '' ? null : chosen}
+          isDisabled={inputs.length === 0}
+          onChange={setPick}
+          onOpenChange={(open) => {
+            if (open) onReloadInputs();
+          }}
+        />
         <button type="button" className={buttonSolidCls} disabled={chosen === ''} onClick={() => dispatch({ type: 'addSurface', source: chosen })}>
           Add
         </button>

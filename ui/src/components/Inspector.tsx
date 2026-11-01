@@ -5,8 +5,9 @@ import type { Action } from '../editor/reducer';
 import type { CornerIndex, Selection } from '../editor/state';
 import { boundsOf, type Bounds } from '../geometry/rect';
 import type { Mapping, Surface } from '../model/mapping';
+import { countSurfacesBySource, surfaceCountLabel } from '../model/source-usage';
 import { NumField, TextField } from './Field';
-import { inputCls, labelCls } from './styles';
+import { SourceSelect } from './SourceSelect';
 
 const sectionCls = css({ display: 'flex', flexDirection: 'column', gap: '2', p: '2' });
 const headingCls = css({ fontFamily: 'mono', fontWeight: 700, color: 'fg.muted' });
@@ -21,7 +22,7 @@ const CROP_FIELDS: readonly { key: CropKey; label: string }[] = [
 
 type Props = { mapping: Mapping; selection: Selection; inputs: readonly string[]; dispatch: Dispatch<Action> };
 
-type SurfaceProps = { surface: Surface; selection: Selection; inputs: readonly string[]; dispatch: Dispatch<Action> };
+type SurfaceProps = { surface: Surface; selection: Selection; inputs: readonly string[]; counts: ReadonlyMap<string, number>; dispatch: Dispatch<Action> };
 
 type FieldProps = { surface: Surface; dispatch: Dispatch<Action> };
 
@@ -72,24 +73,20 @@ const CropFields = ({ surface, dispatch }: FieldProps) => (
   </>
 );
 
-const SurfaceFields = ({ surface, selection, inputs, dispatch }: SurfaceProps) => {
+const SurfaceFields = ({ surface, selection, inputs, counts, dispatch }: SurfaceProps) => {
   const id = surface.id;
   const corner = selection.corner?.surfaceId === id ? selection.corner : null;
   const options = inputs.includes(surface.source) || surface.source === '' ? inputs : [surface.source, ...inputs];
   return (
     <>
       <TextField label="Name" value={surface.name} onCommit={(name) => dispatch({ type: 'patchSurface', surfaceId: id, patch: { name } })} />
-      <label className={labelCls}>
-        <span>Source</span>
-        <select className={`${inputCls} ${css({ flex: 1 })}`} value={surface.source} onChange={(e) => dispatch({ type: 'patchSurface', surfaceId: id, patch: { source: e.target.value } })}>
-          {surface.source === '' ? <option value="">未割当</option> : null}
-          {options.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <SourceSelect
+        label="Source"
+        placeholder="未割当"
+        items={options.map((name) => ({ id: name, label: name, detail: surfaceCountLabel(counts.get(name) ?? 0) }))}
+        value={surface.source === '' ? null : surface.source}
+        onChange={(source) => dispatch({ type: 'patchSurface', surfaceId: id, patch: { source } })}
+      />
       {corner === null ? null : <CornerFields surface={surface} index={corner.index} dispatch={dispatch} />}
       <BoundsFields surface={surface} dispatch={dispatch} />
       <CropFields surface={surface} dispatch={dispatch} />
@@ -106,7 +103,7 @@ export const Inspector = ({ mapping, selection, inputs, dispatch }: Props) => {
       {surface === undefined ? (
         <div className={css({ color: 'fg.muted' })}>面を 1 つ選択すると編集できます。</div>
       ) : (
-        <SurfaceFields key={surface.id} surface={surface} selection={selection} inputs={inputs} dispatch={dispatch} />
+        <SurfaceFields key={surface.id} surface={surface} selection={selection} inputs={inputs} counts={countSurfacesBySource(mapping)} dispatch={dispatch} />
       )}
     </section>
   );

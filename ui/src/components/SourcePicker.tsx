@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { css } from '../../styled-system/css';
 import type { ObsClient } from '../obs/client';
-import { buttonCls, barCls, inputCls, labelCls, rowCls } from './styles';
+import { SourceSelect } from './SourceSelect';
+import { buttonCls, barCls, rowCls } from './styles';
 
 type MappingSource = { name: string; width: number; height: number };
 
@@ -31,17 +32,13 @@ export const SourcePicker = ({ client, selected, onSelect }: Props) => {
 
   return (
     <div className={`${rowCls} ${barCls}`}>
-      <label className={labelCls}>
-        Source{' '}
-        <select className={inputCls} value={selected} onChange={(e) => onSelect(e.target.value)}>
-          <option value="">Select a source</option>
-          {sources.map((s) => (
-            <option key={s.name} value={s.name}>
-              {s.name} ({s.width}x{s.height})
-            </option>
-          ))}
-        </select>
-      </label>
+      <SourceSelect
+        label="Source"
+        placeholder="Select a source"
+        items={sources.map((s) => ({ id: s.name, label: s.name, detail: `${String(s.width)}x${String(s.height)}` }))}
+        value={selected === '' ? null : selected}
+        onChange={onSelect}
+      />
       <button type="button" className={buttonCls} onClick={() => void reload()}>
         Reload
       </button>
