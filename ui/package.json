@@ -5,6 +5,7 @@
   "description": "obs-mapping editor UI (OBS custom browser dock)",
   "type": "module",
   "scripts": {
+    "prepare": "panda codegen",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -19,6 +20,9 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@pandacss/dev": "^2.4.0",
+    "@pandacss/preset-base": "^2.4.0",
+    "@pandacss/preset-panda": "^2.4.0",
     "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -27,6 +31,7 @@
     "oxfmt": "^0.75.0",
     "oxlint": "^1.90.0",
     "oxlint-tsgolint": "^7.0.2005",
+    "postcss": "^8.5.32",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   },

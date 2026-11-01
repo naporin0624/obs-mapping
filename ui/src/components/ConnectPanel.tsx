@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { css } from '../../styled-system/css';
 import type { ConnState } from '../obs/connection';
 import type { ConnSettings } from '../obs/use-obs-connection';
+import { buttonCls, inputCls, labelCls, rowCls } from './styles';
 
 const label = (s: ConnState): string => {
   switch (s.kind) {
@@ -17,6 +19,13 @@ const label = (s: ConnState): string => {
   }
 };
 
+const statusCls = css({
+  fontSize: '11px',
+  color: 'text.dim',
+  '&[data-kind=open]': { color: 'accent' },
+  '&[data-kind=auth_failed]': { color: 'danger' },
+});
+
 type Props = {
   initial: ConnSettings;
   state: ConnState;
@@ -31,21 +40,23 @@ export const ConnectPanel = ({ initial, state, onConnect, onDisconnect }: Props)
 
   return (
     <form
-      className="connect-panel"
+      className={`${rowCls} ${css({ px: '8px', py: '6px', bg: 'bg.panel', borderBottom: '1px solid token(colors.line)' })}`}
       onSubmit={(e) => {
         e.preventDefault();
         if (active) onDisconnect();
         else onConnect({ url, password });
       }}
     >
-      <label>
-        URL <input value={url} onChange={(e) => setUrl(e.target.value)} disabled={active} />
+      <label className={labelCls}>
+        URL <input className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} disabled={active} />
       </label>
-      <label>
-        パスワード <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={active} autoComplete="off" />
+      <label className={labelCls}>
+        パスワード <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={active} autoComplete="off" />
       </label>
-      <button type="submit">{active ? '切断' : '接続'}</button>
-      <span role="status" data-kind={state.kind}>
+      <button type="submit" className={buttonCls}>
+        {active ? '切断' : '接続'}
+      </button>
+      <span role="status" className={statusCls} data-kind={state.kind}>
         {label(state)}
       </span>
     </form>

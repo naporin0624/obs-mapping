@@ -9,3 +9,4 @@ build_core/
 node_modules/
 data/ui/
 ui/node_modules/
+ui/styled-system/
