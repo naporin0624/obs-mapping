@@ -173,12 +173,11 @@ const handlers: Handlers = {
   remote: (s, a) => {
     if (s.dragging) return { ...s, pendingRemote: a.mapping };
     const json = canonicalJson(a.mapping);
-    const at = s.inFlight.indexOf(json);
-    const inFlight = at < 0 ? s.inFlight : s.inFlight.slice(at + 1);
-    // Own echo with newer sends pending, or already equal to local: nothing to apply.
-    const ignore = at >= 0 && (inFlight.length > 0 || canonicalJson(s.mapping) === json);
-    if (ignore) return inFlight.length === s.inFlight.length ? s : { ...s, inFlight };
-    return { ...s, inFlight, mapping: a.mapping, selection: pruneSelection(s.selection, a.mapping) };
+    const at = s.inFlight.lastIndexOf(json);
+    // An own echo only consumes its in-flight entries; local edits made during the round trip must not flash back.
+    // (A lost or reordered echo is reconciled by the 2 s idle resync.)
+    if (at >= 0) return { ...s, inFlight: s.inFlight.slice(at + 1) };
+    return { ...s, mapping: a.mapping, selection: pruneSelection(s.selection, a.mapping) };
   },
 };
 

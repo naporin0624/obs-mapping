@@ -7,7 +7,12 @@ import { defineConfig, type Plugin } from 'vite';
 const classicScript = (): Plugin => ({
   name: 'classic-script',
   enforce: 'post',
-  transformIndexHtml: (html) => html.replace(/<script type="module" crossorigin /g, '<script defer ').replace(/<link rel="stylesheet" crossorigin /g, '<link rel="stylesheet" '),
+  transformIndexHtml: (html) => {
+    const out = html.replace(/<script type="module" crossorigin /g, '<script defer ').replace(/<link rel="stylesheet" crossorigin /g, '<link rel="stylesheet" ');
+    // a module script would silently not run from file:// inside OBS: fail the build instead
+    if (/type=["']module["']/.test(out)) throw new Error('classic-script: index.html still contains a type="module" script');
+    return out;
+  },
 });
 
 // base './' and outDir ../data/ui: the plugin bundle serves the UI via file://

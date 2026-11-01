@@ -158,4 +158,18 @@ describe('send queue', () => {
     await vi.advanceTimersByTimeAsync(100);
     expect(grids(calls)).toEqual([1]);
   });
+
+  it('discard drops the pending mapping and ignores the abandoned request', async () => {
+    const { calls, errors, queue } = harness();
+    queue.push(mapping(1), { dragging: true });
+    queue.push(mapping(2), { dragging: true }); // pending behind the throttle
+    queue.discard();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(grids(calls)).toEqual([1]);
+    calls[0]?.d.reject(new Error('offline')); // late failure must not requeue the discarded send
+    await vi.advanceTimersByTimeAsync(100);
+    queue.push(mapping(3), { dragging: false });
+    expect(grids(calls)).toEqual([1, 3]);
+    expect(errors).toEqual([]);
+  });
 });

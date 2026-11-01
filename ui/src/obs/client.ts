@@ -7,20 +7,23 @@ export type VendorFailure = { ok: false; error: string; transport?: true };
 export type VendorResult<T> = ({ ok: true } & T) | VendorFailure;
 
 export type OverlayState = {
-  enabled: boolean;
+  /** Omit to leave the plugin's current flag alone (selection-only update). */
+  enabled?: boolean;
   selectedSurfaceIds: string[];
   selectedCorner: { surfaceId: string; index: number } | null;
 };
 
 export interface ObsClient {
   listMappingSources(): Promise<VendorResult<{ sources: { name: string; width: number; height: number }[] }>>;
-  getMapping(sourceName: string): Promise<VendorResult<{ mapping: Mapping }>>;
+  getMapping(sourceName: string): Promise<VendorResult<{ mapping: Mapping; overlayEnabled: boolean }>>;
   setMapping(sourceName: string, mapping: Mapping): Promise<VendorResult<{}>>;
   setOverlay(sourceName: string, state: OverlayState): Promise<VendorResult<{}>>;
   screenshot(sourceName: string, width: number): Promise<string>;
   /** Names of OBS inputs that can be assigned to a surface (Mapping sources excluded); [] on failure. */
   listInputs(): Promise<string[]>;
-  onMappingChanged(cb: (sourceName: string, mapping: Mapping) => void): () => void;
+  /** overlayEnabled is undefined when the event did not carry it. */
+  onMappingChanged(cb: (sourceName: string, mapping: Mapping, overlayEnabled: boolean | undefined) => void): () => void;
+  onOverlayChanged(cb: (sourceName: string, enabled: boolean) => void): () => void;
 }
 
 const VENDOR = 'obs-mapping';
@@ -43,14 +46,31 @@ const parseMapping = (json: unknown): VendorResult<{ mapping: Mapping }> => {
 
 type VendorEventPayload = { vendorName: string; eventType: string; eventData: unknown };
 
+const eventData = (ev: VendorEventPayload, eventType: string): Record<string, unknown> | null => {
+  if (ev.vendorName !== VENDOR || ev.eventType !== eventType) return null;
+  if (typeof ev.eventData !== 'object' || ev.eventData === null) return null;
+  return ev.eventData as Record<string, unknown>;
+};
+
 const mappingChangedHandler =
-  (cb: (sourceName: string, mapping: Mapping) => void) =>
+  (cb: (sourceName: string, mapping: Mapping, overlayEnabled: boolean | undefined) => void) =>
   (ev: VendorEventPayload): void => {
-    if (ev.vendorName !== VENDOR || ev.eventType !== 'MappingChanged') return;
-    if (typeof ev.eventData !== 'object' || ev.eventData === null) return;
-    const data = ev.eventData as { sourceName?: string; mappingJson?: string };
-    const parsed = parseMapping(data.mappingJson);
-    if (parsed.ok && typeof data.sourceName === 'string') cb(data.sourceName, parsed.mapping);
+    const data = eventData(ev, 'MappingChanged');
+    if (data === null) return;
+    const parsed = parseMapping(data['mappingJson']);
+    const name = data['sourceName'];
+    const overlay = data['overlayEnabled'];
+    if (parsed.ok && typeof name === 'string') cb(name, parsed.mapping, typeof overlay === 'boolean' ? overlay : undefined);
+  };
+
+const overlayChangedHandler =
+  (cb: (sourceName: string, enabled: boolean) => void) =>
+  (ev: VendorEventPayload): void => {
+    const data = eventData(ev, 'OverlayChanged');
+    if (data === null) return;
+    const name = data['sourceName'];
+    const enabled = data['enabled'];
+    if (typeof name === 'string' && typeof enabled === 'boolean') cb(name, enabled);
   };
 
 export type ObsConnection = {
@@ -60,7 +80,7 @@ export type ObsConnection = {
   onClose(cb: (code: number) => void): () => void;
 };
 
-const listInputNames = async (obs: OBSWebSocket): Promise<string[]> => {
+const listInputNames = async (obs: ObsSocket): Promise<string[]> => {
   try {
     const res = await obs.call('GetInputList');
     return res.inputs.flatMap((i) => (i['inputKind'] === MAPPING_INPUT_KIND || typeof i['inputName'] !== 'string' ? [] : [i['inputName']]));
@@ -70,7 +90,17 @@ const listInputNames = async (obs: OBSWebSocket): Promise<string[]> => {
   }
 };
 
-const createClient = (obs: OBSWebSocket): ObsClient => {
+const subscribeVendor = (obs: ObsSocket, handler: (ev: VendorEventPayload) => void): (() => void) => {
+  obs.on('VendorEvent', handler);
+  return () => {
+    obs.off('VendorEvent', handler);
+  };
+};
+
+/** The slice of OBSWebSocket the client uses (lets tests pass a fake). */
+export type ObsSocket = Pick<OBSWebSocket, 'call' | 'on' | 'off'>;
+
+export const createClient = (obs: ObsSocket): ObsClient => {
   const call = async (requestType: string, requestData: Record<string, unknown>): Promise<Reply> => {
     try {
       const res = await obs.call('CallVendorRequest', { vendorName: VENDOR, requestType, requestData: requestData as never });
@@ -91,7 +121,9 @@ const createClient = (obs: OBSWebSocket): ObsClient => {
     },
     async getMapping(sourceName) {
       const r = await call('GetMapping', { sourceName });
-      return r.ok ? parseMapping(r['mappingJson']) : fail(r);
+      if (!r.ok) return fail(r);
+      const parsed = parseMapping(r['mappingJson']);
+      return parsed.ok ? { ok: true, mapping: parsed.mapping, overlayEnabled: r['overlayEnabled'] === true } : parsed;
     },
     async setMapping(sourceName, mapping) {
       const r = await call('SetMapping', { sourceName, mappingJson: JSON.stringify(mapping) });
@@ -99,7 +131,7 @@ const createClient = (obs: OBSWebSocket): ObsClient => {
     },
     async setOverlay(sourceName, state) {
       const selectionJson = JSON.stringify({ selectedSurfaceIds: state.selectedSurfaceIds, selectedCorner: state.selectedCorner });
-      const r = await call('SetOverlay', { sourceName, enabled: state.enabled, selectionJson });
+      const r = await call('SetOverlay', state.enabled === undefined ? { sourceName, selectionJson } : { sourceName, enabled: state.enabled, selectionJson });
       return r.ok ? { ok: true } : fail(r);
     },
     async screenshot(sourceName, width) {
@@ -107,13 +139,8 @@ const createClient = (obs: OBSWebSocket): ObsClient => {
       return res.imageData;
     },
     listInputs: () => listInputNames(obs),
-    onMappingChanged(cb) {
-      const handler = mappingChangedHandler(cb);
-      obs.on('VendorEvent', handler);
-      return () => {
-        obs.off('VendorEvent', handler);
-      };
-    },
+    onMappingChanged: (cb) => subscribeVendor(obs, mappingChangedHandler(cb)),
+    onOverlayChanged: (cb) => subscribeVendor(obs, overlayChangedHandler(cb)),
   };
 };
 

@@ -132,13 +132,26 @@ describe('remote sync', () => {
     return reducer(n, { type: 'sent', json: canonicalJson(n.mapping) });
   };
   const z = () => mk(surf('z', 0, 0));
-  it('does not swallow a later remote equal to a stale send (A, external Z, plugin returns to A)', () => {
+  it('an own echo never replaces the local mapping, even if local edits diverged during the round trip', () => {
+    const sent = sendNudge(run(base(), sel(['a'])), 1);
+    const sentMapping = sent.mapping;
+    const edited = reducer(sent, { type: 'nudge', dx: 5, dy: 0 }); // local edit not yet sent
+    const after = reducer(edited, { type: 'remote', mapping: sentMapping });
+    expect(after.mapping).toBe(edited.mapping);
+    expect(after.inFlight).toEqual([]);
+  });
+  it('a foreign remote still replaces the local mapping and keeps inFlight', () => {
     const a = sendNudge(run(base(), sel(['a'])), 1);
-    const sentA = a.mapping;
-    const atZ = run(a, { type: 'remote', mapping: z() });
+    const atZ = reducer(a, { type: 'remote', mapping: z() });
     expect(atZ.mapping.surfaces.map((x) => x.id)).toEqual(['z']);
-    const back = reducer(atZ, { type: 'remote', mapping: sentA });
-    expect(back.mapping).toEqual(sentA);
+    expect(atZ.inFlight).toEqual(a.inFlight);
+  });
+  it('matches the newest duplicate in inFlight and drops everything before it', () => {
+    const a = sendNudge(run(base(), sel(['a'])), 1);
+    const dup = reducer(a, { type: 'sent', json: a.inFlight[0] as string });
+    const mid = reducer(dup, { type: 'sent', json: 'other' });
+    const after = reducer(mid, { type: 'remote', mapping: a.mapping });
+    expect(after.inFlight).toEqual(['other']);
   });
   it('send A, send B, echo A is ignored, echo B no-ops', () => {
     const a = sendNudge(run(base(), sel(['a'])), 1);
@@ -149,13 +162,6 @@ describe('remote sync', () => {
     const e2 = reducer(e1, { type: 'remote', mapping: b.mapping });
     expect(e2.mapping).toBe(b.mapping);
     expect(e2.inFlight).toEqual([]);
-  });
-  it('A, B, then external Z between echoes ends on B', () => {
-    const a = sendNudge(run(base(), sel(['a'])), 1);
-    const mapA = a.mapping;
-    const b = sendNudge(a, 1);
-    const end = run(b, { type: 'remote', mapping: mapA }, { type: 'remote', mapping: z() }, { type: 'remote', mapping: b.mapping });
-    expect(end.mapping).toEqual(b.mapping);
   });
   it('A, B, echoes, then external Z ends on Z', () => {
     const a = sendNudge(run(base(), sel(['a'])), 1);

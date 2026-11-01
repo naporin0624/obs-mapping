@@ -35,11 +35,13 @@ type Shared = {
   unsent: Mapping | null;
   queue: SendQueue | null;
   online: boolean;
+  /** This dock switched the overlay on for the current source (and so switches it off when leaving). */
+  overlayOwned: boolean;
   /** The inFlight list a resync was already attempted for (avoids resyncing the same stale entries forever). */
   resynced: readonly string[] | null;
 };
 
-type LoadCtl = { tick: number; setLoaded: (v: boolean) => void; setError: (e: string | null) => void };
+type LoadCtl = { tick: number; setLoaded: (v: boolean) => void; setError: (e: string | null) => void; setOverlay: (v: boolean) => void };
 
 type Env = { client: ObsClient; source: string; shared: RefObject<Shared>; dispatch: Dispatch<Action>; report: (text: string) => void };
 
@@ -48,11 +50,13 @@ const useQueue = ({ client, source, shared, dispatch, report }: Env): void => {
   useEffect(() => {
     const s = shared.current;
     s.unsent = null;
+    let retired = false;
     s.queue = createSendQueue({
       send: async (m) => {
         // Rejecting (not resolving ok:false) tells the queue the connection is down: keep and resend later.
         if (!shared.current.online) throw new Error('offline');
-        dispatch({ type: 'sent', json: canonicalJson(m) });
+        // a final flush for a source we are leaving must not leak into the next source's in-flight list
+        if (!retired) dispatch({ type: 'sent', json: canonicalJson(m) });
         const r = await client.setMapping(source, m);
         // a transport failure can settle before the `online` flag flips: still keep the edit unsent
         if (!r.ok && (r.transport === true || !shared.current.online)) throw new Error(r.error);
@@ -63,6 +67,9 @@ const useQueue = ({ client, source, shared, dispatch, report }: Env): void => {
       onError: report,
     });
     return () => {
+      // a throttled edit still waiting for its slot belongs to the old source: deliver it before leaving
+      retired = true;
+      s.queue?.flush();
       s.queue?.dispose();
       s.queue = null;
     };
@@ -71,12 +78,13 @@ const useQueue = ({ client, source, shared, dispatch, report }: Env): void => {
 
 /** Initial load, and the reconnect rule: resend an unsent local change, otherwise reload from the plugin. */
 const useLoad = (env: Env, online: boolean, ctl: LoadCtl): void => {
-  const { tick, setLoaded, setError } = ctl;
+  const { tick, setLoaded, setError, setOverlay } = ctl;
   const { client, source, shared, dispatch, report } = env;
   useEffect(() => {
     setLoaded(false);
     setError(null);
-  }, [client, source, setLoaded, setError]);
+    setOverlay(false); // the plugin's value arrives with the load
+  }, [client, source, setLoaded, setError, setOverlay]);
 
   useEffect(() => {
     if (!online || source === '') return undefined;
@@ -97,16 +105,18 @@ const useLoad = (env: Env, online: boolean, ctl: LoadCtl): void => {
       const sh = shared.current;
       sh.skip = r.mapping;
       dispatch({ type: 'load', mapping: r.mapping });
+      setOverlay(r.overlayEnabled);
+      sh.overlayOwned = sh.overlayOwned && r.overlayEnabled;
       setLoaded(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [client, source, online, tick, shared, dispatch, report, setLoaded, setError]);
+  }, [client, source, online, tick, shared, dispatch, report, setLoaded, setError, setOverlay]);
 };
 
 /** Local edits go to the queue (throttled while dragging); plugin changes come back as `remote`. */
-const useMappingFlow = (env: Env, state: EditorState, loaded: boolean): void => {
+const useMappingFlow = (env: Env, state: EditorState, loaded: boolean, setOverlay: (v: boolean) => void): void => {
   const { client, source, shared, dispatch } = env;
 
   useEffect(() => {
@@ -129,13 +139,14 @@ const useMappingFlow = (env: Env, state: EditorState, loaded: boolean): void => 
 
   useEffect(
     () =>
-      client.onMappingChanged((name, mapping) => {
+      client.onMappingChanged((name, mapping, overlayEnabled) => {
         if (name !== source) return;
         const sh = shared.current;
         sh.skip = mapping;
         dispatch({ type: 'remote', mapping });
+        if (overlayEnabled !== undefined) setOverlay(overlayEnabled);
       }),
-    [client, source, shared, dispatch],
+    [client, source, shared, dispatch, setOverlay],
   );
 };
 
@@ -163,12 +174,64 @@ const useResync = (env: Env, state: EditorState, online: boolean): void => {
   }, [client, source, online, state.inFlight, state.mapping, state.dragging, shared, dispatch]);
 };
 
-const useOverlay = (client: ObsClient, source: string, online: boolean, loaded: boolean, state: EditorState, enabled: boolean): void => {
+/** Selection changes go to the plugin without `enabled` (the plugin owns that flag); only the toggle sends it. */
+const useOverlay = (env: Env, online: boolean, loaded: boolean, state: EditorState, setOverlay: (v: boolean) => void): void => {
+  const { client, source } = env;
+  useOverlayFollow(env, setOverlay);
   const { surfaceIds, corner } = state.selection;
   useEffect(() => {
     if (!online || !loaded || source === '') return;
-    void client.setOverlay(source, { enabled, selectedSurfaceIds: surfaceIds, selectedCorner: corner });
-  }, [client, source, online, loaded, enabled, surfaceIds, corner]);
+    void client.setOverlay(source, { selectedSurfaceIds: surfaceIds, selectedCorner: corner });
+  }, [client, source, online, loaded, surfaceIds, corner]);
+};
+
+/** The toggle button: the only place that sends `enabled`. A refusal puts the toggle back and is toasted. */
+const useOverlayToggle = (env: Env, state: EditorState, setOverlay: (v: boolean) => void): ((enabled: boolean) => void) => {
+  const { client, source, shared, report } = env;
+  const selection = useRef(state.selection);
+  useEffect(() => {
+    selection.current = state.selection;
+  }, [state.selection]);
+
+  return useCallback(
+    (enabled: boolean) => {
+      if (!shared.current.online || source === '') return;
+      shared.current.overlayOwned = enabled;
+      setOverlay(enabled);
+      const { surfaceIds, corner } = selection.current;
+      void (async () => {
+        const r = await client.setOverlay(source, { enabled, selectedSurfaceIds: surfaceIds, selectedCorner: corner });
+        if (r.ok) return;
+        shared.current.overlayOwned = false;
+        setOverlay(!enabled);
+        report(r.error);
+      })();
+    },
+    [client, source, shared, report, setOverlay],
+  );
+};
+
+/** Follows the plugin's overlay flag (property checkbox, other docks) and turns off what this dock turned on when leaving a source. */
+const useOverlayFollow = (env: Env, setOverlay: (v: boolean) => void): void => {
+  const { client, source, shared } = env;
+  useEffect(
+    () =>
+      client.onOverlayChanged((name, enabled) => {
+        if (name !== source) return;
+        shared.current.overlayOwned = shared.current.overlayOwned && enabled;
+        setOverlay(enabled);
+      }),
+    [client, source, shared, setOverlay],
+  );
+
+  useEffect(() => {
+    const sh = shared.current;
+    return () => {
+      if (!sh.overlayOwned) return;
+      sh.overlayOwned = false;
+      void client.setOverlay(source, { enabled: false, selectedSurfaceIds: [], selectedCorner: null });
+    };
+  }, [client, source, shared]);
 };
 
 const useLoadState = () => {
@@ -189,10 +252,10 @@ const useToast = () => {
 /** Wires the editor reducer to the plugin: load, throttled send, remote echoes, overlay and reconnect. */
 export const useSync = (client: ObsClient, source: string, online: boolean): Sync => {
   const [state, dispatch] = useReducer(reducer, EMPTY_MAPPING, initialEditorState);
-  const [overlayEnabled, setOverlayEnabled] = useState(true);
+  const [overlayEnabled, setOverlay] = useState(false);
   const { loaded, loadError, retry, ctl } = useLoadState();
   const { toast, report, dismissToast } = useToast();
-  const shared = useRef<Shared>({ skip: null, unsent: null, queue: null, online, resynced: null });
+  const shared = useRef<Shared>({ skip: null, unsent: null, queue: null, online, overlayOwned: false, resynced: null });
 
   useEffect(() => {
     const sh = shared.current;
@@ -201,16 +264,28 @@ export const useSync = (client: ObsClient, source: string, online: boolean): Syn
 
   const env: Env = { client, source, shared, dispatch, report };
   useQueue(env);
-  useLoad(env, online, ctl);
-  useMappingFlow(env, state, loaded);
+  useLoad(env, online, { ...ctl, setOverlay });
+  useMappingFlow(env, state, loaded, setOverlay);
   useResync(env, state, online);
-  useOverlay(client, source, online, loaded, state, overlayEnabled);
+  useOverlay(env, online, loaded, state, setOverlay);
+
+  const setOverlayEnabled = useOverlayToggle(env, state, setOverlay);
 
   const applyImport = useCallback(
     async (mapping: Mapping): Promise<boolean> => {
+      // the import supersedes whatever the queue was holding; drop it so it cannot overwrite the import later
+      const sh = shared.current;
+      const dropped = sh.unsent;
+      sh.queue?.discard();
+      sh.unsent = null;
       const r = await client.setMapping(source, mapping);
       if (!r.ok) {
         report(r.error);
+        if (dropped !== null && shared.current.unsent === null) {
+          shared.current.unsent = dropped;
+          // oxlint-disable-next-line no-restricted-properties -- SendQueue.push, not Array.prototype.push
+          shared.current.queue?.push(dropped, { dragging: false });
+        }
         return false;
       }
       // the plugin's echo converges via `remote`; loading now updates the view at once and resets history

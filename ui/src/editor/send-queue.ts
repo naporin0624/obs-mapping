@@ -17,6 +17,8 @@ export type SendQueue = {
   flush(): void;
   /** The connection came back: resend whatever could not be delivered. */
   onReconnect(): void;
+  /** Drop everything not yet answered (pending, timer, an unanswered request's retry); used before a direct write. */
+  discard(): void;
   dispose(): void;
 };
 
@@ -73,6 +75,16 @@ class Queue implements SendQueue {
       this.#current = null;
     }
     this.#attempt();
+  }
+
+  discard(): void {
+    this.#pending = null;
+    this.#cancelTimer();
+    if (this.#inFlight) {
+      this.#generation = this.#generation + 1; // its late answer must neither retry nor report
+      this.#inFlight = false;
+      this.#current = null;
+    }
   }
 
   dispose(): void {
