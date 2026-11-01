@@ -16,12 +16,12 @@ struct Color {
 	float r, g, b, a;
 };
 
-constexpr Color kGridColor{1.0f, 1.0f, 1.0f, 0.25f};
-constexpr Color kOutlineColor{0.0f, 1.0f, 1.0f, 1.0f};
-constexpr Color kSelectedColor{1.0f, 1.0f, 0.0f, 1.0f};
-constexpr Color kInvalidColor{1.0f, 0.0f, 0.0f, 1.0f};
-constexpr Color kHandleColor{1.0f, 1.0f, 1.0f, 1.0f};
-constexpr Color kSelectedCornerColor{1.0f, 0.0f, 0.0f, 1.0f};
+constexpr Color kGridColor{0.9321f, 0.9374f, 0.9483f, 0.25f};          // colors-gray-1 @ 25%
+constexpr Color kOutlineColor{0.5254f, 0.5254f, 0.5254f, 1.0f};         // colors-dark-border-strong
+constexpr Color kSelectedColor{0.2243f, 0.5868f, 1.0f, 1.0f};           // colors-neon-blue
+constexpr Color kInvalidColor{1.0f, 0.1356f, 0.209f, 1.0f};             // colors-red-text (danger-text)
+constexpr Color kHandleColor{0.9321f, 0.9374f, 0.9483f, 1.0f};          // colors-gray-1 (fg-default)
+constexpr Color kSelectedCornerColor{0.2243f, 0.5868f, 1.0f, 1.0f};     // colors-neon-blue
 
 constexpr double kGridThickness = 1.0;
 constexpr double kOutlineThickness = 2.0;
