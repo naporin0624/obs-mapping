@@ -1,29 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import type { Mapping } from '../model/mapping';
+import { mapOf } from '../geometry/fixtures';
+import type { Mapping, MappingV1, Surface } from '../model/mapping';
 import { exportMapping } from './export';
 import { parseImport, scaleMapping } from './import';
 
-const mapping = (width: number, height: number): Mapping => ({
-  version: 1,
-  canvas: { width, height },
-  grid: { size: 10 },
-  surfaces: [
-    {
-      id: 's1',
-      name: 'A',
-      type: 'quad',
-      source: 'cam',
-      crop: { x: 0, y: 0, width: 1, height: 1 },
-      corners: [
-        [0, 0],
-        [width, 0],
-        [width, height],
-        [0, height],
-      ],
-      visible: true,
-    },
+const surfaceOf = (width: number, height: number): Surface => ({
+  id: 's1',
+  name: 'A',
+  type: 'quad',
+  source: 'cam',
+  crop: { x: 0, y: 0, width: 1, height: 1 },
+  corners: [
+    [0, 0],
+    [width, 0],
+    [width, height],
+    [0, height],
   ],
+  visible: true,
 });
+
+const mapping = (width: number, height: number): Mapping => ({ ...mapOf(surfaceOf(width, height)), canvas: { width, height } });
+
+const mappingV1 = (width: number, height: number): MappingV1 => ({ version: 1, canvas: { width, height }, grid: { size: 10 }, surfaces: [surfaceOf(width, height)] });
 
 const current = { width: 1920, height: 1080 };
 
@@ -36,6 +34,17 @@ describe('parseImport', () => {
   it('returns mismatch with the current canvas for a different resolution', () => {
     const m = mapping(1280, 720);
     expect(parseImport(JSON.stringify(m), current)).toEqual({ kind: 'mismatch', mapping: m, current });
+  });
+
+  it('reads a v1 file as a v2 mapping', () => {
+    const r = parseImport(JSON.stringify(mappingV1(1920, 1080)), current);
+    expect(r).toEqual({ kind: 'ok', mapping: mapping(1920, 1080) });
+  });
+
+  it('rejects a v2 file whose surfaces do not follow the layers order', () => {
+    const m = { ...mapOf({ ...surfaceOf(10, 10), id: 'a' }, { ...surfaceOf(10, 10), id: 'b' }) };
+    const r = parseImport(JSON.stringify({ ...m, layers: [...m.layers].reverse() }), current);
+    expect(r).toEqual({ kind: 'error', message: 'surfaces: order must match the depth-first order of layers' });
   });
 
   it('reports broken JSON with a json: prefix', () => {
@@ -51,7 +60,7 @@ describe('parseImport', () => {
   it('rejects a missing or unsupported version', () => {
     const { version: _v, ...noVersion } = mapping(1920, 1080);
     expect(parseImport(JSON.stringify(noVersion), current)).toEqual({ kind: 'error', message: 'version: missing' });
-    expect(parseImport(JSON.stringify({ ...mapping(1920, 1080), version: 2 }), current)).toEqual({ kind: 'error', message: 'version: unsupported version 2' });
+    expect(parseImport(JSON.stringify({ ...mapping(1920, 1080), version: 3 }), current)).toEqual({ kind: 'error', message: 'version: unsupported version 3' });
   });
 
   it('rejects a bad canvas and non-array surfaces', () => {
@@ -77,7 +86,7 @@ describe('exportMapping', () => {
   it('indents with 2 spaces and round-trips through parseImport', () => {
     const m = mapping(1920, 1080);
     const text = exportMapping(m);
-    expect(text.startsWith('{\n  "version": 1')).toBe(true);
+    expect(text.startsWith('{\n  "version": 2')).toBe(true);
     expect(parseImport(text, current)).toEqual({ kind: 'ok', mapping: m });
   });
 });

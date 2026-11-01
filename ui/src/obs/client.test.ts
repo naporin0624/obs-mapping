@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
+import { mapOf, surf } from '../geometry/fixtures';
 import type { Mapping } from '../model/mapping';
 import { createClient, type ObsSocket } from './client';
 
-const mapping: Mapping = { version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: 10 }, surfaces: [] };
+const mapping: Mapping = mapOf();
 
 type VendorHandler = (ev: { vendorName: string; eventType: string; eventData: unknown }) => void;
 
@@ -52,6 +53,29 @@ describe('obs client', () => {
     expect(await client.getMapping('Map')).toEqual({ ok: true, mapping, overlayEnabled: true });
     f.reply({ ok: true, mappingJson: JSON.stringify(mapping) });
     expect(await client.getMapping('Map')).toEqual({ ok: true, mapping, overlayEnabled: false });
+  });
+
+  it('getMapping reads a v1 mappingJson as a v2 mapping', async () => {
+    const f = fakeSocket();
+    const { groups: _g, layers: _l, ...rest } = mapOf(surf('a', 0, 0));
+    f.reply({ ok: true, mappingJson: JSON.stringify({ ...rest, version: 1 }), overlayEnabled: false });
+    const r = await createClient(f.socket).getMapping('Map');
+    expect(r.ok && r.mapping).toEqual(mapOf(surf('a', 0, 0)));
+  });
+
+  it('getMapping reports an invalid tree', async () => {
+    const f = fakeSocket();
+    f.reply({ ok: true, mappingJson: JSON.stringify({ ...mapOf(surf('a', 0, 0)), layers: [] }) });
+    expect(await createClient(f.socket).getMapping('Map')).toEqual({ ok: false, error: 'mappingJson: layers: surface "a" is missing from the tree' });
+  });
+
+  it('onMappingChanged reads a v1 payload as v2 and keeps the requestId', () => {
+    const f = fakeSocket();
+    const cb = vi.fn();
+    createClient(f.socket).onMappingChanged(cb);
+    const { groups: _g, layers: _l, ...rest } = mapOf(surf('a', 0, 0));
+    f.fire(vendorEvent('MappingChanged', { sourceName: 'Map', mappingJson: JSON.stringify({ ...rest, version: 1 }), requestId: 'n1-4' }));
+    expect(cb.mock.calls).toEqual([['Map', mapOf(surf('a', 0, 0)), undefined, 'n1-4']]);
   });
 
   it('getMapping reports an unparsable mappingJson', async () => {

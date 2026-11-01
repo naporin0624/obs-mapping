@@ -56,7 +56,8 @@ async function run() {
   check(typeof got.overlayEnabled === "boolean", "GetMapping returns overlayEnabled");
   const originalOverlay = got.overlayEnabled;
   const original = JSON.parse(got.mappingJson);
-  check(original.version === 1, "GetMapping returns a version 1 mapping");
+  check(original.version === 2, "GetMapping returns a version 2 mapping");
+  check(Array.isArray(original.groups) && Array.isArray(original.layers), "GetMapping returns groups and layers");
   let restoreNeeded = false;
 
   try {
@@ -75,7 +76,7 @@ async function run() {
       ],
       visible: true,
     };
-    const next = { ...original, surfaces: [...original.surfaces, added] };
+    const next = { ...original, surfaces: [...original.surfaces, added], layers: [...original.layers, { surface: added.id }] };
     const eventsBefore = events.length;
     restoreNeeded = true;
     const requestId = `smoke-${Date.now()}-1`;

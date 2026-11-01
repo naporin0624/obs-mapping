@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { surf } from '../geometry/fixtures';
+import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
 import type { Mapping } from '../model/mapping';
 import { reducer, type Action } from './reducer';
 import { canonicalJson, initialEditorState, type EditorState } from './state';
 
-const mk = (...ss: ReturnType<typeof surf>[]): Mapping => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: 10 }, surfaces: ss });
+const mk = mapOf;
 const run = (s: EditorState, ...as: Action[]): EditorState => as.reduce(reducer, s);
 const sel = (ids: string[], corner: EditorState['selection']['corner'] = null) => ({ type: 'select', selection: { surfaceIds: ids, corner } }) as const;
 const base = () => initialEditorState(mk(surf('a', 0, 0), surf('b', 100, 0)));
@@ -100,6 +100,57 @@ describe('edits', () => {
   it('setGrid ignores out-of-range sizes', () => {
     const n = base();
     for (const size of [0, -1, 1025, Number.NaN]) expect(reducer(n, { type: 'setGrid', size })).toBe(n);
+  });
+});
+
+describe('groups keep the tree valid', () => {
+  const grouped = (): Mapping => ({
+    ...mk(surf('a', 0, 0), surf('b', 20, 0), surf('c', 40, 0), surf('d', 60, 0)),
+    groups: [groupOf('g1')],
+    layers: [gn('g1', sn('a'), sn('b')), sn('c'), sn('d')],
+  });
+  const ids = (m: Mapping): string[] => m.surfaces.map((x) => x.id);
+
+  it('addSurface appends a root layer node', () => {
+    const s = run(initialEditorState(grouped()), { type: 'addSurface', source: 'cam' });
+    expect(s.mapping.layers.at(-1)).toEqual(sn('s-1'));
+    expect(ids(s.mapping)).toEqual(['a', 'b', 'c', 'd', 's-1']);
+  });
+
+  it('addSurface avoids an id already taken by a group', () => {
+    const m = { ...mk(), groups: [groupOf('s-1')], layers: [gn('s-1')] };
+    expect(run(initialEditorState(m), { type: 'addSurface', source: 'cam' }).mapping.surfaces[0]?.id).toBe('s-2');
+  });
+
+  it('removeSelected keeps the tree valid', () => {
+    const s = run(initialEditorState(grouped()), sel(['b']), { type: 'removeSelected' });
+    expect(s.mapping.layers).toEqual([gn('g1', sn('a')), sn('c'), sn('d')]);
+    expect(ids(s.mapping)).toEqual(['a', 'c', 'd']);
+  });
+
+  it('removeSelected keeps an emptied group', () => {
+    const s = run(initialEditorState(grouped()), sel(['a', 'b']), { type: 'removeSelected' });
+    expect(s.mapping.layers[0]).toEqual(gn('g1'));
+  });
+
+  it('duplicateSelected inserts the copy right after the original in the same parent', () => {
+    const s = run(initialEditorState(grouped()), sel(['a']), { type: 'duplicateSelected' });
+    expect(s.mapping.layers).toEqual([gn('g1', sn('a'), sn('s-1'), sn('b')), sn('c'), sn('d')]);
+    expect(ids(s.mapping)).toEqual(['a', 's-1', 'b', 'c', 'd']);
+  });
+
+  it('reorder moves within the parent and ignores a target under another parent', () => {
+    const moved = run(initialEditorState(grouped()), { type: 'reorder', surfaceId: 'a', toIndex: 1 });
+    expect(moved.mapping.layers[0]).toEqual(gn('g1', sn('b'), sn('a')));
+    expect(ids(moved.mapping)).toEqual(['b', 'a', 'c', 'd']);
+    const start = initialEditorState(grouped());
+    expect(run(start, { type: 'reorder', surfaceId: 'a', toIndex: 2 })).toBe(start);
+    expect(run(start, { type: 'reorder', surfaceId: 'c', toIndex: 0 })).toBe(start);
+  });
+
+  it('reorder at the top level still moves a surface', () => {
+    const s = run(initialEditorState(grouped()), { type: 'reorder', surfaceId: 'c', toIndex: 3 });
+    expect(s.mapping.layers).toEqual([gn('g1', sn('a'), sn('b')), sn('d'), sn('c')]);
   });
 });
 
@@ -245,7 +296,9 @@ describe('remote sync', () => {
 
 describe('canonicalJson', () => {
   it('sorts keys and normalises numbers but keeps array order', () => {
-    expect(canonicalJson({ ...mk(), grid: { size: 1.0 } })).toBe(canonicalJson(JSON.parse('{"grid":{"size":1},"surfaces":[],"canvas":{"height":1080,"width":1920},"version":1}')));
+    expect(canonicalJson({ ...mk(), grid: { size: 1.0 } })).toBe(
+      canonicalJson(JSON.parse('{"grid":{"size":1},"surfaces":[],"layers":[],"groups":[],"canvas":{"height":1080,"width":1920},"version":2}')),
+    );
     expect(canonicalJson(mk(surf('a', 0, 0), surf('b', 1, 1)))).not.toBe(canonicalJson(mk(surf('b', 1, 1), surf('a', 0, 0))));
   });
 });

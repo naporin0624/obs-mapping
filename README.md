@@ -106,11 +106,11 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 - 凸でない四角形もそのまま描画されます（オーバーレイでは赤い破線の輪郭になります）。退化した四角形（3 点が一直線上）は表示されなくなります。
 - Stage は子ソースのスクリーンショットをブラウザ上で合成して表示しています。最終的な見た目は、プロジェクター出力で確認してください。
 
-## JSON v1 形式
+## JSON v2 形式
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "canvas": { "width": 1920, "height": 1080 },
   "grid": { "size": 20 },
   "surfaces": [
@@ -123,19 +123,35 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
       "corners": [[100, 100], [900, 120], [880, 700], [120, 680]],
       "visible": true
     }
+  ],
+  "groups": [
+    {
+      "id": "g-1",
+      "name": "パネル列",
+      "visible": true,
+      "origin": [100, 100],
+      "layout": { "direction": "row", "gap": 20, "align": "start", "padding": 0 }
+    }
+  ],
+  "layers": [
+    { "group": "g-1", "children": [{ "surface": "s-1" }] }
   ]
 }
 ```
 
 - `corners` の順序は 左上, 右上, 右下, 左下。元映像の (0,0)→左上、(1,0)→右上、(1,1)→右下、(0,1)→左下 に対応する。
-- 配列の順番が重なり順になる（後ろの面ほど手前）。
+- 木の各ノードは `{ "surface": id }` か `{ "group": id, "children": [...] }` のどちらか。`layers` を深さ優先でたどった順番が重なり順になる（後ろほど手前）。
+- `surfaces` の並び順は、`layers` を深さ優先でたどった順番と同じにする。
+- グループの `visible` が false なら、その下の面は描画されない。描画しないだけで、割り当てたソースの扱いは変わらない。
 - 未知のフィールドは無視する（前方互換のため）。
+- v1（`groups` と `layers` を持たない形式）も読める。すべての面が最上位に並ぶ v2 として扱い、ドックが保存すると v2 で書き出す。
+- 古いプラグインに v2 を送るとエラーになる（ドックとプラグインは同じバンドルで配る）。
 
 検証ルール（エラーメッセージには JSON パスを含みます。例: `surfaces[2].corners: expected 4 points`）
 
 | 項目 | 条件 |
 |---|---|
-| `version` | `1` のみ |
+| `version` | `1` か `2` |
 | `canvas.width` / `canvas.height` | 1〜16384 の整数 |
 | `grid.size` | 0 より大きく、1024 以下 |
 | `surfaces[].id` | 空でない文字列で、重複しない |
@@ -143,6 +159,12 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 | `crop` | x, y ≥ 0、width, height > 0、x+width ≤ 1、y+height ≤ 1 |
 | `corners` | 有限数の 4 点 |
 | `visible` | bool（省略時は true） |
+| `groups`（v2） | 必須。配列 |
+| `groups[].id` | 空でない文字列で、面の ID とも重複しない |
+| `groups[].name` / `origin` | `name` は文字列、`origin` は有限数の `[x, y]`（どちらも必須） |
+| `groups[].layout.*` | `direction` は `row` / `column`、`align` は `start` / `center` / `end`、`gap` と `padding` は 0〜4096（どれも必須） |
+| `layers`（v2） | 必須。ノードは `surface` か `group` のどちらか 1 つ。存在しない ID、同じ ID の 2 回目の出現、木にない面とグループはエラー。深さは 16 まで。子のないグループは許す |
+| `surfaces` の並び順（v2） | `layers` を深さ優先でたどった順番と同じ |
 
 ## ベンダー API（obs-websocket）
 
@@ -165,7 +187,7 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 - `source not found: <name>`
 - `not a mapping source: <name>`
 - `mappingJson: missing`
-- JSON v1 の検証エラー（上の表のパスつきメッセージ）、または `selectionJson` のパースエラー
+- JSON v2 の検証エラー（上の表のパスつきメッセージ）、または `selectionJson` のパースエラー
 
 `requestId` は `SetMapping` が任意の文字列で渡せます。その `SetMapping` が起こした `MappingChanged` は同じ `requestId` を持ちます。ドックは、これで自分の送信のエコーを見分けます。内容が変わらない `SetMapping` でも、`requestId` があれば `MappingChanged` を 1 回発行します（`requestId` がなければ従来どおり発行しません）。プロパティ欄の編集、ソース名の変更、`requestId` なしの `SetMapping` が起こした `MappingChanged` には `requestId` が付きません。空文字と、文字列でない値（数値や null など）は、付いていないものとして扱います。検証に失敗した `SetMapping` は `requestId` があっても `MappingChanged` を発行しません。イベントの `mappingJson` は発行時点の現在値なので、並行した別のクライアントの変更を含むことがあります。
 

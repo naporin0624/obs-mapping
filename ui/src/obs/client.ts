@@ -1,5 +1,6 @@
 import OBSWebSocket from 'obs-websocket-js';
 import type { Mapping } from '../model/mapping';
+import { readMapping } from '../model/read';
 
 /** transport: the request never reached the plugin (socket down), so it is safe to resend later. */
 export type VendorFailure = { ok: false; error: string; transport?: true };
@@ -43,7 +44,8 @@ const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : S
 const parseMapping = (json: unknown): VendorResult<{ mapping: Mapping }> => {
   if (typeof json !== 'string') return { ok: false, error: 'mappingJson: missing' };
   try {
-    return { ok: true, mapping: JSON.parse(json) as Mapping };
+    const read = readMapping(JSON.parse(json));
+    return read.kind === 'ok' ? { ok: true, mapping: read.mapping } : { ok: false, error: `mappingJson: ${read.message}` };
   } catch (e) {
     return { ok: false, error: `mappingJson: ${errorMessage(e)}` };
   }

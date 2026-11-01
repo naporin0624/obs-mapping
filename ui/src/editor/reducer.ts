@@ -1,3 +1,4 @@
+import { findParent, insertAfterNode, moveWithinParent, removeNodes, sortSurfacesByLayers } from '../model/layers';
 import type { Mapping, Point, Surface } from '../model/mapping';
 import { alignReference, alignSurfaces, distributeSurfaces, translateSurface, type AlignMode } from '../geometry/align';
 import { rectCorners, type Bounds } from '../geometry/rect';
@@ -80,7 +81,7 @@ const pruneSelection = (sel: Selection, m: Mapping): Selection => {
 };
 
 const nextSurfaceNumber = (m: Mapping): number =>
-  m.surfaces.reduce((max, s) => {
+  [...m.surfaces, ...m.groups].reduce((max, s) => {
     const hit = /^s-(\d+)$/.exec(s.id);
     return hit === null ? max : Math.max(max, Number(hit[1]));
   }, 0) + 1;
@@ -100,20 +101,28 @@ const duplicated = (m: Mapping, ids: readonly string[]): { mapping: Mapping; new
   const start = nextSurfaceNumber(m);
   const sources = m.surfaces.filter((x) => ids.includes(x.id));
   const copies = sources.map((x, i) => ({ ...translateSurface(x, COPY_OFFSET, COPY_OFFSET), id: `s-${start + i}`, name: `${x.name} のコピー` }));
-  const surfaces = m.surfaces.flatMap((x) => {
-    const copy = copies.find((_, i) => sources[i] === x);
-    return copy === undefined ? [x] : [x, copy];
-  });
-  return { mapping: withSurfaces(m, surfaces), newIds: copies.map((c) => c.id) };
+  const layers = sources.reduce((acc, x, i) => insertAfterNode(acc, x.id, { surface: copies[i]?.id ?? '' }), m.layers);
+  const mapping = sortSurfacesByLayers({ ...m, surfaces: [...m.surfaces, ...copies], layers });
+  return { mapping, newIds: copies.map((c) => c.id) };
 };
 
+/** `toIndex` is a position in `surfaces`; it only applies when the surface there shares the parent. */
 const moved = (m: Mapping, id: string, toIndex: number): Mapping => {
-  const item = m.surfaces.find((x) => x.id === id);
-  if (item === undefined) return m;
-  const rest = m.surfaces.filter((x) => x !== item);
-  const at = Math.max(0, Math.min(rest.length, toIndex));
-  return withSurfaces(m, [...rest.slice(0, at), item, ...rest.slice(at)]);
+  const target = m.surfaces[Math.max(0, Math.min(m.surfaces.length - 1, toIndex))];
+  const from = findParent(m.layers, id);
+  const to = target === undefined ? null : findParent(m.layers, target.id);
+  if (from === null || to === null || from.parentId !== to.parentId) return m;
+  return sortSurfacesByLayers({ ...m, layers: moveWithinParent(m.layers, id, to.index) });
 };
+
+const withoutSurfaces = (m: Mapping, ids: readonly string[]): Mapping =>
+  sortSurfacesByLayers({
+    ...m,
+    surfaces: m.surfaces.filter((x) => !ids.includes(x.id)),
+    layers: removeNodes(m.layers, new Set(ids)),
+  });
+
+const withAppendedSurface = (m: Mapping, created: Surface): Mapping => ({ ...m, surfaces: [...m.surfaces, created], layers: [...m.layers, { surface: created.id }] });
 
 const newSurface = (m: Mapping, source: string): Surface => {
   const n = nextSurfaceNumber(m);
@@ -195,18 +204,11 @@ const handlers: Handlers = {
   distribute: (s, a) => commit(s, withSurfaces(s.mapping, distributeSurfaces(s.mapping.surfaces, s.selection.surfaceIds, a.axis))),
   addSurface: (s, a) => {
     const created = newSurface(s.mapping, a.source);
-    const next = commit(s, withSurfaces(s.mapping, [...s.mapping.surfaces, created]));
+    const next = commit(s, withAppendedSurface(s.mapping, created));
     return { ...next, selection: { surfaceIds: [created.id], corner: null } };
   },
   removeSelected: (s) => {
-    const ids = s.selection.surfaceIds;
-    const next = commit(
-      s,
-      withSurfaces(
-        s.mapping,
-        s.mapping.surfaces.filter((x) => !ids.includes(x.id)),
-      ),
-    );
+    const next = commit(s, withoutSurfaces(s.mapping, s.selection.surfaceIds));
     return next === s ? s : { ...next, selection: emptySelection() };
   },
   duplicateSelected: (s) => {

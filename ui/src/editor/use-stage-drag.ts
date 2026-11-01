@@ -1,5 +1,6 @@
 import { useRef, useState, type Dispatch, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import type { Mapping, Point, Surface } from '../model/mapping';
+import { effectiveVisibleIds } from '../model/visibility';
 import type { GuideLine } from '../geometry/snap';
 import { roundedCornerHit, roundedOffsetHit, snapTargets, type SnapOptions } from './drag';
 import type { Action } from './reducer';
@@ -33,19 +34,22 @@ const toggled = (ids: readonly string[], id: string): string[] => (ids.includes(
 
 type Geometry = { toCanvas: (e: Pointer) => Point; snapOptions: (e: Pointer, moving: readonly string[]) => SnapOptions };
 
-const geometry = (mapping: Mapping, scale: number, svgRef: RefObject<SVGSVGElement | null>): Geometry => ({
-  toCanvas: (e) => {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (rect === undefined || rect.width === 0) return [0, 0];
-    return [((e.clientX - rect.left) / rect.width) * mapping.canvas.width, ((e.clientY - rect.top) / rect.height) * mapping.canvas.height];
-  },
-  snapOptions: (e, moving) => ({
-    grid: mapping.grid.size,
-    others: snapTargets(mapping.surfaces, moving),
-    threshold: SNAP_STAGE_PX / scale,
-    enabled: !e.altKey,
-  }),
-});
+const geometry = (mapping: Mapping, scale: number, svgRef: RefObject<SVGSVGElement | null>): Geometry => {
+  const visibleIds = effectiveVisibleIds(mapping);
+  return {
+    toCanvas: (e) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (rect === undefined || rect.width === 0) return [0, 0];
+      return [((e.clientX - rect.left) / rect.width) * mapping.canvas.width, ((e.clientY - rect.top) / rect.height) * mapping.canvas.height];
+    },
+    snapOptions: (e, moving) => ({
+      grid: mapping.grid.size,
+      others: snapTargets(mapping.surfaces, moving, visibleIds),
+      threshold: SNAP_STAGE_PX / scale,
+      enabled: !e.altKey,
+    }),
+  };
+};
 
 type Moved = { drag: Drag; guides: readonly GuideLine[] };
 

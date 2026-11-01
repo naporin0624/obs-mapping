@@ -1,5 +1,8 @@
 #include "obs-mapping/mapping_json.hpp"
 
+#include "json_read.hpp"
+#include "layers_json.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <cmath>
@@ -13,39 +16,7 @@ using nlohmann::ordered_json;
 
 namespace {
 
-struct Fail {
-	std::string message;
-};
-
-[[noreturn]] void fail(const std::string &path, const std::string &msg)
-{
-	throw Fail{path + ": " + msg};
-}
-
-const json &require(const json &obj, const char *key, std::string_view path)
-{
-	if (!obj.is_object())
-		fail(std::string(path), "expected object");
-	auto it = obj.find(key);
-	if (it == obj.end())
-		fail(path.empty() ? std::string(key) : std::string(path) + "." + key, "missing");
-	return *it;
-}
-
-std::string join(const std::string &base, const char *key)
-{
-	return base.empty() ? std::string(key) : base + "." + key;
-}
-
-double number(const json &v, const std::string &path)
-{
-	if (!v.is_number())
-		fail(path, "expected number");
-	double d = v.get<double>();
-	if (!std::isfinite(d))
-		fail(path, "expected finite number");
-	return d;
-}
+using namespace detail;
 
 uint32_t dimension(const json &v, const std::string &path)
 {
@@ -55,13 +26,6 @@ uint32_t dimension(const json &v, const std::string &path)
 	if (d < 1 || d > 16384)
 		fail(path, "must be between 1 and 16384");
 	return static_cast<uint32_t>(d);
-}
-
-std::string str(const json &v, const std::string &path)
-{
-	if (!v.is_string())
-		fail(path, "expected string");
-	return v.get<std::string>();
 }
 
 Surface parse_surface(const json &s, size_t i, std::set<std::string> &ids)
@@ -119,6 +83,18 @@ Surface parse_surface(const json &s, size_t i, std::set<std::string> &ids)
 	return out;
 }
 
+void parse_tree(const json &root, Mapping &m, std::set<std::string> &ids)
+{
+	if (m.version == 1) {
+		m.layers = flat_layers(m.surfaces);
+		m.version = 2;
+		return;
+	}
+	m.groups = parse_groups(require(root, "groups", ""), ids);
+	m.layers = parse_layers(require(root, "layers", ""), m);
+	check_surface_order(m);
+}
+
 } // namespace
 
 std::expected<Mapping, ParseError> parse_mapping(std::string_view text)
@@ -136,7 +112,7 @@ std::expected<Mapping, ParseError> parse_mapping(std::string_view text)
 		if (!ver.is_number_integer())
 			fail("version", "expected integer");
 		m.version = ver.get<int>();
-		if (m.version != 1)
+		if (m.version != 1 && m.version != 2)
 			fail("version", "unsupported version " + std::to_string(m.version));
 
 		const json &canvas = require(root, "canvas", "");
@@ -158,6 +134,7 @@ std::expected<Mapping, ParseError> parse_mapping(std::string_view text)
 		std::set<std::string> ids;
 		for (size_t i = 0; i < surfaces.size(); ++i)
 			m.surfaces.push_back(parse_surface(surfaces[i], i, ids));
+		parse_tree(root, m, ids);
 		return m;
 	} catch (const Fail &f) {
 		return std::unexpected(ParseError{f.message});
@@ -167,7 +144,7 @@ std::expected<Mapping, ParseError> parse_mapping(std::string_view text)
 std::string serialize_mapping(const Mapping &m)
 {
 	ordered_json j = ordered_json::object();
-	j["version"] = m.version;
+	j["version"] = 2;
 	j["canvas"] = {{"width", m.width}, {"height", m.height}};
 	j["grid"] = {{"size", m.grid_size}};
 	ordered_json arr = ordered_json::array();
@@ -186,6 +163,8 @@ std::string serialize_mapping(const Mapping &m)
 		arr.push_back(o);
 	}
 	j["surfaces"] = arr;
+	j["groups"] = detail::groups_to_json(m.groups);
+	j["layers"] = detail::layers_to_json(m.layers);
 	return j.dump(2, ' ', false, ordered_json::error_handler_t::replace);
 }
 

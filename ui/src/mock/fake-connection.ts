@@ -1,4 +1,5 @@
-import type { Mapping, Surface } from '../model/mapping';
+import type { Group, Mapping, Surface } from '../model/mapping';
+import { validateTree } from '../model/validate-tree';
 import type { MappingChangedHandler, ObsClient, ObsConnection, VendorResult } from '../obs/client';
 
 const surface = (id: string, source: string, x: number): Surface => ({
@@ -16,7 +17,16 @@ const surface = (id: string, source: string, x: number): Surface => ({
   visible: true,
 });
 
-const sample = (grid: number): Mapping => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: grid }, surfaces: [surface('s1', 'Camera', 200), surface('s2', 'Game', 1000)] });
+const column: Group = { id: 'g1', name: '列', visible: true, origin: [200, 200], layout: { direction: 'row', gap: 200, align: 'start', padding: 0 } };
+
+const sample = (grid: number): Mapping => ({
+  version: 2,
+  canvas: { width: 1920, height: 1080 },
+  grid: { size: grid },
+  surfaces: [surface('s1', 'Camera', 200), surface('s2', 'Game', 1000)],
+  groups: [column],
+  layers: [{ group: 'g1', children: [{ surface: 's1' }, { surface: 's2' }] }],
+});
 
 const SOURCES = [
   { name: 'Mapping A', width: 1920, height: 1080 },
@@ -110,6 +120,8 @@ const createPlugin = (log: MockLog, getDelayMs: number) => {
     if (log.takeFailSet()) {
       return { ok: false, error: 'mock: SetMapping refused' };
     }
+    const invalid = validateTree(mapping);
+    if (invalid !== null) return { ok: false, error: invalid };
     mappings.set(name, mapping);
     setTimeout(() => listeners.mapping.forEach((cb) => cb(name, mapping, overlays.get(name), requestId ?? null)), 20);
     return { ok: true };
