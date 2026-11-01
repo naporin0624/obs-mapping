@@ -1,2 +1,7 @@
 .superpowers/
 .DS_Store
+build_*/
+.deps/
+release/
+*.lock.json
+cmake/.CMakeBuildNumber
