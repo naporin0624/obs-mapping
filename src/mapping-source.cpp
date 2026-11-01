@@ -40,10 +40,8 @@ std::shared_ptr<const MappingSnapshot> make_snapshot(Mapping mapping)
 	snap->inv_h.reserve(mapping.surfaces.size());
 	for (const auto &surface : mapping.surfaces) {
 		std::optional<obs_mapping::Mat3> inv;
-		if (obs_mapping::is_convex_quad(surface.corners)) {
-			if (auto h = obs_mapping::unit_square_to_quad(surface.corners))
-				inv = obs_mapping::invert(*h);
-		}
+		if (auto h = obs_mapping::unit_square_to_quad(surface.corners))
+			inv = obs_mapping::invert(*h);
 		snap->inv_h.push_back(inv);
 	}
 	snap->mapping = std::move(mapping);
