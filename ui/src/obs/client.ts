@@ -15,10 +15,13 @@ export interface ObsClient {
   setMapping(sourceName: string, mapping: Mapping): Promise<VendorResult<{}>>;
   setOverlay(sourceName: string, state: OverlayState): Promise<VendorResult<{}>>;
   screenshot(sourceName: string, width: number): Promise<string>;
+  /** Names of OBS inputs that can be assigned to a surface (Mapping sources excluded); [] on failure. */
+  listInputs(): Promise<string[]>;
   onMappingChanged(cb: (sourceName: string, mapping: Mapping) => void): () => void;
 }
 
 const VENDOR = 'obs-mapping';
+const MAPPING_INPUT_KIND = 'obs_mapping_source';
 /** obs-websocket close code for AuthenticationFailed */
 export const AUTH_FAILED_CODE = 4009;
 
@@ -52,6 +55,16 @@ export type ObsConnection = {
   connect(url: string, password: string): Promise<void>;
   disconnect(): Promise<void>;
   onClose(cb: (code: number) => void): () => void;
+};
+
+const listInputNames = async (obs: OBSWebSocket): Promise<string[]> => {
+  try {
+    const res = await obs.call('GetInputList');
+    return res.inputs.flatMap((i) => (i['inputKind'] === MAPPING_INPUT_KIND || typeof i['inputName'] !== 'string' ? [] : [i['inputName']]));
+  } catch (e) {
+    console.warn('GetInputList failed', e);
+    return [];
+  }
 };
 
 const createClient = (obs: OBSWebSocket): ObsClient => {
@@ -90,6 +103,7 @@ const createClient = (obs: OBSWebSocket): ObsClient => {
       const res = await obs.call('GetSourceScreenshot', { sourceName, imageFormat: 'jpg', imageWidth: width, imageCompressionQuality: 70 });
       return res.imageData;
     },
+    listInputs: () => listInputNames(obs),
     onMappingChanged(cb) {
       const handler = mappingChangedHandler(cb);
       obs.on('VendorEvent', handler);
