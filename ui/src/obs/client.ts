@@ -13,8 +13,10 @@ export type OverlayState = {
   selectedCorner: { surfaceId: string; index: number } | null;
 };
 
+export type MappingSourceInfo = { name: string; width: number; height: number };
+
 export interface ObsClient {
-  listMappingSources(): Promise<VendorResult<{ sources: { name: string; width: number; height: number }[] }>>;
+  listMappingSources(): Promise<VendorResult<{ sources: MappingSourceInfo[] }>>;
   getMapping(sourceName: string): Promise<VendorResult<{ mapping: Mapping; overlayEnabled: boolean }>>;
   setMapping(sourceName: string, mapping: Mapping): Promise<VendorResult<{}>>;
   setOverlay(sourceName: string, state: OverlayState): Promise<VendorResult<{}>>;
@@ -117,7 +119,7 @@ export const createClient = (obs: ObsSocket): ObsClient => {
     async listMappingSources() {
       const r = await call('ListMappingSources', {});
       if (!r.ok) return fail(r);
-      return { ok: true, sources: (r['sources'] as { name: string; width: number; height: number }[] | undefined) ?? [] };
+      return { ok: true, sources: (r['sources'] as MappingSourceInfo[] | undefined) ?? [] };
     },
     async getMapping(sourceName) {
       const r = await call('GetMapping', { sourceName });
