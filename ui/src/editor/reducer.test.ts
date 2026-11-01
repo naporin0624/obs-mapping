@@ -187,6 +187,39 @@ describe('remote sync', () => {
     const end = run(b, { type: 'remote', mapping: mapA }, { type: 'remote', mapping: b.mapping }, { type: 'remote', mapping: z() });
     expect(end.mapping).toEqual(z());
   });
+  describe('needsResync', () => {
+    const azb = () => {
+      const a = sendNudge(run(base(), sel(['a'])), 1);
+      const mapA = a.mapping;
+      const b = sendNudge(a, 1);
+      return { mapA, b, atZ: reducer(b, { type: 'remote', mapping: z() }) };
+    };
+    it('is set by a foreign remote while own sends are in flight', () => {
+      const { atZ } = azb();
+      expect(atZ.needsResync).toBe(true);
+      expect(atZ.mapping).toEqual(z());
+    });
+    it('stays set while own echoes drain inFlight; the reducer does not clear it', () => {
+      const { mapA, b, atZ } = azb();
+      const e1 = reducer(atZ, { type: 'remote', mapping: mapA });
+      expect(e1.needsResync).toBe(true);
+      expect(e1.mapping).toBe(atZ.mapping);
+      const e2 = reducer(e1, { type: 'remote', mapping: b.mapping });
+      expect(e2.inFlight).toEqual([]);
+      expect(e2.needsResync).toBe(true);
+    });
+    it('is cleared by a remote applied with inFlight empty', () => {
+      const { mapA, b, atZ } = azb();
+      const drained = run(atZ, { type: 'remote', mapping: mapA }, { type: 'remote', mapping: b.mapping });
+      expect(reducer(drained, { type: 'remote', mapping: b.mapping }).needsResync).toBe(false);
+    });
+    it('is cleared by load', () => {
+      expect(reducer(azb().atZ, { type: 'load', mapping: base().mapping }).needsResync).toBe(false);
+    });
+    it('stays false for a foreign remote with inFlight empty', () => {
+      expect(reducer(base(), { type: 'remote', mapping: z() }).needsResync).toBe(false);
+    });
+  });
   it('caps inFlight at 32', () => {
     const s = Array.from({ length: 40 }, (_, i) => ({ type: 'sent', json: String(i) }) as const).reduce(reducer, base());
     expect(s.inFlight).toHaveLength(32);

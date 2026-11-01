@@ -16,6 +16,8 @@ export type EditorState = {
   /** canonicalJson of own sends not yet echoed back by the plugin, oldest first (max 32). */
   inFlight: readonly string[];
   pendingRemote: Mapping | null;
+  /** A foreign remote replaced local while own sends were in flight: the plugin may hold something else. */
+  needsResync: boolean;
 };
 
 export const emptySelection = (): Selection => ({ surfaceIds: [], corner: null });
@@ -44,4 +46,5 @@ export const initialEditorState = (mapping: Mapping): EditorState => ({
   future: [],
   inFlight: [],
   pendingRemote: null,
+  needsResync: false,
 });
