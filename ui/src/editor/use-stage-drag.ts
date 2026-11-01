@@ -1,6 +1,7 @@
-import { useRef, type Dispatch, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { useRef, useState, type Dispatch, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import type { Mapping, Point, Surface } from '../model/mapping';
-import { roundedCorner, roundedOffset, type SnapOptions } from './drag';
+import type { GuideLine } from '../geometry/snap';
+import { roundedCornerHit, roundedOffsetHit, snapTargets, type SnapOptions } from './drag';
 import type { Action } from './reducer';
 import { emptySelection, type CornerIndex, type EditorState } from './state';
 
@@ -12,6 +13,8 @@ type Drag = { kind: 'corner'; surfaceId: string; index: CornerIndex } | { kind: 
 type Pointer = ReactPointerEvent<SVGElement>;
 
 export type StageDrag = {
+  /** Extended edge lines the current drag is snapped to; empty when idle. Transient, never persisted. */
+  guides: readonly GuideLine[];
   onBackgroundDown: () => void;
   onCornerDown: (e: Pointer, surfaceId: string, index: CornerIndex) => void;
   onSurfaceDown: (e: Pointer, surfaceId: string) => void;
@@ -38,30 +41,39 @@ const geometry = (mapping: Mapping, scale: number, svgRef: RefObject<SVGSVGEleme
   },
   snapOptions: (e, moving) => ({
     grid: mapping.grid.size,
-    others: mapping.surfaces.filter((s) => !moving.includes(s.id)),
+    others: snapTargets(mapping.surfaces, moving),
     threshold: SNAP_STAGE_PX / scale,
     enabled: !e.altKey,
   }),
 });
 
-/** Applies one pointer move and returns the updated drag state. */
-const applyMove = (geo: Geometry, dispatch: Dispatch<Action>, e: Pointer, d: Drag): Drag => {
+type Moved = { drag: Drag; guides: readonly GuideLine[] };
+
+/** Applies one pointer move and returns the updated drag state with the active snap guides. */
+const applyMove = (geo: Geometry, dispatch: Dispatch<Action>, e: Pointer, d: Drag): Moved => {
   const p = geo.toCanvas(e);
   if (d.kind === 'corner') {
-    dispatch({ type: 'dragCorner', surfaceId: d.surfaceId, index: d.index, to: roundedCorner(p, geo.snapOptions(e, [d.surfaceId])) });
-    return d;
+    const hit = roundedCornerHit(p, geo.snapOptions(e, [d.surfaceId]));
+    dispatch({ type: 'dragCorner', surfaceId: d.surfaceId, index: d.index, to: hit.point });
+    return { drag: d, guides: hit.guides };
   }
-  const total = roundedOffset(d.primary.corners, [p[0] - d.start[0], p[1] - d.start[1]], geo.snapOptions(e, d.ids));
-  const dx = total[0] - d.applied[0];
-  const dy = total[1] - d.applied[1];
-  if (dx === 0 && dy === 0) return d;
+  const hit = roundedOffsetHit(d.primary.corners, [p[0] - d.start[0], p[1] - d.start[1]], geo.snapOptions(e, d.ids));
+  const dx = hit.point[0] - d.applied[0];
+  const dy = hit.point[1] - d.applied[1];
+  if (dx === 0 && dy === 0) return { drag: d, guides: hit.guides };
   d.ids.forEach((surfaceId) => dispatch({ type: 'dragSurface', surfaceId, dx, dy }));
-  return { ...d, applied: total };
+  return { drag: { ...d, applied: hit.point }, guides: hit.guides };
 };
+
+const NO_GUIDES: readonly GuideLine[] = [];
+
+/** Keeps the previous array when both are empty so idle moves do not re-render. */
+const nextGuides = (prev: readonly GuideLine[], next: readonly GuideLine[]): readonly GuideLine[] => (prev.length === 0 && next.length === 0 ? prev : next);
 
 /** Pointer interaction for the stage: corner drags and surface drags, with snapping (Option/Alt disables it). */
 export const useStageDrag = ({ state, dispatch, svgRef, scale }: Args): StageDrag => {
   const drag = useRef<Drag | null>(null);
+  const [guides, setGuides] = useState<readonly GuideLine[]>(NO_GUIDES);
   const { mapping, selection } = state;
 
   const geo = geometry(mapping, scale, svgRef);
@@ -74,6 +86,7 @@ export const useStageDrag = ({ state, dispatch, svgRef, scale }: Args): StageDra
   };
 
   return {
+    guides,
     onBackgroundDown: () => dispatch({ type: 'select', selection: emptySelection() }),
     onCornerDown: (e, surfaceId, index) => {
       e.stopPropagation();
@@ -90,11 +103,15 @@ export const useStageDrag = ({ state, dispatch, svgRef, scale }: Args): StageDra
     },
     onMove: (e) => {
       const d = drag.current;
-      if (d !== null) drag.current = applyMove(geo, dispatch, e, d);
+      if (d === null) return;
+      const moved = applyMove(geo, dispatch, e, d);
+      drag.current = moved.drag;
+      setGuides((prev) => nextGuides(prev, moved.guides));
     },
     onUp: (e) => {
       if (drag.current === null) return;
       drag.current = null;
+      setGuides(NO_GUIDES);
       if (svgRef.current?.hasPointerCapture(e.pointerId) === true) svgRef.current.releasePointerCapture(e.pointerId);
       dispatch({ type: 'dragEnd' });
     },
