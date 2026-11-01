@@ -22,6 +22,8 @@ export type SendQueue = {
 
 const DEFAULT_INTERVAL_MS = 33;
 
+type Outcome = { kind: 'ok' } | { kind: 'offline' } | { kind: 'refused'; error: string };
+
 class Queue implements SendQueue {
   readonly #send: SendQueueOptions['send'];
   readonly #onError: (message: string) => void;
@@ -30,6 +32,10 @@ class Queue implements SendQueue {
   readonly #setTimer: (fn: () => void, ms: number) => unknown;
   readonly #clearTimer: (handle: unknown) => void;
   #pending: Mapping | null = null;
+  /** The mapping of the request currently awaiting an answer. */
+  #current: Mapping | null = null;
+  /** Bumped when a request is abandoned (reconnect), so its late answer is ignored. */
+  #generation = 0;
   #inFlight = false;
   #dragging = false;
   #disconnected = false;
@@ -59,6 +65,13 @@ class Queue implements SendQueue {
 
   onReconnect(): void {
     this.#disconnected = false;
+    if (this.#inFlight) {
+      // The socket dropped under an unanswered request that will never settle: abandon it and resend.
+      this.#generation = this.#generation + 1;
+      this.#inFlight = false;
+      this.#pending ??= this.#current;
+      this.#current = null;
+    }
     this.#attempt();
   }
 
@@ -87,19 +100,31 @@ class Queue implements SendQueue {
     void this.#deliver(m);
   }
 
-  async #deliver(m: Mapping): Promise<void> {
-    this.#pending = null;
-    this.#inFlight = true;
-    this.#lastSendAt = this.#now();
+  async #request(m: Mapping): Promise<Outcome> {
     try {
       const r = await this.#send(m);
-      if (!r.ok) this.#onError(r.error);
+      if (r.ok) return { kind: 'ok' };
+      return r.transport === true ? { kind: 'offline' } : { kind: 'refused', error: r.error };
     } catch {
+      return { kind: 'offline' };
+    }
+  }
+
+  async #deliver(m: Mapping): Promise<void> {
+    const generation = this.#generation;
+    this.#pending = null;
+    this.#current = m;
+    this.#inFlight = true;
+    this.#lastSendAt = this.#now();
+    const outcome = await this.#request(m);
+    if (generation !== this.#generation) return; // abandoned by onReconnect(); its late answer is stale
+    if (outcome.kind === 'offline') {
       this.#disconnected = true;
       this.#pending ??= m;
-    } finally {
-      this.#inFlight = false;
     }
+    if (outcome.kind === 'refused') this.#onError(outcome.error);
+    this.#inFlight = false;
+    this.#current = null;
     this.#attempt();
   }
 }

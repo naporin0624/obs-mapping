@@ -1,7 +1,10 @@
 import OBSWebSocket from 'obs-websocket-js';
 import type { Mapping } from '../model/mapping';
 
-export type VendorResult<T> = ({ ok: true } & T) | { ok: false; error: string };
+/** transport: the request never reached the plugin (socket down), so it is safe to resend later. */
+export type VendorFailure = { ok: false; error: string; transport?: true };
+
+export type VendorResult<T> = ({ ok: true } & T) | VendorFailure;
 
 export type OverlayState = {
   enabled: boolean;
@@ -25,7 +28,7 @@ const MAPPING_INPUT_KIND = 'obs_mapping_source';
 /** obs-websocket close code for AuthenticationFailed */
 export const AUTH_FAILED_CODE = 4009;
 
-type Reply = { ok: boolean; error?: string; [key: string]: unknown };
+type Reply = { ok: boolean; error?: string; transport?: true; [key: string]: unknown };
 
 const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
@@ -74,11 +77,11 @@ const createClient = (obs: OBSWebSocket): ObsClient => {
       const data = res.responseData as unknown as Reply | undefined;
       return data ?? { ok: false, error: 'empty response' };
     } catch (e) {
-      return { ok: false, error: errorMessage(e) };
+      return { ok: false, error: errorMessage(e), transport: true };
     }
   };
 
-  const fail = (r: Reply): { ok: false; error: string } => ({ ok: false, error: r.error ?? 'unknown error' });
+  const fail = (r: Reply): VendorFailure => (r.transport === true ? { ok: false, error: r.error ?? 'unknown error', transport: true } : { ok: false, error: r.error ?? 'unknown error' });
 
   return {
     async listMappingSources() {

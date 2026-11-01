@@ -115,6 +115,39 @@ describe('send queue', () => {
     expect(grids(calls)).toEqual([1]);
   });
 
+  it('abandons a request that never settles when the connection comes back, and resends the latest', async () => {
+    const { calls, queue } = harness();
+    queue.push(mapping(1), { dragging: false });
+    queue.push(mapping(2), { dragging: false });
+    expect(grids(calls)).toEqual([1]);
+    queue.onReconnect();
+    expect(grids(calls)).toEqual([1, 2]);
+    // a late answer from the abandoned request must not disturb the queue
+    calls[0]?.d.resolve({ ok: false, error: 'late' });
+    await vi.advanceTimersByTimeAsync(0);
+    calls[1]?.d.resolve({ ok: true });
+    await vi.advanceTimersByTimeAsync(0);
+    queue.push(mapping(3), { dragging: false });
+    expect(grids(calls)).toEqual([1, 2, 3]);
+  });
+
+  it('resends the unanswered mapping after reconnect when nothing newer was pushed', () => {
+    const { calls, queue } = harness();
+    queue.push(mapping(1), { dragging: false });
+    queue.onReconnect();
+    expect(grids(calls)).toEqual([1, 1]);
+  });
+
+  it('treats an ok:false transport failure like a dropped connection', async () => {
+    const { calls, errors, queue } = harness();
+    queue.push(mapping(1), { dragging: false });
+    calls[0]?.d.resolve({ ok: false, error: 'Not connected', transport: true });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(errors).toEqual([]);
+    queue.onReconnect();
+    expect(grids(calls)).toEqual([1, 1]);
+  });
+
   it('sends nothing after dispose', async () => {
     const { calls, queue } = harness();
     queue.push(mapping(1), { dragging: true });

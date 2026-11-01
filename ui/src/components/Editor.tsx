@@ -5,13 +5,14 @@ import type { ObsClient } from '../obs/client';
 import { Inspector } from './Inspector';
 import { Stage } from './Stage';
 import { SurfaceList } from './SurfaceList';
+import { buttonCls } from './styles';
 import { Toast } from './Toast';
 import { Toolbar } from './Toolbar';
 
 const bodyCls = css({ display: 'flex', alignItems: 'flex-start', gap: '2', p: '2', flexWrap: 'wrap' });
 const stageColCls = css({ flex: '3 1 480px', minWidth: 0 });
 const sideCls = css({ flex: '1 1 260px', minWidth: '240px', borderWidth: 'default', borderStyle: 'solid', borderColor: 'border.subtle' });
-const noteCls = css({ p: '3', color: 'fg.muted' });
+const noteCls = css({ p: '3', color: 'fg.muted', display: 'flex', alignItems: 'center', gap: '3' });
 
 type Props = { client: ObsClient; source: string; online: boolean };
 
@@ -21,7 +22,21 @@ export const Editor = ({ client, source, online }: Props) => {
   const { inputs, reload } = useInputs(client, online);
   const { state, dispatch } = sync;
 
-  if (!sync.loaded) return <div className={noteCls}>{online ? '読み込み中...' : 'OBS に接続すると編集できます。'}</div>;
+  if (!sync.loaded) {
+    return (
+      <>
+        <div className={noteCls}>
+          {sync.loadError !== null ? `読み込みに失敗しました: ${sync.loadError}` : online ? '読み込み中...' : 'OBS に接続すると編集できます。'}
+          {sync.loadError !== null && online ? (
+            <button type="button" className={buttonCls} onClick={sync.retry}>
+              Retry
+            </button>
+          ) : null}
+        </div>
+        <Toast toast={sync.toast} onDismiss={sync.dismissToast} />
+      </>
+    );
+  }
   return (
     <>
       <Toolbar

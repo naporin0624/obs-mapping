@@ -17,6 +17,9 @@ export type Sync = {
   loaded: boolean;
   overlayEnabled: boolean;
   setOverlayEnabled: (v: boolean) => void;
+  /** Error text of the last failed initial load (null when none); retry() loads again. */
+  loadError: string | null;
+  retry: () => void;
   toast: ToastMessage | null;
   dismissToast: () => void;
 };
@@ -31,6 +34,8 @@ type Shared = {
   /** The inFlight list a resync was already attempted for (avoids resyncing the same stale entries forever). */
   resynced: readonly string[] | null;
 };
+
+type LoadCtl = { tick: number; setLoaded: (v: boolean) => void; setError: (e: string | null) => void };
 
 type Env = { client: ObsClient; source: string; shared: RefObject<Shared>; dispatch: Dispatch<Action>; report: (text: string) => void };
 
@@ -60,11 +65,13 @@ const useQueue = ({ client, source, shared, dispatch, report }: Env): void => {
 };
 
 /** Initial load, and the reconnect rule: resend an unsent local change, otherwise reload from the plugin. */
-const useLoad = (env: Env, online: boolean, setLoaded: (v: boolean) => void): void => {
+const useLoad = (env: Env, online: boolean, ctl: LoadCtl): void => {
+  const { tick, setLoaded, setError } = ctl;
   const { client, source, shared, dispatch, report } = env;
   useEffect(() => {
     setLoaded(false);
-  }, [client, source, setLoaded]);
+    setError(null);
+  }, [client, source, setLoaded, setError]);
 
   useEffect(() => {
     if (!online || source === '') return undefined;
@@ -77,9 +84,11 @@ const useLoad = (env: Env, online: boolean, setLoaded: (v: boolean) => void): vo
       const r = await client.getMapping(source);
       if (cancelled) return;
       if (!r.ok) {
+        setError(r.error);
         report(r.error);
         return;
       }
+      setError(null);
       const sh = shared.current;
       sh.skip = r.mapping;
       dispatch({ type: 'load', mapping: r.mapping });
@@ -88,7 +97,7 @@ const useLoad = (env: Env, online: boolean, setLoaded: (v: boolean) => void): vo
     return () => {
       cancelled = true;
     };
-  }, [client, source, online, shared, dispatch, report, setLoaded]);
+  }, [client, source, online, tick, shared, dispatch, report, setLoaded, setError]);
 };
 
 /** Local edits go to the queue (throttled while dragging); plugin changes come back as `remote`. */
@@ -157,15 +166,28 @@ const useOverlay = (client: ObsClient, source: string, online: boolean, loaded: 
   }, [client, source, online, loaded, enabled, surfaceIds, corner]);
 };
 
+const useLoadState = () => {
+  const [loaded, setLoaded] = useState(false);
+  const [tick, setTick] = useState(0);
+  const [loadError, setError] = useState<string | null>(null);
+  const retry = useCallback(() => setTick((t) => t + 1), []);
+  return { loaded, loadError, retry, ctl: { tick, setLoaded, setError } };
+};
+
+const useToast = () => {
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const report = useCallback((text: string) => setToast((t) => ({ id: (t?.id ?? 0) + 1, text })), []);
+  const dismissToast = useCallback(() => setToast(null), []);
+  return { toast, report, dismissToast };
+};
+
 /** Wires the editor reducer to the plugin: load, throttled send, remote echoes, overlay and reconnect. */
 export const useSync = (client: ObsClient, source: string, online: boolean): Sync => {
   const [state, dispatch] = useReducer(reducer, EMPTY_MAPPING, initialEditorState);
-  const [loaded, setLoaded] = useState(false);
   const [overlayEnabled, setOverlayEnabled] = useState(true);
-  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const { loaded, loadError, retry, ctl } = useLoadState();
+  const { toast, report, dismissToast } = useToast();
   const shared = useRef<Shared>({ skip: null, unsent: null, queue: null, online, resynced: null });
-  const report = useCallback((text: string) => setToast((t) => ({ id: (t?.id ?? 0) + 1, text })), []);
-  const dismissToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
     const sh = shared.current;
@@ -174,10 +196,10 @@ export const useSync = (client: ObsClient, source: string, online: boolean): Syn
 
   const env: Env = { client, source, shared, dispatch, report };
   useQueue(env);
-  useLoad(env, online, setLoaded);
+  useLoad(env, online, ctl);
   useMappingFlow(env, state, loaded);
   useResync(env, state, online);
   useOverlay(client, source, online, loaded, state, overlayEnabled);
 
-  return { state, dispatch, loaded, overlayEnabled, setOverlayEnabled, toast, dismissToast };
+  return { state, dispatch, loaded, overlayEnabled, setOverlayEnabled, loadError, retry, toast, dismissToast };
 };

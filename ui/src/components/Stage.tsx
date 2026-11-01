@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type KeyboardEvent, type RefObject } from 'react';
 import { css } from '../../styled-system/css';
 import { keyAction } from '../editor/keys';
 import type { Action } from '../editor/reducer';
@@ -10,8 +10,10 @@ import { StageOverlay } from './StageOverlay';
 import { StageSurface } from './StageSurface';
 import { focusRing } from './styles';
 
+// the focus ring lives on the outer element so the frame's overflow:hidden does not clip it
+const outerCls = css({ ...focusRing });
 const frameCls = css({
-  ...focusRing,
+  position: 'relative',
   width: '100%',
   bg: 'bg.canvas',
   borderWidth: 'default',
@@ -37,9 +39,17 @@ const useWidth = (ref: RefObject<HTMLDivElement | null>): number => {
   return width;
 };
 
+const onStageKey = (e: KeyboardEvent<HTMLElement>, dispatch: Dispatch<Action>): void => {
+  const action = keyAction(e);
+  if (action === null) return;
+  e.preventDefault();
+  dispatch(action);
+};
+
 /** Live preview of every surface (screenshots warped in the browser) with draggable corner handles on top. */
 export const Stage = ({ state, dispatch, client, online }: Props) => {
   const frameRef = useRef<HTMLDivElement>(null);
+  const focusRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const width = useWidth(frameRef);
   const { mapping, selection } = state;
@@ -52,42 +62,38 @@ export const Stage = ({ state, dispatch, client, online }: Props) => {
   const drag = useStageDrag({ state, dispatch, svgRef, scale });
 
   useEffect(() => {
-    frameRef.current?.focus({ preventScroll: true });
+    focusRef.current?.focus({ preventScroll: true });
   }, []);
 
   return (
     <div
-      ref={frameRef}
-      className={frameCls}
-      style={{ aspectRatio: `${String(mapping.canvas.width)} / ${String(mapping.canvas.height)}` }}
+      className={outerCls}
       tabIndex={0}
       role="application"
       aria-label="Stage"
-      onPointerDown={() => frameRef.current?.focus({ preventScroll: true })}
-      onKeyDown={(e) => {
-        const action = keyAction(e);
-        if (action === null) return;
-        e.preventDefault();
-        dispatch(action);
-      }}
+      ref={focusRef}
+      onPointerDown={() => focusRef.current?.focus({ preventScroll: true })}
+      onKeyDown={(e) => onStageKey(e, dispatch)}
     >
-      <div className={layerCls}>
-        {mapping.surfaces.map((s) => (
-          <StageSurface key={s.id} surface={s} image={images[s.source]} scale={scale} />
-        ))}
+      <div ref={frameRef} className={frameCls} style={{ aspectRatio: `${String(mapping.canvas.width)} / ${String(mapping.canvas.height)}` }}>
+        <div className={layerCls}>
+          {mapping.surfaces.map((s) => (
+            <StageSurface key={s.id} surface={s} image={images[s.source]} scale={scale} />
+          ))}
+        </div>
+        <svg
+          ref={svgRef}
+          className={layerCls}
+          viewBox={`0 0 ${String(mapping.canvas.width)} ${String(mapping.canvas.height)}`}
+          preserveAspectRatio="none"
+          style={{ touchAction: 'none' }}
+          onPointerMove={drag.onMove}
+          onPointerUp={drag.onUp}
+          onPointerCancel={drag.onUp}
+        >
+          <StageOverlay mapping={mapping} selection={selection} scale={scale} drag={drag} />
+        </svg>
       </div>
-      <svg
-        ref={svgRef}
-        className={layerCls}
-        viewBox={`0 0 ${String(mapping.canvas.width)} ${String(mapping.canvas.height)}`}
-        preserveAspectRatio="none"
-        style={{ touchAction: 'none' }}
-        onPointerMove={drag.onMove}
-        onPointerUp={drag.onUp}
-        onPointerCancel={drag.onUp}
-      >
-        <StageOverlay mapping={mapping} selection={selection} scale={scale} drag={drag} />
-      </svg>
     </div>
   );
 };
