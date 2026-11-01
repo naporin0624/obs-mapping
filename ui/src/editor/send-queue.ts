@@ -12,7 +12,7 @@ export type SendQueueOptions = {
 };
 
 export type SendQueue = {
-  push(m: Mapping, opts: { dragging: boolean }): void;
+  enqueue(m: Mapping, opts: { dragging: boolean }): void;
   /** Send the latest pending mapping now (end of a drag). */
   flush(): void;
   /** The connection came back: resend whatever could not be delivered. */
@@ -54,7 +54,7 @@ class Queue implements SendQueue {
     this.#clearTimer = o.clearTimer ?? ((h): void => clearTimeout(h as ReturnType<typeof setTimeout>));
   }
 
-  push(m: Mapping, opts: { dragging: boolean }): void {
+  enqueue(m: Mapping, opts: { dragging: boolean }): void {
     this.#pending = m;
     this.#dragging = opts.dragging;
     this.#attempt();

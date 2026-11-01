@@ -133,8 +133,7 @@ const useMappingFlow = (env: Env, state: EditorState, loaded: boolean, setOverla
       return;
     }
     s.unsent = state.mapping;
-    // oxlint-disable-next-line no-restricted-properties -- SendQueue.push, not Array.prototype.push
-    s.queue?.push(state.mapping, { dragging: state.dragging });
+    s.queue?.enqueue(state.mapping, { dragging: state.dragging });
   }, [state.mapping, loaded, shared]);
 
   const wasDragging = useRef(false);
@@ -329,8 +328,7 @@ export const useSync = (client: ObsClient, source: string, online: boolean): Syn
         report(r.error);
         if (dropped !== null && shared.current.unsent === null) {
           shared.current.unsent = dropped;
-          // oxlint-disable-next-line no-restricted-properties -- SendQueue.push, not Array.prototype.push
-          shared.current.queue?.push(dropped, { dragging: false });
+          shared.current.queue?.enqueue(dropped, { dragging: false });
         }
         return false;
       }
