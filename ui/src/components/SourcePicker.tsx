@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { css } from '../../styled-system/css';
 import type { ObsClient } from '../obs/client';
-import { buttonCls, inputCls, labelCls, rowCls } from './styles';
+import { buttonCls, barCls, inputCls, labelCls, rowCls } from './styles';
 
 type MappingSource = { name: string; width: number; height: number };
 
@@ -30,11 +30,11 @@ export const SourcePicker = ({ client, selected, onSelect }: Props) => {
   }, [reload]);
 
   return (
-    <div className={`${rowCls} ${css({ px: '8px', py: '6px', bg: 'bg.panel', borderBottom: '1px solid token(colors.line)' })}`}>
+    <div className={`${rowCls} ${barCls}`}>
       <label className={labelCls}>
-        Mapping ソース{' '}
+        Source{' '}
         <select className={inputCls} value={selected} onChange={(e) => onSelect(e.target.value)}>
-          <option value="">選択してください</option>
+          <option value="">Select a source</option>
           {sources.map((s) => (
             <option key={s.name} value={s.name}>
               {s.name} ({s.width}x{s.height})
@@ -43,14 +43,14 @@ export const SourcePicker = ({ client, selected, onSelect }: Props) => {
         </select>
       </label>
       <button type="button" className={buttonCls} onClick={() => void reload()}>
-        更新
+        Reload
       </button>
       {error === null ? null : (
-        <span role="alert" className={css({ color: 'danger' })}>
+        <span role="alert" className={css({ color: 'danger.text' })}>
           {error}
         </span>
       )}
-      {error === null && sources.length === 0 ? <span className={css({ color: 'text.dim' })}>Mapping ソースがありません</span> : null}
+      {error === null && sources.length === 0 ? <span className={css({ color: 'fg.muted' })}>Mapping ソースがありません</span> : null}
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { css } from '../../styled-system/css';
 import type { ConnState } from '../obs/connection';
 import type { ConnSettings } from '../obs/use-obs-connection';
-import { buttonCls, inputCls, labelCls, rowCls } from './styles';
+import { buttonCls, buttonSolidCls, barCls, inputCls, labelCls, rowCls } from './styles';
 
 const label = (s: ConnState): string => {
   switch (s.kind) {
@@ -21,9 +21,9 @@ const label = (s: ConnState): string => {
 
 const statusCls = css({
   fontSize: '11px',
-  color: 'text.dim',
-  '&[data-kind=open]': { color: 'accent' },
-  '&[data-kind=auth_failed]': { color: 'danger' },
+  color: 'fg.muted',
+  '&[data-kind=open]': { color: 'accent.text' },
+  '&[data-kind=auth_failed]': { color: 'danger.text' },
 });
 
 type Props = {
@@ -40,7 +40,7 @@ export const ConnectPanel = ({ initial, state, onConnect, onDisconnect }: Props)
 
   return (
     <form
-      className={`${rowCls} ${css({ px: '8px', py: '6px', bg: 'bg.panel', borderBottom: '1px solid token(colors.line)' })}`}
+      className={`${rowCls} ${barCls}`}
       onSubmit={(e) => {
         e.preventDefault();
         if (active) onDisconnect();
@@ -51,10 +51,10 @@ export const ConnectPanel = ({ initial, state, onConnect, onDisconnect }: Props)
         URL <input className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} disabled={active} />
       </label>
       <label className={labelCls}>
-        パスワード <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={active} autoComplete="off" />
+        Password <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={active} autoComplete="off" />
       </label>
-      <button type="submit" className={buttonCls}>
-        {active ? '切断' : '接続'}
+      <button type="submit" className={active ? buttonCls : buttonSolidCls}>
+        {active ? 'Disconnect' : 'Connect'}
       </button>
       <span role="status" className={statusCls} data-kind={state.kind}>
         {label(state)}

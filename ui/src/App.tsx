@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Editor } from './components/Editor';
 import { ConnectPanel } from './components/ConnectPanel';
 import { SourcePicker } from './components/SourcePicker';
 import { useObsConnection } from './obs/use-obs-connection';
@@ -33,6 +34,7 @@ export const App = () => {
           }}
         />
       ) : null}
+      {source !== '' && (state.kind === 'open' || state.kind === 'connecting' || state.kind === 'waiting') ? <Editor client={client} source={source} online={state.kind === 'open'} /> : null}
     </main>
   );
 };

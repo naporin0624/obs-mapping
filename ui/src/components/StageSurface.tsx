@@ -1,0 +1,27 @@
+import { css } from '../../styled-system/css';
+import { cssMatrix3d } from '../geometry/homography';
+import type { Surface } from '../model/mapping';
+
+// The element is sized in "source units" (1000 per unit of crop); only ratios matter because
+// cssMatrix3d maps the element's rectangle onto the quad.
+const UNIT = 1000;
+
+const cropCls = css({ position: 'absolute', left: 0, top: 0, overflow: 'hidden', transformOrigin: '0 0', pointerEvents: 'none' });
+const imgCls = css({ position: 'absolute', display: 'block', maxWidth: 'none', userSelect: 'none' });
+
+type Props = { surface: Surface; image: string | undefined; scale: number };
+
+/** One surface: the screenshot of its source, cropped, projected onto the quad with CSS matrix3d. */
+export const StageSurface = ({ surface, image, scale }: Props) => {
+  const { crop, corners } = surface;
+  const w = crop.width * UNIT;
+  const h = crop.height * UNIT;
+  const scaled = corners.map((p) => [p[0] * scale, p[1] * scale] as const) as unknown as Surface['corners'];
+  const matrix = cssMatrix3d(w, h, scaled);
+  if (matrix === null || image === undefined || !surface.visible) return null;
+  return (
+    <div className={cropCls} style={{ width: w, height: h, transform: matrix }}>
+      <img className={imgCls} src={image} alt="" draggable={false} style={{ width: UNIT, height: UNIT, left: -crop.x * UNIT, top: -crop.y * UNIT }} />
+    </div>
+  );
+};
