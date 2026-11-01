@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
-import type { ToastMessage } from '../../editor/use-sync';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { dismissToastAtom, toastAtom } from '../../atoms/toast';
 import { toastCls, titleCls } from './styles.css';
 
 const TOAST_MS = 5000;
 
-type Props = { toast: ToastMessage | null; onDismiss: () => void };
-
 /** Error toast; dismisses itself after 5 s (a new message restarts the timer) or on click. */
-export const Toast = ({ toast, onDismiss }: Props) => {
+export const Toast = () => {
+  const toast = useAtomValue(toastAtom);
+  const onDismiss = useSetAtom(dismissToastAtom);
   const id = toast?.id;
   useEffect(() => {
     if (id === undefined) return undefined;

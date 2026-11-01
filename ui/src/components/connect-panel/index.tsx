@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ConnState } from '../../obs/connection';
-import type { ConnSettings } from '../../obs/use-obs-connection';
+import type { ConnSettings } from '../../app/obs-session';
 import { buttonCls, buttonSolidCls, barCls, inputCls, labelCls, rowCls } from '../styles.css';
 import { statusCls } from './styles.css';
 
@@ -29,6 +29,12 @@ type Props = {
 export const ConnectPanel = ({ initial, state, onConnect, onDisconnect }: Props) => {
   const [url, setUrl] = useState(initial.url);
   const [password, setPassword] = useState(initial.password);
+  const [adopted, setAdopted] = useState(initial);
+  if (adopted.url !== initial.url || adopted.password !== initial.password) {
+    setAdopted(initial);
+    setUrl(initial.url);
+    setPassword(initial.password);
+  }
   const active = state.kind === 'open' || state.kind === 'connecting' || state.kind === 'waiting';
 
   return (
