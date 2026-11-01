@@ -1,61 +1,75 @@
-import { useInputs } from '../../editor/use-inputs';
-import { useSync } from '../../editor/use-sync';
-import type { ObsClient } from '../../obs/client';
+import { useEffect } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { activateMappingAtom, dispatchAtom, hasLiveEditorAtom, importAtom, mappingViewAtom, overlayEnabledAtom, setOverlayAtom } from '../../atoms/mapping';
+import { clientAtom, inputsAtom, onlineAtom, reloadInputsAtom } from '../../atoms/session';
+import { reportErrorAtom } from '../../atoms/toast';
 import { ImportExport } from '../import-export';
 import { Inspector } from '../inspector';
 import { Stage } from '../stage';
 import { SurfaceList } from '../surface-list';
-import { buttonCls } from '../styles.css';
-import { Toast } from '../toast';
 import { Toolbar } from '../toolbar';
+import { LoadBoundary } from './load-boundary';
 import { bodyCls, stageColCls, sideCls, noteCls } from './styles.css';
 
-type Props = { client: ObsClient; source: string; online: boolean };
+const useEditorCommands = () => ({
+  dispatch: useSetAtom(dispatchAtom),
+  setOverlay: useSetAtom(setOverlayAtom),
+  applyImport: useSetAtom(importAtom),
+  reloadInputs: useSetAtom(reloadInputsAtom),
+  reportError: useSetAtom(reportErrorAtom),
+});
 
-/** The editing screen for one Mapping source. */
-export const Editor = ({ client, source, online }: Props) => {
-  const sync = useSync(client, source, online);
-  const { inputs, reload } = useInputs(client, online);
-  const { state, dispatch } = sync;
+const EditorBody = () => {
+  const view = useAtomValue(mappingViewAtom);
+  const online = useAtomValue(onlineAtom);
+  const overlayEnabled = useAtomValue(overlayEnabledAtom);
+  const inputs = useAtomValue(inputsAtom);
+  const client = useAtomValue(clientAtom);
+  const activate = useSetAtom(activateMappingAtom);
+  const { dispatch, setOverlay, applyImport, reloadInputs, reportError } = useEditorCommands();
+  const source = view?.source;
 
-  if (!sync.loaded) {
-    return (
-      <>
-        <div className={noteCls}>
-          {sync.loadError !== null ? `読み込みに失敗しました: ${sync.loadError}` : online ? '読み込み中...' : 'OBS に接続すると編集できます。'}
-          {sync.loadError !== null && online ? (
-            <button type="button" className={buttonCls} onClick={sync.retry}>
-              Retry
-            </button>
-          ) : null}
-        </div>
-        <Toast toast={sync.toast} onDismiss={sync.dismissToast} />
-      </>
-    );
-  }
+  useEffect(() => {
+    // USEEFFECT_JUSTIFICATION: opening the loaded source is a command, so it must not run in a getter.
+    void activate();
+  }, [activate, source]);
+
+  if (view === null) return null;
+  const { editor } = view;
   return (
     <>
       <Toolbar
         dispatch={dispatch}
-        canUndo={state.past.length > 0 && !state.dragging}
-        canRedo={state.future.length > 0 && !state.dragging}
-        selectedCount={state.selection.surfaceIds.length}
-        gridSize={state.mapping.grid.size}
-        overlayEnabled={sync.overlayEnabled}
-        onToggleOverlay={() => sync.setOverlayEnabled(!sync.overlayEnabled)}
+        canUndo={editor.past.length > 0 && !editor.dragging}
+        canRedo={editor.future.length > 0 && !editor.dragging}
+        selectedCount={editor.selection.surfaceIds.length}
+        gridSize={editor.mapping.grid.size}
+        overlayEnabled={overlayEnabled}
+        onToggleOverlay={() => setOverlay(!overlayEnabled)}
       >
-        <ImportExport mapping={state.mapping} online={online} onApply={sync.applyImport} onError={sync.reportError} />
+        <ImportExport mapping={editor.mapping} online={online} onApply={applyImport} onError={reportError} />
       </Toolbar>
       <div className={bodyCls}>
         <div className={stageColCls}>
-          <Stage state={state} dispatch={dispatch} client={client} online={online} />
+          <Stage state={editor} dispatch={dispatch} client={client} online={online} />
         </div>
         <aside className={sideCls}>
-          <SurfaceList mapping={state.mapping} selection={state.selection} inputs={inputs} dispatch={dispatch} onReloadInputs={reload} />
-          <Inspector mapping={state.mapping} selection={state.selection} inputs={inputs} dispatch={dispatch} />
+          <SurfaceList mapping={editor.mapping} selection={editor.selection} inputs={inputs} dispatch={dispatch} onReloadInputs={() => void reloadInputs()} />
+          <Inspector mapping={editor.mapping} selection={editor.selection} inputs={inputs} dispatch={dispatch} />
         </aside>
       </div>
-      <Toast toast={sync.toast} onDismiss={sync.dismissToast} />
     </>
+  );
+};
+
+/** The editing screen for the selected Mapping source. */
+export const Editor = () => {
+  const online = useAtomValue(onlineAtom);
+  const live = useAtomValue(hasLiveEditorAtom);
+  if (!online && !live) return <div className={noteCls}>OBS に接続すると編集できます。</div>;
+  return (
+    <LoadBoundary>
+      <EditorBody />
+    </LoadBoundary>
   );
 };

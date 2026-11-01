@@ -1,40 +1,26 @@
-import { useState } from 'react';
-import { Editor } from './components/editor';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { lifecycleAtom } from './atoms/lifecycle';
+import { connAtom, connectAtom, disconnectAtom, selectedSourceAtom, settingsAtom } from './atoms/session';
 import { ConnectPanel } from './components/connect-panel';
+import { Editor } from './components/editor';
 import { SourcePicker } from './components/source-picker';
-import { useObsConnection } from './obs/use-obs-connection';
-import { DEFAULT_URL, readStored, STORAGE_KEYS, writeStored } from './storage';
-
-// read once at load; the app auto-connects with these on mount
-const initialSettings = { url: readStored(STORAGE_KEYS.url, DEFAULT_URL), password: readStored(STORAGE_KEYS.password, '') };
+import { Toast } from './components/toast';
 
 export const App = () => {
-  const { state, client, connect, disconnect } = useObsConnection(initialSettings);
-  const [source, setSource] = useState(() => readStored(STORAGE_KEYS.source, ''));
+  useAtomValue(lifecycleAtom);
+  const conn = useAtomValue(connAtom);
+  const settings = useAtomValue(settingsAtom);
+  const selected = useAtomValue(selectedSourceAtom);
+  const connect = useSetAtom(connectAtom);
+  const disconnect = useSetAtom(disconnectAtom);
+  const editable = conn.kind === 'open' || conn.kind === 'connecting' || conn.kind === 'waiting';
 
   return (
     <main>
-      <ConnectPanel
-        initial={initialSettings}
-        state={state}
-        onConnect={(s) => {
-          writeStored(STORAGE_KEYS.url, s.url);
-          writeStored(STORAGE_KEYS.password, s.password);
-          connect(s);
-        }}
-        onDisconnect={disconnect}
-      />
-      {state.kind === 'open' ? (
-        <SourcePicker
-          client={client}
-          selected={source}
-          onSelect={(name) => {
-            writeStored(STORAGE_KEYS.source, name);
-            setSource(name);
-          }}
-        />
-      ) : null}
-      {source !== '' && (state.kind === 'open' || state.kind === 'connecting' || state.kind === 'waiting') ? <Editor client={client} source={source} online={state.kind === 'open'} /> : null}
+      <ConnectPanel initial={settings} state={conn} onConnect={connect} onDisconnect={disconnect} />
+      {conn.kind === 'open' ? <SourcePicker /> : null}
+      {selected !== null && editable ? <Editor /> : null}
+      <Toast />
     </main>
   );
 };
