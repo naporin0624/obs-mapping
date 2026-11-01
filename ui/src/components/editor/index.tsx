@@ -8,6 +8,7 @@ import { Inspector } from '../inspector';
 import { Stage } from '../stage';
 import { SurfaceList } from '../surface-list';
 import { Toolbar } from '../toolbar';
+import { UnderlayControls } from '../underlay-controls';
 import { LoadBoundary } from './load-boundary';
 import { bodyCls, stageColCls, sideCls, noteCls } from './styles.css';
 
@@ -47,6 +48,7 @@ const EditorBody = () => {
         overlayEnabled={overlayEnabled}
         onToggleOverlay={() => setOverlay(!overlayEnabled)}
       >
+        <UnderlayControls />
         <ImportExport mapping={editor.mapping} online={online} onApply={applyImport} onError={reportError} />
       </Toolbar>
       <div className={bodyCls}>

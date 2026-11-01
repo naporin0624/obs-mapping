@@ -4,6 +4,8 @@ import { StrictMode, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '../App';
 import { createInstances, instancesAtom } from '../atoms/instances';
+import { underlayDepsAtom } from '../atoms/underlay';
+import { createMemoryUnderlayStore } from '../underlay/memory-store';
 import { buttonCls, rowCls } from '../components/styles.css';
 import { debugCls, debugTitleCls, logCls, logPanelCls } from './styles.css';
 import { createFakeConnection, createMockLog } from './fake-connection';
@@ -23,6 +25,8 @@ store.set(
     clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
   }),
 );
+
+store.set(underlayDepsAtom, { store: createMemoryUnderlayStore(), createUrl: (blob) => URL.createObjectURL(blob), revokeUrl: (url) => URL.revokeObjectURL(url) });
 
 const Debug = () => {
   useSyncExternalStore(log.subscribe, log.count);
