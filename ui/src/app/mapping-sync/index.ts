@@ -5,8 +5,9 @@ import { initialEditorState, type EditorState } from '../../editor/state';
 import { createEmitter } from '../emitter';
 import { createTerminator } from '../terminator';
 import { createPluginFeed } from './plugin-feed';
+import { createRequestIds, isOwnRequestId, randomNonce } from './request-ids';
 import type { LoadResult, SourceSession } from './source-session';
-import { createSwitcher, type SwitcherEvent } from './switcher';
+import { createSwitcher, type SwitcherDeps, type SwitcherEvent } from './switcher';
 
 export type { LoadResult } from './source-session';
 
@@ -17,6 +18,8 @@ export type MappingSyncDeps = {
   clearTimer: (handle: unknown) => void;
   resyncIdleMs?: number;
   sendIntervalMs?: number;
+  /** Prefix of every requestId this instance sends; random by default so two docks never collide. */
+  instanceNonce?: string;
   /** Initial connectivity; defaults to false until reconnect(). */
   online?: boolean;
 };
@@ -37,10 +40,15 @@ const stateOf = (s: SourceSession | null, online: boolean): MappingSyncState => 
 
 const sameState = (a: MappingSyncState, b: MappingSyncState): boolean => a.source === b.source && a.editor === b.editor && a.overlayEnabled === b.overlayEnabled && a.online === b.online;
 
-const routeToActive = (current: () => SourceSession | null) => ({
-  onMapping: (source: string, mapping: Mapping, overlayEnabled: boolean | undefined): void => {
+const isLateEcho = (s: SourceSession, requestId: string | null, nonce: string): boolean =>
+  requestId !== null && isOwnRequestId(nonce, requestId) && !s.getEditor().inFlight.some((e) => e.requestId === requestId);
+
+const routeToActive = (current: () => SourceSession | null, nonce: string) => ({
+  onMapping: (source: string, mapping: Mapping, overlayEnabled: boolean | undefined, requestId: string | null): void => {
     const s = current();
-    if (s?.source === source) s.applyRemote(mapping, overlayEnabled);
+    if (s?.source !== source) return;
+    if (isLateEcho(s, requestId, nonce)) s.applyStaleEcho(overlayEnabled);
+    else s.applyRemote(mapping, overlayEnabled, requestId);
   },
   onOverlay: (source: string, enabled: boolean): void => {
     const s = current();
@@ -75,6 +83,19 @@ const createSnapshot = (read: () => MappingSyncState, online: boolean) => {
   };
 };
 
+const switcherDeps = (deps: MappingSyncDeps, nonce: string, feed: ReturnType<typeof createPluginFeed>, emit: (e: MappingSyncEvent) => void): SwitcherDeps => ({
+  client: deps.client,
+  feed,
+  now: deps.now,
+  setTimer: deps.setTimer,
+  clearTimer: deps.clearTimer,
+  idleMs: deps.resyncIdleMs ?? RESYNC_IDLE_MS,
+  sendIntervalMs: deps.sendIntervalMs ?? SEND_INTERVAL_MS,
+  nextRequestId: createRequestIds(nonce),
+  online: deps.online ?? false,
+  emit,
+});
+
 /**
  * Construction, getState() and load() start nothing. watchRemote() / startResync() are the only long-running
  * effects and return their stop; open() switches source (draining the old one), dispatch() may send.
@@ -90,19 +111,10 @@ export const createMappingSync = (deps: MappingSyncDeps) => {
     events.emit(e);
   };
 
-  const feed = createPluginFeed({ client: deps.client, ...routeToActive(() => switcher.current()) });
+  const nonce = deps.instanceNonce ?? randomNonce();
+  const feed = createPluginFeed({ client: deps.client, ...routeToActive(() => switcher.current(), nonce) });
 
-  const switcher = createSwitcher({
-    client: deps.client,
-    feed,
-    now: deps.now,
-    setTimer: deps.setTimer,
-    clearTimer: deps.clearTimer,
-    idleMs: deps.resyncIdleMs ?? RESYNC_IDLE_MS,
-    sendIntervalMs: deps.sendIntervalMs ?? SEND_INTERVAL_MS,
-    online: deps.online ?? false,
-    emit,
-  });
+  const switcher = createSwitcher(switcherDeps(deps, nonce, feed, emit));
 
   const dispose = (): void => {
     if (disposed) return;

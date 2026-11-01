@@ -7,14 +7,17 @@ export type Selection = {
   corner: { surfaceId: string; index: CornerIndex } | null;
 };
 
+/** json is kept only to match echoes from a plugin that does not return requestId. */
+export type InFlightEntry = { requestId: string; json: string };
+
 export type EditorState = {
   mapping: Mapping;
   selection: Selection;
   dragging: boolean;
   past: Mapping[];
   future: Mapping[];
-  /** canonicalJson of own sends not yet echoed back by the plugin, oldest first (max 32). */
-  inFlight: readonly string[];
+  /** Own sends not yet echoed back by the plugin, oldest first (max 32). */
+  inFlight: readonly InFlightEntry[];
   pendingRemote: Mapping | null;
   /** A foreign remote replaced local while own sends were in flight: the plugin may hold something else. */
   needsResync: boolean;

@@ -89,12 +89,23 @@ void get_mapping(obs_data_t *request, obs_data_t *response, void *)
 	});
 }
 
+// Absent, non-string and empty ids all mean "no request id".
+RequestId request_id_of(obs_data_t *request)
+{
+	const char *id = obs_data_has_user_value(request, "requestId") ? obs_data_get_string(request, "requestId") : "";
+	if (!id || !*id)
+		return std::nullopt;
+	return std::string(id);
+}
+
 void set_mapping(obs_data_t *request, obs_data_t *response, void *)
 {
 	with_mapping_source(request, response, [&](MappingSource &ms) {
 		if (!obs_data_has_user_value(request, "mappingJson"))
 			return respond_error(response, "mappingJson: missing");
-		if (auto applied = ms.set_mapping_json(obs_data_get_string(request, "mappingJson")); !applied)
+		if (auto applied =
+			    ms.set_mapping_json(obs_data_get_string(request, "mappingJson"), request_id_of(request));
+		    !applied)
 			return respond_error(response, applied.error().message);
 		respond_ok(response);
 	});
@@ -123,7 +134,7 @@ void set_overlay(obs_data_t *request, obs_data_t *response, void *)
 	});
 }
 
-void emit_mapping_changed(MappingSource &ms)
+void emit_mapping_changed(MappingSource &ms, const RequestId &request_id)
 {
 	if (!g_vendor)
 		return;
@@ -132,6 +143,8 @@ void emit_mapping_changed(MappingSource &ms)
 	obs_data_set_string(event, "sourceName", obs_source_get_name(ms.source));
 	obs_data_set_string(event, "mappingJson", json.c_str());
 	obs_data_set_bool(event, "overlayEnabled", ms.overlay_enabled());
+	if (request_id)
+		obs_data_set_string(event, "requestId", request_id->c_str());
 	obs_websocket_vendor_emit_event(g_vendor, "MappingChanged", event);
 	obs_data_release(event);
 }

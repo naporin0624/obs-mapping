@@ -2,6 +2,7 @@ import type { Mapping } from '../../model/mapping';
 import type { ObsClient } from '../../obs/client';
 import { createSendQueue } from '../../editor/send-queue';
 import { canonicalJson } from '../../editor/state';
+import type { RequestIds } from './request-ids';
 import type { SessionState } from './session-state';
 
 export type OutboxDeps = {
@@ -12,7 +13,8 @@ export type OutboxDeps = {
   now: () => number;
   setTimer: (fn: () => void, ms: number) => unknown;
   clearTimer: (handle: unknown) => void;
-  onSent: (json: string) => void;
+  nextRequestId: RequestIds;
+  onSent: (requestId: string, json: string) => void;
   onSettled: () => void;
   onDrained: () => void;
   fail: (message: string) => void;
@@ -32,8 +34,9 @@ export const createOutbox = (d: OutboxDeps) => {
   const send = async (m: Mapping) => {
     // Rejecting (not resolving ok:false) tells the queue the connection is down: keep and resend later.
     if (!state.online()) throw new Error('offline');
-    if (!state.closed()) d.onSent(canonicalJson(m));
-    const r = await d.client.setMapping(d.source, m);
+    const requestId = d.nextRequestId();
+    if (!state.closed()) d.onSent(requestId, canonicalJson(m));
+    const r = await d.client.setMapping(d.source, m, requestId);
     // a transport failure can settle before the online flag flips: still keep the edit unsent
     if (!r.ok && (r.transport === true || !state.online())) throw new Error(r.error);
     if (state.unsent() === m) {

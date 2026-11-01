@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Mapping } from '../../model/mapping';
-import type { ObsClient, VendorResult } from '../../obs/client';
+import type { MappingChangedHandler, ObsClient, VendorResult } from '../../obs/client';
 import { createMappingSync, type MappingSync, type MappingSyncEvent } from '.';
 
 const mapping = (grid: number): Mapping => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: grid }, surfaces: [] });
@@ -12,14 +12,14 @@ type Fake = {
   onOverlayChanged: ReturnType<typeof vi.fn>;
   setMapping: ReturnType<typeof vi.fn>;
   setOverlay: ReturnType<typeof vi.fn>;
-  emit: (m: Mapping, overlayEnabled?: boolean, source?: string) => void;
+  emit: (m: Mapping, overlayEnabled?: boolean, source?: string, requestId?: string | null) => void;
   emitOverlay: (enabled: boolean, source?: string) => void;
   plugin: { mapping: Mapping; overlayEnabled: boolean };
 };
 
 const fake = (initial: Mapping): Fake => {
   const plugin = { mapping: initial, overlayEnabled: false };
-  let listener: ((name: string, m: Mapping, overlayEnabled: boolean | undefined) => void) | null = null;
+  let listener: MappingChangedHandler | null = null;
   let overlayListener: ((name: string, enabled: boolean) => void) | null = null;
   const getMapping = vi.fn(async () => ({ ok: true, mapping: plugin.mapping, overlayEnabled: plugin.overlayEnabled }) as VendorResult<{ mapping: Mapping; overlayEnabled: boolean }>);
   const setOverlay = vi.fn(async () => ({ ok: true }) as VendorResult<{}>);
@@ -27,7 +27,7 @@ const fake = (initial: Mapping): Fake => {
     plugin.mapping = m;
     return { ok: true } as VendorResult<{}>;
   });
-  const onMappingChanged = vi.fn((cb: (name: string, m: Mapping, overlayEnabled: boolean | undefined) => void) => {
+  const onMappingChanged = vi.fn((cb: MappingChangedHandler) => {
     listener = cb;
     return () => {
       listener = null;
@@ -57,7 +57,7 @@ const fake = (initial: Mapping): Fake => {
     setMapping,
     setOverlay,
     plugin,
-    emit: (m, overlayEnabled, source = 'Map') => listener?.(source, m, overlayEnabled),
+    emit: (m, overlayEnabled, source = 'Map', requestId = null) => listener?.(source, m, overlayEnabled, requestId),
     emitOverlay: (enabled, source = 'Map') => overlayListener?.(source, enabled),
   };
 };
@@ -918,7 +918,7 @@ describe('createMappingSync', () => {
       expect(gridOf(sync)).toBe(60);
     });
 
-    it('does not resync again while the stale in-flight list survives a different plugin copy (T8)', async () => {
+    it('drains the stale in-flight list with a different plugin copy and does not resync again (T8)', async () => {
       const f = fake(mapping(10));
       const { sync } = await mount(f);
       f.getMapping.mockClear();
@@ -927,7 +927,7 @@ describe('createMappingSync', () => {
       f.plugin.mapping = mapping(77);
       await settle(2000);
       expect(f.getMapping).toHaveBeenCalledTimes(1);
-      expect(sync.getState().editor?.inFlight.length).toBeGreaterThan(0);
+      expect(sync.getState().editor?.inFlight).toEqual([]);
       await settle(10_000);
       expect(f.getMapping).toHaveBeenCalledTimes(1);
     });
@@ -1100,6 +1100,158 @@ describe('createMappingSync', () => {
       sync.dispose();
       await settle();
       expect(vi.getTimerCount()).toBe(0);
+    });
+  });
+  describe('request-id round trip (#4)', () => {
+    const idsOf = (f: Fake): string[] => f.setMapping.mock.calls.map((c) => c[2] as string);
+    const sendGrid = async (sync: MappingSync, size: number): Promise<void> => {
+      sync.dispatch({ type: 'setGrid', size });
+      await settle(40);
+    };
+
+    it('sends ids of the form nonce-n, counting up', async () => {
+      const f = fake(mapping(10));
+      const sync = createMappingSync({
+        client: f.client,
+        now: () => Date.now(),
+        setTimer: (fn, ms) => setTimeout(fn, ms),
+        clearTimer: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+        online: true,
+        instanceNonce: 'n1',
+      });
+      await openSource(sync);
+      await sendGrid(sync, 20);
+      await sendGrid(sync, 30);
+      expect(idsOf(f)).toEqual(['n1-1', 'n1-2']);
+    });
+
+    it('A, B, A with id echoes never flashes the editor to B', async () => {
+      const f = fake(mapping(10));
+      const { sync } = await mount(f);
+      await sendGrid(sync, 20); // A
+      await sendGrid(sync, 30); // B
+      sync.dispatch({ type: 'undo' }); // A again
+      await settle(40);
+      const [a1, b, a2] = idsOf(f);
+      expect(idsOf(f)).toHaveLength(3);
+      const seen: (number | undefined)[] = [];
+      sync.subscribe(() => seen.push(gridOf(sync)));
+      f.emit(mapping(20), undefined, 'Map', a1);
+      f.emit(mapping(30), undefined, 'Map', b);
+      f.emit(mapping(20), undefined, 'Map', a2);
+      expect(gridOf(sync)).toBe(20);
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen.every((g) => g === 20)).toBe(true);
+      expect(sync.getState().editor?.inFlight).toEqual([]);
+    });
+
+    it('an echo of unchanged content still acknowledges its id', async () => {
+      const f = fake(mapping(10));
+      const { sync } = await mount(f);
+      await sendGrid(sync, 20);
+      f.emit(mapping(20), undefined, 'Map', idsOf(f)[0]);
+      expect(sync.getState().editor?.inFlight).toEqual([]);
+      expect(sync.getState().editor?.needsResync).toBe(false);
+    });
+
+    it('a plugin without requestId is matched oldest-first by content', async () => {
+      const f = fake(mapping(10));
+      const { sync } = await mount(f);
+      await sendGrid(sync, 20); // A
+      await sendGrid(sync, 30); // B
+      sync.dispatch({ type: 'undo' });
+      await settle(40);
+      f.emit(mapping(20));
+      f.emit(mapping(30));
+      expect(gridOf(sync)).toBe(20);
+      f.emit(mapping(20));
+      expect(gridOf(sync)).toBe(20);
+      expect(sync.getState().editor?.inFlight).toEqual([]);
+    });
+
+    const mountWithNonce = async (f: Fake) => {
+      const sync = createMappingSync({
+        client: f.client,
+        now: () => Date.now(),
+        setTimer: (fn, ms) => setTimeout(fn, ms),
+        clearTimer: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+        online: true,
+        instanceNonce: 'n1',
+      });
+      sync.watchRemote();
+      sync.startResync();
+      await openSource(sync);
+      return sync;
+    };
+
+    it('after a multi-frame drag whose echoes arrived mid-drag, the idle resync drains inFlight without churn', async () => {
+      const f = fake(withSurface());
+      const sync = await mountWithNonce(f);
+      sync.dispatch({ type: 'dragStart' });
+      for (let i = 0; i < 3; i++) {
+        sync.dispatch({ type: 'dragSurface', surfaceId: 'x', dx: 5, dy: 0 });
+        await settle(40);
+      }
+      for (const id of idsOf(f)) f.emit(f.plugin.mapping, undefined, 'Map', id);
+      sync.dispatch({ type: 'dragEnd' });
+      const before = sync.getState().editor?.mapping;
+      expect(sync.getState().editor?.inFlight.length).toBeGreaterThan(0);
+      await settle(2000);
+      expect(sync.getState().editor?.inFlight).toEqual([]);
+      expect(sync.getState().editor?.needsResync).toBe(false);
+      expect(sync.getState().editor?.mapping).toBe(before);
+    });
+
+    it('when every echo is lost the idle resync adopts the plugin copy and drains inFlight', async () => {
+      const f = fake(mapping(10));
+      const sync = await mountWithNonce(f);
+      await sendGrid(sync, 20);
+      await sendGrid(sync, 30);
+      f.plugin.mapping = mapping(50);
+      await settle(2000);
+      expect(gridOf(sync)).toBe(50);
+      expect(sync.getState().editor?.inFlight).toEqual([]);
+      expect(sync.getState().editor?.needsResync).toBe(false);
+    });
+
+    it('a reordered echo of our own id (already consumed) keeps local and recovers through a resync', async () => {
+      const f = fake(mapping(10));
+      const sync = await mountWithNonce(f);
+      await sendGrid(sync, 20); // A = n1-1
+      await sendGrid(sync, 30); // B = n1-2
+      const [a, b] = idsOf(f);
+      f.emit(mapping(30), undefined, 'Map', b);
+      f.getMapping.mockClear();
+      f.emit(mapping(20), undefined, 'Map', a);
+      expect(gridOf(sync)).toBe(30);
+      await settle();
+      expect(f.getMapping).toHaveBeenCalledTimes(1);
+      expect(gridOf(sync)).toBe(30);
+      expect(sync.getState().editor?.needsResync).toBe(false);
+    });
+
+    it('two docks on one plugin never collide, and each treats the other echo as foreign', async () => {
+      const f = fake(mapping(10));
+      const make = (instanceNonce: string) =>
+        createMappingSync({
+          client: f.client,
+          now: () => Date.now(),
+          setTimer: (fn, ms) => setTimeout(fn, ms),
+          clearTimer: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
+          online: true,
+          instanceNonce,
+        });
+      const dock1 = make('d1');
+      const dock2 = make('d2');
+      dock1.watchRemote();
+      await openSource(dock1);
+      await openSource(dock2);
+      await sendGrid(dock1, 20);
+      await sendGrid(dock2, 20);
+      expect(idsOf(f)).toEqual(['d1-1', 'd2-1']);
+      f.emit(mapping(20), undefined, 'Map', 'd2-1');
+      expect(dock1.getState().editor?.inFlight).toHaveLength(1);
+      expect(dock1.getState().editor?.needsResync).toBe(true);
     });
   });
 });

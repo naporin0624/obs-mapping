@@ -1,5 +1,5 @@
 import type { Mapping, Surface } from '../model/mapping';
-import type { ObsClient, ObsConnection, VendorResult } from '../obs/client';
+import type { MappingChangedHandler, ObsClient, ObsConnection, VendorResult } from '../obs/client';
 
 const surface = (id: string, source: string, x: number): Surface => ({
   id,
@@ -81,7 +81,7 @@ export const createMockLog = (failFirstGet: boolean) => {
 export type MockLog = ReturnType<typeof createMockLog>;
 
 type Listeners = {
-  mapping: Set<(name: string, m: Mapping, overlay: boolean | undefined) => void>;
+  mapping: Set<MappingChangedHandler>;
   overlay: Set<(name: string, enabled: boolean) => void>;
 };
 
@@ -105,13 +105,13 @@ const createPlugin = (log: MockLog, getDelayMs: number) => {
     return { ok: true, mapping: mappings.get(name) ?? sample(10), overlayEnabled: overlays.get(name) ?? false };
   };
 
-  const setMapping: ObsClient['setMapping'] = async (name, mapping) => {
+  const setMapping: ObsClient['setMapping'] = async (name, mapping, requestId) => {
     note(`SetMapping ${name} grid=${String(mapping.grid.size)} corner0=${JSON.stringify(mapping.surfaces[0]?.corners[0])}`);
     if (log.takeFailSet()) {
       return { ok: false, error: 'mock: SetMapping refused' };
     }
     mappings.set(name, mapping);
-    setTimeout(() => listeners.mapping.forEach((cb) => cb(name, mapping, overlays.get(name))), 20);
+    setTimeout(() => listeners.mapping.forEach((cb) => cb(name, mapping, overlays.get(name), requestId ?? null)), 20);
     return { ok: true };
   };
 

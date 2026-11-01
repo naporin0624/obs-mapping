@@ -152,12 +152,12 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 |---|---|---|
 | `ListMappingSources` | なし | `{ ok, sources: [{ name, width, height }] }` |
 | `GetMapping` | `{ sourceName }` | `{ ok, mappingJson, overlayEnabled }` |
-| `SetMapping` | `{ sourceName, mappingJson }` | `{ ok }` |
+| `SetMapping` | `{ sourceName, mappingJson, requestId? }` | `{ ok }` |
 | `SetOverlay` | `{ sourceName, enabled?, selectionJson? }` | `{ ok }` |
 
 | イベント | ペイロード |
 |---|---|
-| `MappingChanged` | `{ sourceName, mappingJson, overlayEnabled }` |
+| `MappingChanged` | `{ sourceName, mappingJson, overlayEnabled, requestId? }` |
 | `OverlayChanged` | `{ sourceName, enabled }`（オーバーレイの有効・無効が変わったとき。`SetOverlay` でもプロパティのチェックボックスでも発行される） |
 
 失敗時は `{ ok: false, error }` を返します。`error` は次のいずれかです。
@@ -166,6 +166,8 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 - `not a mapping source: <name>`
 - `mappingJson: missing`
 - JSON v1 の検証エラー（上の表のパスつきメッセージ）、または `selectionJson` のパースエラー
+
+`requestId` は `SetMapping` が任意の文字列で渡せます。その `SetMapping` が起こした `MappingChanged` は同じ `requestId` を持ちます。ドックは、これで自分の送信のエコーを見分けます。内容が変わらない `SetMapping` でも、`requestId` があれば `MappingChanged` を 1 回発行します（`requestId` がなければ従来どおり発行しません）。プロパティ欄の編集、ソース名の変更、`requestId` なしの `SetMapping` が起こした `MappingChanged` には `requestId` が付きません。空文字と、文字列でない値（数値や null など）は、付いていないものとして扱います。検証に失敗した `SetMapping` は `requestId` があっても `MappingChanged` を発行しません。イベントの `mappingJson` は発行時点の現在値なので、並行した別のクライアントの変更を含むことがあります。
 
 `selectionJson` を省略すると、選択なしとして扱います。`enabled` を省略すると、現在のオン・オフはそのままで、選択だけを更新します（ドックは選択の変更ではこの形で送ります）。
 

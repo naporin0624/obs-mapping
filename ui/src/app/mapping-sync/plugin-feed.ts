@@ -6,7 +6,7 @@ export type FeedUpdates = { mapping?: Mapping; overlay?: boolean };
 
 export type PluginFeedDeps = {
   client: ObsClient;
-  onMapping: (source: string, mapping: Mapping, overlayEnabled: boolean | undefined) => void;
+  onMapping: (source: string, mapping: Mapping, overlayEnabled: boolean | undefined, requestId: string | null) => void;
   onOverlay: (source: string, enabled: boolean) => void;
 };
 
@@ -28,9 +28,9 @@ export const createPluginFeed = (d: PluginFeedDeps) => {
   };
 
   const subscribe = (): (() => void) => {
-    const offMapping = d.client.onMappingChanged((source, mapping, overlayEnabled) => {
+    const offMapping = d.client.onMappingChanged((source, mapping, overlayEnabled, requestId) => {
       record(source, overlayEnabled === undefined ? { mapping } : { mapping, overlay: overlayEnabled });
-      d.onMapping(source, mapping, overlayEnabled);
+      d.onMapping(source, mapping, overlayEnabled, requestId);
     });
     const offOverlay = d.client.onOverlayChanged((source, enabled) => {
       record(source, { overlay: enabled });

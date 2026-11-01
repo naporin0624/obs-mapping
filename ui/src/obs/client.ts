@@ -13,18 +13,21 @@ export type OverlayState = {
   selectedCorner: { surfaceId: string; index: number } | null;
 };
 
+/** overlayEnabled is undefined when the event did not carry it; requestId is null unless it answers a SetMapping that had one. */
+export type MappingChangedHandler = (sourceName: string, mapping: Mapping, overlayEnabled: boolean | undefined, requestId: string | null) => void;
+
 export type MappingSourceInfo = { name: string; width: number; height: number };
 
 export interface ObsClient {
   listMappingSources(): Promise<VendorResult<{ sources: MappingSourceInfo[] }>>;
   getMapping(sourceName: string): Promise<VendorResult<{ mapping: Mapping; overlayEnabled: boolean }>>;
-  setMapping(sourceName: string, mapping: Mapping): Promise<VendorResult<{}>>;
+  /** requestId comes back on the resulting MappingChanged so the sender can recognise its own echo. */
+  setMapping(sourceName: string, mapping: Mapping, requestId?: string): Promise<VendorResult<{}>>;
   setOverlay(sourceName: string, state: OverlayState): Promise<VendorResult<{}>>;
   screenshot(sourceName: string, width: number): Promise<string>;
   /** Names of OBS inputs that can be assigned to a surface (Mapping sources excluded); [] on failure. */
   listInputs(): Promise<string[]>;
-  /** overlayEnabled is undefined when the event did not carry it. */
-  onMappingChanged(cb: (sourceName: string, mapping: Mapping, overlayEnabled: boolean | undefined) => void): () => void;
+  onMappingChanged(cb: MappingChangedHandler): () => void;
   onOverlayChanged(cb: (sourceName: string, enabled: boolean) => void): () => void;
 }
 
@@ -55,14 +58,15 @@ const eventData = (ev: VendorEventPayload, eventType: string): Record<string, un
 };
 
 const mappingChangedHandler =
-  (cb: (sourceName: string, mapping: Mapping, overlayEnabled: boolean | undefined) => void) =>
+  (cb: MappingChangedHandler) =>
   (ev: VendorEventPayload): void => {
     const data = eventData(ev, 'MappingChanged');
     if (data === null) return;
     const parsed = parseMapping(data['mappingJson']);
     const name = data['sourceName'];
     const overlay = data['overlayEnabled'];
-    if (parsed.ok && typeof name === 'string') cb(name, parsed.mapping, typeof overlay === 'boolean' ? overlay : undefined);
+    const requestId = data['requestId'];
+    if (parsed.ok && typeof name === 'string') cb(name, parsed.mapping, typeof overlay === 'boolean' ? overlay : undefined, typeof requestId === 'string' ? requestId : null);
   };
 
 const overlayChangedHandler =
@@ -127,8 +131,9 @@ export const createClient = (obs: ObsSocket): ObsClient => {
       const parsed = parseMapping(r['mappingJson']);
       return parsed.ok ? { ok: true, mapping: parsed.mapping, overlayEnabled: r['overlayEnabled'] === true } : parsed;
     },
-    async setMapping(sourceName, mapping) {
-      const r = await call('SetMapping', { sourceName, mappingJson: JSON.stringify(mapping) });
+    async setMapping(sourceName, mapping, requestId) {
+      const mappingJson = JSON.stringify(mapping);
+      const r = await call('SetMapping', requestId === undefined ? { sourceName, mappingJson } : { sourceName, mappingJson, requestId });
       return r.ok ? { ok: true } : fail(r);
     },
     async setOverlay(sourceName, state) {

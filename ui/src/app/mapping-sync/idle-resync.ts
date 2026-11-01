@@ -1,4 +1,5 @@
 import type { Mapping } from '../../model/mapping';
+import type { EditorState } from '../../editor/state';
 import type { ResyncSnapshot } from './session-state';
 
 export type IdleResyncDeps = {
@@ -10,7 +11,9 @@ export type IdleResyncDeps = {
   applyRemote: (mapping: Mapping) => void;
 };
 
-type IdleDeps = { online: boolean; inFlight: readonly string[]; mapping: Mapping; dragging: boolean };
+type InFlight = EditorState['inFlight'];
+
+type IdleDeps = { online: boolean; inFlight: InFlight; mapping: Mapping; dragging: boolean };
 
 const idleDepsOf = ({ editor, online }: ResyncSnapshot): IdleDeps => ({ online, inFlight: editor.inFlight, mapping: editor.mapping, dragging: editor.dragging });
 
@@ -20,13 +23,13 @@ const sameIdleDeps = (a: IdleDeps | null, b: IdleDeps): boolean => a !== null &&
 export const createIdleResync = (d: IdleResyncDeps) => {
   let timer: unknown = null;
   let token = 0;
-  let resynced: readonly string[] | null = null;
+  let resynced: InFlight | null = null;
   let last: IdleDeps | null = null;
   let disposed = false;
 
   const idleDue = (snap: ResyncSnapshot): boolean => snap.online && snap.editor.inFlight.length > 0 && !snap.editor.dragging && resynced !== snap.editor.inFlight;
 
-  const run = async (mine: number, list: readonly string[]): Promise<void> => {
+  const run = async (mine: number, list: InFlight): Promise<void> => {
     if (d.read().unsent !== null) {
       last = null; // not reconciled yet: let the next update() schedule it again
       return;

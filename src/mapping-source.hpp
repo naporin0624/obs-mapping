@@ -7,6 +7,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -16,6 +17,9 @@
 #include "source-cache.hpp"
 
 extern struct obs_source_info mapping_source_info;
+
+// Set when the change came from a SetMapping that carried a requestId; empty otherwise.
+using RequestId = std::optional<std::string>;
 
 // Immutable view of the applied mapping plus per-surface inverse homographies
 // (canvas px -> unit square). Swapped atomically; readers keep their own pointer.
@@ -34,8 +38,9 @@ struct MappingSource {
 
 	// Any thread.
 	obs_mapping::Mapping current() const;
-	// Any thread. Validates first; on failure nothing changes.
-	std::expected<void, obs_mapping::ParseError> set_mapping_json(std::string_view json);
+	// Any thread. Validates first; on failure nothing changes. With a request_id the change hook also fires
+	// when the mapping is unchanged, so the sender can acknowledge its own request.
+	std::expected<void, obs_mapping::ParseError> set_mapping_json(std::string_view json, RequestId request_id = {});
 
 	// Any thread. Replaces the selection; `enabled` (when given) also updates the overlay flag, which is
 	// mirrored into the `overlay` setting and announced through the overlay hook only when it changes.
@@ -73,8 +78,8 @@ private:
 // Null unless `src` is a Mapping source.
 MappingSource *mapping_source_from(obs_source_t *src);
 
-// Invoked (on any thread) whenever a source's applied mapping changes.
-void set_on_mapping_changed(std::function<void(MappingSource &)> handler);
+// Invoked (on any thread) whenever a source's applied mapping changes, or a SetMapping with a request id lands.
+void set_on_mapping_changed(std::function<void(MappingSource &, const RequestId &)> handler);
 
 // Invoked (on any thread, outside plugin locks) whenever a source's overlay enabled flag changes.
 void set_on_overlay_changed(std::function<void(MappingSource &)> handler);

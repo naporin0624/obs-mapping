@@ -1,16 +1,17 @@
 import { vi } from 'vitest';
 import type { Mapping } from '../model/mapping';
-import type { ObsClient, ObsConnection, VendorResult } from '../obs/client';
+import type { MappingChangedHandler, ObsClient, ObsConnection, VendorResult } from '../obs/client';
 
 export const mapping = (grid: number): Mapping => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: grid }, surfaces: [] });
 
 export const fakeObs = (initial: Mapping) => {
   const plugin = { mapping: initial };
   let closeCb: ((code: number) => void) | null = null;
-  let mappingCb: ((name: string, m: Mapping, overlay: boolean | undefined) => void) | null = null;
+  let mappingCb: MappingChangedHandler | null = null;
   const listMappingSources = vi.fn(async () => ({ ok: true, sources: [{ name: 'Map', width: 1920, height: 1080 }] }) as VendorResult<{ sources: { name: string; width: number; height: number }[] }>);
-  const setMapping = vi.fn(async (_n: string, m: Mapping) => {
+  const setMapping = vi.fn(async (_n: string, m: Mapping, requestId?: string) => {
     plugin.mapping = m;
+    mappingCb?.('Map', m, undefined, requestId ?? null);
     return { ok: true } as VendorResult<{}>;
   });
   const getMapping = vi.fn(async (_name: string) => ({ ok: true, mapping: plugin.mapping, overlayEnabled: false }) as VendorResult<{ mapping: Mapping; overlayEnabled: boolean }>);
@@ -40,7 +41,16 @@ export const fakeObs = (initial: Mapping) => {
       };
     },
   };
-  return { connection, client, getMapping, plugin, setMapping, listMappingSources, dropSocket: () => closeCb?.(1006), emit: (m: Mapping) => mappingCb?.('Map', m, undefined) };
+  return {
+    connection,
+    client,
+    getMapping,
+    plugin,
+    setMapping,
+    listMappingSources,
+    dropSocket: () => closeCb?.(1006),
+    emit: (m: Mapping, requestId: string | null = null) => mappingCb?.('Map', m, undefined, requestId),
+  };
 };
 
 export type FakeObs = ReturnType<typeof fakeObs>;
