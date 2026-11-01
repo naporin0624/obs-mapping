@@ -186,7 +186,7 @@ std::string serialize_mapping(const Mapping &m)
 		arr.push_back(o);
 	}
 	j["surfaces"] = arr;
-	return j.dump(2);
+	return j.dump(2, ' ', false, ordered_json::error_handler_t::replace);
 }
 
 Mapping default_mapping(uint32_t width, uint32_t height)

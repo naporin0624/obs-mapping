@@ -116,3 +116,13 @@ TEST_CASE("rename_source_updates_all")
 	CHECK(m->surfaces[1].source == "VJ B");
 	CHECK_FALSE(rename_source(*m, "nope", "x"));
 }
+
+TEST_CASE("serialize survives invalid UTF-8 in a source name")
+{
+	auto m = parse_mapping(kValid);
+	REQUIRE(m.has_value());
+	CHECK(rename_source(*m, "VJ A", std::string("bad\xff\xfe name")));
+	std::string text;
+	CHECK_NOTHROW(text = serialize_mapping(*m));
+	CHECK(parse_mapping(text).has_value());
+}
