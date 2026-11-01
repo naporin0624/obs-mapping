@@ -5,3 +5,13 @@ export const headingCls = css({ fontFamily: 'mono', fontWeight: 700, fontSize: '
 export const caseCls = css({ display: 'flex', flexDirection: 'column', gap: '2' });
 export const captionCls = css({ color: 'fg.muted' });
 export const linkCls = css({ color: 'accent.text', textDecoration: 'underline' });
+export const frameCls = css({
+  position: 'relative',
+  width: '100%',
+  aspectRatio: '16 / 9',
+  bg: 'bg.canvas',
+  borderWidth: 'default',
+  borderStyle: 'solid',
+  borderColor: 'border.default',
+  overflow: 'hidden',
+});

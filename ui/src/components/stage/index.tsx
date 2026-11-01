@@ -6,6 +6,7 @@ import { useScreenshots } from '../../editor/use-screenshots';
 import { useStageDrag } from '../../editor/use-stage-drag';
 import type { ObsClient } from '../../obs/client';
 import { StageOverlay } from '../stage-overlay';
+import { StageUnderlay } from '../stage-underlay';
 import { StageSurface } from '../stage-surface';
 import { outerCls, frameCls, layerCls } from './styles.css';
 
@@ -63,6 +64,7 @@ export const Stage = ({ state, dispatch, client, online }: Props) => {
       onKeyDown={(e) => onStageKey(e, dispatch)}
     >
       <div ref={frameRef} className={frameCls} style={{ aspectRatio: `${String(mapping.canvas.width)} / ${String(mapping.canvas.height)}` }}>
+        <StageUnderlay />
         <div className={layerCls}>
           {mapping.surfaces.map((s) => (
             <StageSurface key={s.id} surface={s} image={images[s.source]} scale={scale} />
