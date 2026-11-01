@@ -3,6 +3,7 @@ import type { ObsClient } from '../../obs/client';
 import { initialEditorState, type EditorState } from '../../editor/state';
 import type { createPluginFeed } from './plugin-feed';
 import { createConnectivity } from './connectivity';
+import type { RequestIds } from './request-ids';
 import { createDrainSet } from './drain-set';
 import { createResyncMode } from './resync-mode';
 import { createSourceSession, type LoadResult, type SessionEvent, type SourceSession } from './source-session';
@@ -17,6 +18,7 @@ export type SwitcherDeps = {
   clearTimer: (handle: unknown) => void;
   idleMs: number;
   sendIntervalMs: number;
+  nextRequestId: RequestIds;
   online: boolean;
   emit: (e: SwitcherEvent) => void;
 };

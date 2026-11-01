@@ -7,6 +7,7 @@ import { createOutbox } from './outbox';
 import { createOverlayControl } from './overlay';
 import { createReloader } from './reloader';
 import { createResync } from './resync';
+import type { RequestIds } from './request-ids';
 import { createSessionState, type ResyncSnapshot } from './session-state';
 
 export type LoadResult = { editor: EditorState; overlayEnabled: boolean; seq: number };
@@ -23,12 +24,13 @@ export type SessionDeps = {
   clearTimer: (handle: unknown) => void;
   idleMs: number;
   sendIntervalMs: number;
+  nextRequestId: RequestIds;
   emit: (e: SessionEvent) => void;
   /** Called once a closed session has delivered its last unsent edit. */
   onDrained: () => void;
 };
 
-const PLUGIN_ACTIONS: ReadonlySet<Action['type']> = new Set(['load', 'remote', 'sent']);
+const PLUGIN_ACTIONS: ReadonlySet<Action['type']> = new Set(['load', 'remote', 'resynced', 'staleEcho', 'sent']);
 
 const selectionChanged = (a: EditorState, b: EditorState): boolean => a.selection.surfaceIds !== b.selection.surfaceIds || a.selection.corner !== b.selection.corner;
 
@@ -70,7 +72,7 @@ const createSessionParts = (d: SessionDeps) => {
   });
   const applyPlugin = (action: Action): void => dispatcher.dispatch(action);
   const read = (): ResyncSnapshot => ({ editor: state.editor(), online: state.online(), unsent: state.unsent() });
-  const resync = createResync({ client, source, idleMs: d.idleMs, ...timers, read, applyRemote: (mapping) => applyPlugin({ type: 'remote', mapping }) });
+  const resync = createResync({ client, source, idleMs: d.idleMs, ...timers, read, applyRemote: (mapping) => applyPlugin({ type: 'resynced', mapping }) });
   const outbox = createOutbox({
     client,
     source,
@@ -78,7 +80,8 @@ const createSessionParts = (d: SessionDeps) => {
     intervalMs: d.sendIntervalMs,
     now: d.now,
     ...timers,
-    onSent: (json) => applyPlugin({ type: 'sent', json }),
+    nextRequestId: d.nextRequestId,
+    onSent: (requestId, json) => applyPlugin({ type: 'sent', requestId, json }),
     onSettled: resync.update,
     onDrained: d.onDrained,
     fail,
@@ -126,7 +129,7 @@ const reconnect = async (p: Parts): Promise<void> => {
 const begin = (p: Parts, cachedMapping: Mapping | undefined): void => {
   p.overlay.sendSelection();
   if (cachedMapping === undefined) p.dispatcher.run();
-  else p.applyPlugin({ type: 'remote', mapping: cachedMapping });
+  else p.applyPlugin({ type: 'remote', mapping: cachedMapping, requestId: null });
   p.overlay.announce();
 };
 
@@ -147,9 +150,18 @@ const handOver = (p: Parts): Mapping | null => {
   return unsent;
 };
 
-const applyRemote = (p: Parts, mapping: Mapping, overlayEnabled: boolean | undefined): void => {
-  p.applyPlugin({ type: 'remote', mapping });
+const followOverlay = (p: Parts, overlayEnabled: boolean | undefined): void => {
   if (overlayEnabled !== undefined) p.overlay.follow(overlayEnabled);
+};
+
+const applyRemote = (p: Parts, mapping: Mapping, overlayEnabled: boolean | undefined, requestId: string | null): void => {
+  p.applyPlugin({ type: 'remote', mapping, requestId });
+  followOverlay(p, overlayEnabled);
+};
+
+const applyStaleEcho = (p: Parts, overlayEnabled: boolean | undefined): void => {
+  p.applyPlugin({ type: 'staleEcho' });
+  followOverlay(p, overlayEnabled);
 };
 
 /**
@@ -169,7 +181,8 @@ export const createSourceSession = (d: SessionDeps) => {
     reload: p.reloader.reload,
     startResync: p.resync.start,
     setOverlay: p.overlay.toggle,
-    applyRemote: (mapping: Mapping, overlayEnabled: boolean | undefined): void => applyRemote(p, mapping, overlayEnabled),
+    applyRemote: (mapping: Mapping, overlayEnabled: boolean | undefined, requestId: string | null): void => applyRemote(p, mapping, overlayEnabled, requestId),
+    applyStaleEcho: (overlayEnabled: boolean | undefined): void => applyStaleEcho(p, overlayEnabled),
     adoptOverlay: p.overlay.adopt,
     applyImport: (mapping: Mapping): Promise<boolean> => importMapping(p, d.client, d.source, mapping),
     close: (): boolean => close(p),

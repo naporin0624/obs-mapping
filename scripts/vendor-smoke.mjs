@@ -78,7 +78,8 @@ async function run() {
     const next = { ...original, surfaces: [...original.surfaces, added] };
     const eventsBefore = events.length;
     restoreNeeded = true;
-    const set = await call("SetMapping", { sourceName: target, mappingJson: JSON.stringify(next) });
+    const requestId = `smoke-${Date.now()}-1`;
+    const set = await call("SetMapping", { sourceName: target, mappingJson: JSON.stringify(next), requestId });
     check(set?.ok === true, "SetMapping with an added surface succeeds");
 
     // 4. Get again
@@ -97,6 +98,20 @@ async function run() {
     const ev = events.at(-1);
     check(ev.sourceName === target && JSON.parse(ev.mappingJson ?? "{}").surfaces?.length === next.surfaces.length, "event carries sourceName and the new mappingJson");
     check(typeof ev.overlayEnabled === "boolean", "MappingChanged carries overlayEnabled");
+    check(ev.requestId === requestId, "MappingChanged echoes the requestId of the SetMapping");
+
+    // Same content again: with a requestId it is still acknowledged (one event per request), without one it is silent.
+    const secondId = `smoke-${Date.now()}-2`;
+    const beforeRepeat = events.length;
+    const repeat = await call("SetMapping", { sourceName: target, mappingJson: JSON.stringify(next), requestId: secondId });
+    check(repeat?.ok === true, "SetMapping with unchanged content and a requestId succeeds");
+    check(await waitFor(() => events.length > beforeRepeat, 2000), "unchanged SetMapping with a requestId still emits MappingChanged");
+    await sleep(300);
+    check(events.length - beforeRepeat === 1 && events.at(-1).requestId === secondId, "the unchanged SetMapping is echoed exactly once with its own requestId");
+    const beforeSilent = events.length;
+    await call("SetMapping", { sourceName: target, mappingJson: JSON.stringify(next) });
+    await sleep(300);
+    check(events.length === beforeSilent, "unchanged SetMapping without a requestId emits no MappingChanged");
 
     // 5. Invalid Set (3 corners)
     const bad = {

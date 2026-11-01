@@ -1,7 +1,7 @@
 import type { Mapping, Point, Surface } from '../model/mapping';
 import { alignSurfaces, distributeSurfaces, translateSurface, type AlignMode } from '../geometry/align';
 import { rectCorners, type Bounds } from '../geometry/rect';
-import { canonicalJson, emptySelection, initialEditorState, type CornerIndex, type EditorState, type Selection } from './state';
+import { canonicalJson, emptySelection, initialEditorState, type CornerIndex, type EditorState, type InFlightEntry, type Selection } from './state';
 
 export type Action =
   | { type: 'load'; mapping: Mapping }
@@ -23,8 +23,10 @@ export type Action =
   | { type: 'setGrid'; size: number }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'sent'; json: string }
-  | { type: 'remote'; mapping: Mapping };
+  | { type: 'sent'; requestId: string; json: string }
+  | { type: 'remote'; mapping: Mapping; requestId: string | null }
+  | { type: 'resynced'; mapping: Mapping }
+  | { type: 'staleEcho' };
 
 const HISTORY_LIMIT = 100;
 const GRID_MAX = 1024;
@@ -137,6 +139,22 @@ const travel = (s: EditorState, from: 'past' | 'future'): EditorState => {
   return { ...s, ...patch, mapping: target, selection: pruneSelection(s.selection, target) };
 };
 
+const idEchoIndex = (inFlight: readonly InFlightEntry[], requestId: string): number => inFlight.findIndex((e) => e.requestId === requestId);
+
+// An older plugin echoes no id: only the oldest send can be matched, by content.
+const legacyEchoIndex = (inFlight: readonly InFlightEntry[], mapping: Mapping): number => (inFlight[0]?.json === canonicalJson(mapping) ? 0 : -1);
+
+/** Index of the in-flight entry this remote acknowledges, or -1 when it is foreign. */
+const ownEchoIndex = (inFlight: readonly InFlightEntry[], requestId: string | null, mapping: Mapping): number =>
+  requestId === null ? legacyEchoIndex(inFlight, mapping) : idEchoIndex(inFlight, requestId);
+
+/** The plugin copy fetched after quiet is the truth: local keeps its reference when equal, and no send is awaited any more. */
+const reconciled = (s: EditorState, snapshot: Mapping): EditorState => {
+  const same = canonicalJson(snapshot) === canonicalJson(s.mapping);
+  const mapping = same ? s.mapping : snapshot;
+  return { ...s, mapping, selection: same ? s.selection : pruneSelection(s.selection, snapshot), inFlight: [], needsResync: false };
+};
+
 // ---- handlers ------------------------------------------------------------
 
 type Handlers = { [K in Action['type']]: (s: EditorState, a: Extract<Action, { type: K }>) => EditorState };
@@ -205,16 +223,17 @@ const handlers: Handlers = {
   setGrid: (s, a) => (Number.isFinite(a.size) && a.size > 0 && a.size <= GRID_MAX ? commit(s, { ...s.mapping, grid: { size: a.size } }) : s),
   undo: (s) => travel(s, 'past'),
   redo: (s) => travel(s, 'future'),
-  sent: (s, a) => ({ ...s, inFlight: [...s.inFlight, a.json].slice(-IN_FLIGHT_LIMIT) }),
+  sent: (s, a) => ({ ...s, inFlight: [...s.inFlight, { requestId: a.requestId, json: a.json }].slice(-IN_FLIGHT_LIMIT) }),
   remote: (s, a) => {
     if (s.dragging) return { ...s, pendingRemote: a.mapping };
-    const json = canonicalJson(a.mapping);
-    const at = s.inFlight.lastIndexOf(json);
+    const at = ownEchoIndex(s.inFlight, a.requestId, a.mapping);
     // An own echo only consumes its in-flight entries; local edits made during the round trip must not flash back.
-    // (A lost or reordered echo is reconciled by the 2 s idle resync.)
+    // (An unmatched id of ours is a late echo: staleEcho flags the resync.)
     if (at >= 0) return { ...s, inFlight: s.inFlight.slice(at + 1) };
     return { ...s, mapping: a.mapping, selection: pruneSelection(s.selection, a.mapping), needsResync: s.inFlight.length > 0 };
   },
+  resynced: (s, a) => (s.dragging ? { ...s, pendingRemote: a.mapping } : reconciled(s, a.mapping)),
+  staleEcho: (s) => ({ ...s, needsResync: true }),
 };
 
 export const reducer = (s: EditorState, a: Action): EditorState => (s.dragging && DRAG_BLOCKED.has(a.type) ? s : (handlers[a.type] as (s: EditorState, a: Action) => EditorState)(s, a));

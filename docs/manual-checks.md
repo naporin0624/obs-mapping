@@ -86,6 +86,8 @@ OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD='<パスワード>' OBS_MAPPING_S
 - [ ] (d) ペイロード形式の確認: マッピングと選択状態は JSON 文字列で運ぶ（`mappingJson` / `selectionJson`）。スモークテストはこの形式を使っている。
 - [ ] (e) `MappingChanged` イベント（`{sourceName, mappingJson}`）: スモークテストとは別に、`obs-websocket-js` などで `VendorEvent`（`vendorName: "obs-mapping"`）を購読しておく。Mapping ソースのプロパティの `mapping_json` 欄を編集して OK を押すと、`MappingChanged` が 1 回届き、`mappingJson` の内容が編集後の JSON になっている。内容が変わらない編集（同じ JSON のまま OK）では届かない。
 - [ ] (f) 面に割り当てているソースの名前を変更すると、その面を持つ Mapping ソースから `MappingChanged` が 1 回届き、`mappingJson` の `source` が新しい名前になっている。割り当てていないソースの名前変更では届かない。
+- [ ] (g) `requestId`（#4）: (e) と同じ購読で、同じ内容の `SetMapping` を `requestId` だけ変えて 2 回送る（例: `a-1` と `a-2`）。`MappingChanged` がちょうど 2 回届き、`requestId` がそれぞれ `a-1`、`a-2` になっている。内容が変わらない 2 回目も届く。`requestId` なしで同じ内容を送ると届かない。プロパティ欄の編集やソース名の変更で届く `MappingChanged` には `requestId` がない。
+- [ ] (h) ドックでの確認（#4）: 面を動かしてすぐに Undo（A → B → A）しても、表示が一瞬 B になってちらつかない。ドックを 2 つ開いて片方で編集すると、もう片方にはそのまま反映される。
 
 ## Task 7
 

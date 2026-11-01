@@ -38,6 +38,13 @@ describe('obs client', () => {
     expect(data?.requestData).toEqual({ sourceName: 'Map', mappingJson: JSON.stringify(mapping) });
   });
 
+  it('setMapping passes requestId through when given', async () => {
+    const f = fakeSocket();
+    f.reply({ ok: true });
+    await createClient(f.socket).setMapping('Map', mapping, 'n1-3');
+    expect(f.call.mock.calls[0]?.[1]?.requestData).toEqual({ sourceName: 'Map', mappingJson: JSON.stringify(mapping), requestId: 'n1-3' });
+  });
+
   it('getMapping parses mappingJson and reads overlayEnabled (false when missing)', async () => {
     const f = fakeSocket();
     const client = createClient(f.socket);
@@ -101,9 +108,13 @@ describe('obs client', () => {
     expect(cb).not.toHaveBeenCalled();
     f.fire(vendorEvent('MappingChanged', data));
     f.fire(vendorEvent('MappingChanged', { sourceName: 'Map', mappingJson: JSON.stringify(mapping) }));
+    f.fire(vendorEvent('MappingChanged', { ...data, requestId: 'n1-3' }));
+    f.fire(vendorEvent('MappingChanged', { ...data, requestId: 7 }));
     expect(cb.mock.calls).toEqual([
-      ['Map', mapping, true],
-      ['Map', mapping, undefined],
+      ['Map', mapping, true, null],
+      ['Map', mapping, undefined, null],
+      ['Map', mapping, true, 'n1-3'],
+      ['Map', mapping, true, null],
     ]);
     off();
     expect(f.handlers.size).toBe(0);

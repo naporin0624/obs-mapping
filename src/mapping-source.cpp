@@ -23,17 +23,17 @@ constexpr const char *kLastValidKey = "mapping_json_last_valid";
 constexpr const char *kOverlayKey = "overlay";
 
 std::mutex g_hook_mutex;
-std::function<void(MappingSource &)> g_on_mapping_changed;
+std::function<void(MappingSource &, const RequestId &)> g_on_mapping_changed;
 
-void notify_mapping_changed(MappingSource &ms)
+void notify_mapping_changed(MappingSource &ms, const RequestId &request_id)
 {
-	std::function<void(MappingSource &)> handler;
+	std::function<void(MappingSource &, const RequestId &)> handler;
 	{
 		std::lock_guard lock(g_hook_mutex);
 		handler = g_on_mapping_changed;
 	}
 	if (handler)
-		handler(ms);
+		handler(ms, request_id);
 }
 
 std::function<void(MappingSource &)> g_on_overlay_changed;
@@ -205,7 +205,7 @@ std::expected<bool, ParseError> MappingSource::apply_and_store(std::string_view 
 	return applied;
 }
 
-std::expected<void, ParseError> MappingSource::set_mapping_json(std::string_view json)
+std::expected<void, ParseError> MappingSource::set_mapping_json(std::string_view json, RequestId request_id)
 {
 	bool changed = false;
 	{
@@ -215,8 +215,8 @@ std::expected<void, ParseError> MappingSource::set_mapping_json(std::string_view
 			return std::unexpected(std::move(applied.error()));
 		changed = *applied;
 	}
-	if (changed)
-		notify_mapping_changed(*this);
+	if (changed || request_id)
+		notify_mapping_changed(*this, request_id);
 	return {};
 }
 
@@ -294,7 +294,7 @@ void MappingSource::update(obs_data_t *settings)
 	if (overlay_changed)
 		notify_overlay_changed(*this);
 	if (changed)
-		notify_mapping_changed(*this);
+		notify_mapping_changed(*this, std::nullopt);
 }
 
 void MappingSource::on_source_renamed(const char *prev_name, const char *new_name)
@@ -314,7 +314,7 @@ void MappingSource::on_source_renamed(const char *prev_name, const char *new_nam
 		changed = *saved;
 	}
 	if (changed)
-		notify_mapping_changed(*this);
+		notify_mapping_changed(*this, std::nullopt);
 }
 
 uint32_t MappingSource::width() const
@@ -422,7 +422,7 @@ MappingSource *mapping_source_from(obs_source_t *src)
 	return static_cast<MappingSource *>(obs_obj_get_data(src));
 }
 
-void set_on_mapping_changed(std::function<void(MappingSource &)> handler)
+void set_on_mapping_changed(std::function<void(MappingSource &, const RequestId &)> handler)
 {
 	std::lock_guard lock(g_hook_mutex);
 	g_on_mapping_changed = std::move(handler);
