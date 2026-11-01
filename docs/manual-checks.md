@@ -85,3 +85,23 @@ OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD='<パスワード>' OBS_MAPPING_S
 - [ ] (d) ペイロード形式の確認: マッピングと選択状態は JSON 文字列で運ぶ（`mappingJson` / `selectionJson`）。スモークテストはこの形式を使っている。
 - [ ] (e) `MappingChanged` イベント（`{sourceName, mappingJson}`）: スモークテストとは別に、`obs-websocket-js` などで `VendorEvent`（`vendorName: "obs-mapping"`）を購読しておく。Mapping ソースのプロパティの `mapping_json` 欄を編集して OK を押すと、`MappingChanged` が 1 回届き、`mappingJson` の内容が編集後の JSON になっている。内容が変わらない編集（同じ JSON のまま OK）では届かない。
 - [ ] (f) 面に割り当てているソースの名前を変更すると、その面を持つ Mapping ソースから `MappingChanged` が 1 回届き、`mappingJson` の `source` が新しい名前になっている。割り当てていないソースの名前変更では届かない。
+
+## Task 7
+
+OBS の実機でしか確認できない項目。UI のビルド・型検査・lint・接続状態機械のテストは Task 7 の時点で確認済み。
+
+前提:
+- OBS を終了してから `bash scripts/install-macos.sh` を実行する（UI のビルドも走る）。OBS を起動し、「ツール > WebSocket サーバー設定」でサーバーを有効にして、ポートとパスワードを確認する。
+- Mapping ソースを 1 つ以上作っておく。
+
+手順:
+- OBS の「ドック > カスタムブラウザドック」を開き、ドック名（例: `obs-mapping`）と次の URL を登録する（スペースは `%20` にする）:
+  `file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html`
+
+チェック:
+- [ ] (a) ドックが空白にならず、URL（既定 `ws://127.0.0.1:4455`）とパスワード欄、「接続」ボタンが表示される。
+- [ ] (b) パスワードを入れて「接続」を押すと「接続済み」と表示され、「Mapping ソース」の選択肢に Mapping ソースの一覧（名前と解像度）が出る。「更新」で再取得できる。
+- [ ] (c) 間違ったパスワードでは「認証に失敗しました」と表示され、再試行しない。
+- [ ] (d) 接続後に OBS を再起動すると、ドックが自動で再接続し、「接続済み」に戻る（OBS の起動中は「再接続まで N 秒」が 0.5, 1, 2, 4, 5 秒の間隔で表示される）。URL とパスワードは保存されている。
+- [ ] (e) 「切断」を押すと「未接続」になり、再接続を試みない。
+- [ ] (f) file:// で開けない場合（ドックが空白、または DevTools に読み込みエラーが出る場合）: `pnpm -C ui preview`（http://localhost:4173）に切り替えて URL をドックに登録し、その旨を README に書く。
