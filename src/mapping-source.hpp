@@ -26,6 +26,7 @@ using RequestId = std::optional<std::string>;
 struct MappingSnapshot {
 	obs_mapping::Mapping mapping;
 	std::vector<std::optional<obs_mapping::Mat3>> inv_h; // parallel to mapping.surfaces
+	std::vector<bool> visible;                           // parallel to mapping.surfaces
 };
 
 struct MappingSource {

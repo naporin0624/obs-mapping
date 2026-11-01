@@ -27,6 +27,33 @@ const char *kValid = R"({
   ]
 })";
 
+const char *kValidV2 = R"({
+  "version": 2,
+  "canvas": { "width": 1920, "height": 1080 },
+  "grid": { "size": 20 },
+  "surfaces": [
+    {
+      "id": "s-1", "name": "左壁", "type": "quad", "source": "VJ A",
+      "crop": { "x": 0, "y": 0, "width": 1, "height": 1 },
+      "corners": [[100, 100], [900, 120], [880, 700], [120, 680]],
+      "visible": true
+    },
+    {
+      "id": "s-2", "name": "右壁", "type": "quad", "source": "VJ A",
+      "crop": { "x": 0.25, "y": 0, "width": 0.5, "height": 1 },
+      "corners": [[1000, 100], [1800, 120], [1780, 700], [1020, 680]]
+    }
+  ],
+  "groups": [
+    { "id": "g-1", "name": "列", "visible": true, "origin": [100, 100],
+      "layout": { "direction": "row", "gap": 20, "align": "start", "padding": 0 } }
+  ],
+  "layers": [
+    { "group": "g-1", "children": [ { "surface": "s-1" } ] },
+    { "surface": "s-2" }
+  ]
+})";
+
 std::string error_of(const std::string &json)
 {
 	auto r = parse_mapping(json);
@@ -81,8 +108,8 @@ TEST_CASE("unknown_fields_ignored")
 
 TEST_CASE("validation errors")
 {
-	CHECK(starts_with(error_of(replace(kValid, "\"version\": 1", "\"version\": 2")),
-			  "version: unsupported version 2"));
+	CHECK(starts_with(error_of(replace(kValid, "\"version\": 1", "\"version\": 3")),
+			  "version: unsupported version 3"));
 	CHECK(starts_with(error_of(replace(kValid, "\"width\": 1920", "\"width\": 0")), "canvas.width: "));
 	CHECK(starts_with(error_of(replace(kValid, "\"width\": 1920", "\"width\": 1920.5")), "canvas.width: "));
 	CHECK(starts_with(error_of(replace(kValid, "\"height\": 1080", "\"height\": 16385")), "canvas.height: "));
@@ -131,4 +158,177 @@ TEST_CASE("serialize survives invalid UTF-8 in a source name")
 	std::string text;
 	CHECK_NOTHROW(text = serialize_mapping(*m));
 	CHECK(parse_mapping(text).has_value());
+}
+
+namespace {
+
+std::string nested_chain(int groups)
+{
+	std::string defs;
+	std::string open;
+	std::string close;
+	for (int i = 1; i <= groups; ++i) {
+		defs += std::string(i > 1 ? "," : "") + "{ \"id\": \"n-" + std::to_string(i) +
+			"\", \"name\": \"n\", \"origin\": [0, 0], \"layout\": { \"direction\": \"row\", "
+			"\"gap\": 0, \"align\": \"start\", \"padding\": 0 } }";
+		open += "{ \"group\": \"n-" + std::to_string(i) + "\", \"children\": [";
+		close += "] }";
+	}
+	std::string j = replace(kValidV2, "\"groups\": [", "\"groups\": [" + defs + ",");
+	return replace(j, "\"layers\": [", "\"layers\": [" + open + close + ",");
+}
+
+std::string child_path(int levels)
+{
+	std::string p = "layers[0]";
+	for (int i = 1; i < levels; ++i)
+		p += ".children[0]";
+	return p;
+}
+
+} // namespace
+
+TEST_CASE("v1 reads as flat v2")
+{
+	auto m = parse_mapping(kValid);
+	REQUIRE(m.has_value());
+	CHECK(m->version == 2);
+	CHECK(m->groups.empty());
+	REQUIRE(m->layers.size() == 2);
+	CHECK(m->layers[0] == LayerNode{LayerNode::Kind::Surface, "s-1", {}});
+	CHECK(serialize_mapping(*m).find("\"version\": 2") != std::string::npos);
+}
+
+TEST_CASE("v2 round_trip")
+{
+	auto a = parse_mapping(kValidV2);
+	REQUIRE(a.has_value());
+	REQUIRE(a->groups.size() == 1);
+	CHECK(a->groups[0].layout.gap == 20);
+	CHECK(a->layers[0].children[0].id == "s-1");
+	std::string out = serialize_mapping(*a);
+	auto b = parse_mapping(out);
+	REQUIRE(b.has_value());
+	CHECK(*a == *b);
+	CHECK(serialize_mapping(*b) == out);
+}
+
+TEST_CASE("v2 group defaults")
+{
+	auto m = parse_mapping(replace(kValidV2, "\"visible\": true, \"origin\"", "\"origin\""));
+	REQUIRE(m.has_value());
+	CHECK(m->groups[0].visible == true);
+}
+
+TEST_CASE("v2 empty group allowed")
+{
+	auto j = replace(
+		kValidV2,
+		"{ \"group\": \"g-1\", \"children\": [ { \"surface\": \"s-1\" } ] },\n    { \"surface\": \"s-2\" }",
+		"{ \"group\": \"g-1\", \"children\": [] },\n    { \"surface\": \"s-1\" }, { \"surface\": \"s-2\" }");
+	auto m = parse_mapping(j);
+	REQUIRE(m.has_value());
+	CHECK(m->layers[0].children.empty());
+}
+
+TEST_CASE("v2 validation errors")
+{
+	const auto bad = [](const std::string &a, const std::string &b) {
+		return error_of(replace(kValidV2, a, b));
+	};
+	CHECK(starts_with(bad("\"groups\"", "\"gruops\""), "groups: missing"));
+	CHECK(starts_with(bad("\"layers\"", "\"layres\""), "layers: missing"));
+	CHECK(starts_with(bad("\"id\": \"g-1\"", "\"id\": \"s-1\""), "groups[0].id: duplicate id \"s-1\""));
+	CHECK(starts_with(bad("\"gap\": 20", "\"gap\": -1"), "groups[0].layout.gap: must be between 0 and 4096"));
+	CHECK(starts_with(bad("\"gap\": 20", "\"gap\": 4097"), "groups[0].layout.gap: must be between 0 and 4096"));
+	CHECK(starts_with(bad("\"padding\": 0", "\"padding\": -1"),
+			  "groups[0].layout.padding: must be between 0 and 4096"));
+	CHECK(starts_with(bad("\"padding\": 0", "\"padding\": 4097"),
+			  "groups[0].layout.padding: must be between 0 and 4096"));
+	CHECK(starts_with(bad("\"row\"", "\"wrap\""), "groups[0].layout.direction: unknown direction \"wrap\""));
+	CHECK(starts_with(bad("\"start\"", "\"stretch\""), "groups[0].layout.align: unknown align \"stretch\""));
+	CHECK(starts_with(bad("[100, 100],\n      \"layout\"", "[100],\n      \"layout\""),
+			  "groups[0].origin: expected [x, y]"));
+	CHECK(starts_with(bad("{ \"surface\": \"s-2\" }", "{ \"surface\": \"s-2\", \"group\": \"g-1\" }"),
+			  "layers[1]: expected exactly one of \"surface\" or \"group\""));
+	CHECK(starts_with(bad("{ \"surface\": \"s-2\" }", "{ \"children\": [] }"),
+			  "layers[1]: expected exactly one of \"surface\" or \"group\""));
+	CHECK(starts_with(bad("{ \"surface\": \"s-2\" }", "{ \"surface\": \"s-9\" }"),
+			  "layers[1].surface: unknown surface \"s-9\""));
+	CHECK(starts_with(bad("\"group\": \"g-1\"", "\"group\": \"g-9\""), "layers[0].group: unknown group \"g-9\""));
+	CHECK(starts_with(bad("{ \"surface\": \"s-2\" }", "{ \"surface\": \"s-1\" }"),
+			  "layers[1].surface: surface \"s-1\" appears more than once"));
+	CHECK(starts_with(bad("\"children\": [ { \"surface\": \"s-1\" } ]", "\"children\": {}"),
+			  "layers[0].children: expected array"));
+	CHECK(starts_with(bad(",\n    { \"surface\": \"s-2\" }", ""),
+			  "layers: surface \"s-2\" is missing from the tree"));
+	CHECK(starts_with(bad("{ \"group\": \"g-1\", \"children\": [ { \"surface\": \"s-1\" } ] },", ""),
+			  "layers: surface \"s-1\" is missing from the tree"));
+	CHECK(starts_with(bad("\"version\": 2", "\"version\": 3"), "version: unsupported version 3"));
+	CHECK(starts_with(bad("\"groups\": [", "\"groups\": {}, \"x\": ["), "groups: expected array"));
+	CHECK(starts_with(bad("\"layers\": [", "\"layers\": {}, \"x\": ["), "layers: expected array"));
+	CHECK(starts_with(bad("\"visible\": true, \"origin\"", "\"visible\": 1, \"origin\""),
+			  "groups[0].visible: expected boolean"));
+	CHECK(starts_with(
+		bad("\"layout\": { \"direction\": \"row\", \"gap\": 20, \"align\": \"start\", \"padding\": 0 }",
+		    "\"layout\": []"),
+		"groups[0].layout: expected object"));
+}
+
+TEST_CASE("v2 validation errors on group references")
+{
+	const auto bad = [](const std::string &a, const std::string &b) {
+		return error_of(replace(kValidV2, a, b));
+	};
+	const std::string second_group =
+		"{ \"id\": \"g-1\", \"name\": \"b\", \"origin\": [0, 0], \"layout\": { \"direction\": \"row\", "
+		"\"gap\": 0, \"align\": \"start\", \"padding\": 0 } }";
+	CHECK(starts_with(bad("\"groups\": [", "\"groups\": [" + second_group + ","),
+			  "groups[1].id: duplicate id \"g-1\""));
+	CHECK(starts_with(bad("{ \"surface\": \"s-2\" }", "{ \"group\": \"g-1\", \"children\": [] }"),
+			  "layers[1].group: group \"g-1\" appears more than once"));
+	CHECK(starts_with(bad("{ \"surface\": \"s-2\" }", "{ \"surface\": \"g-1\" }"),
+			  "layers[1].surface: unknown surface \"g-1\""));
+}
+
+TEST_CASE("v2 spacing bounds are inclusive")
+{
+	CHECK(parse_mapping(replace(kValidV2, "\"gap\": 20", "\"gap\": 4096")).has_value());
+	CHECK(parse_mapping(replace(kValidV2, "\"padding\": 0", "\"padding\": 4096")).has_value());
+}
+
+TEST_CASE("v2 unknown fields ignored")
+{
+	std::string j = replace(kValidV2, "\"version\": 2,", "\"version\": 2, \"foo\": 1,");
+	j = replace(j, "\"id\": \"g-1\",", "\"id\": \"g-1\", \"foo\": 1,");
+	j = replace(j, "\"direction\": \"row\",", "\"direction\": \"row\", \"foo\": 1,");
+	j = replace(j, "{ \"surface\": \"s-2\" }", "{ \"surface\": \"s-2\", \"children\": [], \"foo\": 1 }");
+	j = replace(j, "{ \"group\": \"g-1\",", "{ \"group\": \"g-1\", \"collapsed\": true,");
+	auto m = parse_mapping(j);
+	REQUIRE(m.has_value());
+	CHECK(*m == *parse_mapping(kValidV2));
+	CHECK(serialize_mapping(*m).find("foo") == std::string::npos);
+	CHECK(serialize_mapping(*m).find("collapsed") == std::string::npos);
+}
+
+TEST_CASE("v2 group missing from the tree")
+{
+	auto j = replace(kValidV2, "{ \"group\": \"g-1\", \"children\": [ { \"surface\": \"s-1\" } ] },",
+			 "{ \"surface\": \"s-1\" },");
+	CHECK(starts_with(error_of(j), "layers: group \"g-1\" is missing from the tree"));
+}
+
+TEST_CASE("v2 surface order must follow the tree")
+{
+	auto j = replace(
+		kValidV2,
+		"{ \"group\": \"g-1\", \"children\": [ { \"surface\": \"s-1\" } ] },\n    { \"surface\": \"s-2\" }",
+		"{ \"surface\": \"s-2\" },\n    { \"group\": \"g-1\", \"children\": [ { \"surface\": \"s-1\" } ] }");
+	CHECK(starts_with(error_of(j), "surfaces: order must match the depth-first order of layers"));
+}
+
+TEST_CASE("v2 tree depth is limited to 16")
+{
+	CHECK(parse_mapping(nested_chain(16)).has_value());
+	CHECK(starts_with(error_of(nested_chain(17)), child_path(17) + ": depth exceeds 16"));
 }

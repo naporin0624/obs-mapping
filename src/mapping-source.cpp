@@ -9,6 +9,7 @@
 #include <graphics/matrix4.h>
 
 #include "draw-rules.hpp"
+#include "obs-mapping/visibility.hpp"
 #include "plugin-support.h"
 
 using obs_mapping::Mapping;
@@ -59,6 +60,7 @@ std::shared_ptr<const MappingSnapshot> make_snapshot(Mapping mapping)
 			inv = obs_mapping::invert(*h);
 		snap->inv_h.push_back(inv);
 	}
+	snap->visible = obs_mapping::effective_visibility(mapping);
 	snap->mapping = std::move(mapping);
 	return snap;
 }
@@ -355,7 +357,7 @@ void MappingSource::video_render()
 	std::vector<RenderedChild> frames(mapping.surfaces.size());
 	for (size_t i = 0; i < mapping.surfaces.size(); ++i) {
 		const auto &surface = mapping.surfaces[i];
-		if (surface.visible && snap->inv_h[i])
+		if (snap->visible[i] && snap->inv_h[i])
 			frames[i] = cache_.render(surface.source);
 	}
 
@@ -374,7 +376,7 @@ void MappingSource::video_render()
 		const auto &surface = mapping.surfaces[i];
 		const RenderedChild &frame = frames[i];
 		const bool has_texture = frame.texture != nullptr;
-		if (!obs_mapping::should_draw_surface(surface, has_texture ? frame.width : 0,
+		if (!obs_mapping::should_draw_surface(surface, snap->visible[i], has_texture ? frame.width : 0,
 						      has_texture ? frame.height : 0, snap->inv_h[i].has_value()))
 			continue;
 
