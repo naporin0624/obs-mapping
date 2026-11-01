@@ -37,8 +37,11 @@ struct MappingSource {
 	// Any thread. Validates first; on failure nothing changes.
 	std::expected<void, obs_mapping::ParseError> set_mapping_json(std::string_view json);
 
-	// Any thread. Replaces the overlay state; mirrors `enabled` into the `overlay` setting only when it changes.
-	void set_overlay(OverlayState state);
+	// Any thread. Replaces the selection; `enabled` (when given) also updates the overlay flag, which is
+	// mirrored into the `overlay` setting and announced through the overlay hook only when it changes.
+	void set_overlay(OverlayState state, std::optional<bool> enabled);
+	// Any thread.
+	bool overlay_enabled() const;
 
 	// OBS source callbacks (graphics thread unless noted).
 	void update(obs_data_t *settings);
@@ -54,6 +57,8 @@ private:
 	std::shared_ptr<const OverlayState> overlay() const;
 	// Caller holds write_mutex_. Returns whether the applied mapping changed.
 	std::expected<bool, obs_mapping::ParseError> apply_json(std::string_view json);
+	// Caller holds write_mutex_. apply_json + queue the text (and last-valid copy) into the settings.
+	std::expected<bool, obs_mapping::ParseError> apply_and_store(std::string_view json);
 	void load_effect();
 
 	mutable std::mutex state_mutex_;
@@ -70,3 +75,6 @@ MappingSource *mapping_source_from(obs_source_t *src);
 
 // Invoked (on any thread) whenever a source's applied mapping changes.
 void set_on_mapping_changed(std::function<void(MappingSource &)> handler);
+
+// Invoked (on any thread, outside plugin locks) whenever a source's overlay enabled flag changes.
+void set_on_overlay_changed(std::function<void(MappingSource &)> handler);

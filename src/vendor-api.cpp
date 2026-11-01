@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <optional>
 
 #include <string>
 
@@ -84,6 +85,7 @@ void get_mapping(obs_data_t *request, obs_data_t *response, void *)
 	with_mapping_source(request, response, [&](MappingSource &ms) {
 		const std::string json = obs_mapping::serialize_mapping(ms.current());
 		obs_data_set_string(response, "mappingJson", json.c_str());
+		obs_data_set_bool(response, "overlayEnabled", ms.overlay_enabled());
 		respond_ok(response);
 	});
 }
@@ -103,7 +105,10 @@ void set_overlay(obs_data_t *request, obs_data_t *response, void *)
 {
 	with_mapping_source(request, response, [&](MappingSource &ms) {
 		OverlayState state;
-		state.enabled = obs_data_get_bool(request, "enabled");
+		// `enabled` is optional: absent keeps the current flag and only the selection is updated.
+		std::optional<bool> enabled;
+		if (obs_data_has_user_value(request, "enabled"))
+			enabled = obs_data_get_bool(request, "enabled");
 
 		// An absent selectionJson means an empty selection.
 		if (obs_data_has_user_value(request, "selectionJson")) {
@@ -114,7 +119,7 @@ void set_overlay(obs_data_t *request, obs_data_t *response, void *)
 			state.selected_corner = std::move(selection->corner);
 		}
 
-		ms.set_overlay(std::move(state));
+		ms.set_overlay(std::move(state), enabled);
 		respond_ok(response);
 	});
 }
@@ -127,7 +132,19 @@ void emit_mapping_changed(MappingSource &ms)
 	obs_data_t *event = obs_data_create();
 	obs_data_set_string(event, "sourceName", obs_source_get_name(ms.source));
 	obs_data_set_string(event, "mappingJson", json.c_str());
+	obs_data_set_bool(event, "overlayEnabled", ms.overlay_enabled());
 	obs_websocket_vendor_emit_event(g_vendor, "MappingChanged", event);
+	obs_data_release(event);
+}
+
+void emit_overlay_changed(MappingSource &ms)
+{
+	if (!g_vendor)
+		return;
+	obs_data_t *event = obs_data_create();
+	obs_data_set_string(event, "sourceName", obs_source_get_name(ms.source));
+	obs_data_set_bool(event, "enabled", ms.overlay_enabled());
+	obs_websocket_vendor_emit_event(g_vendor, "OverlayChanged", event);
 	obs_data_release(event);
 }
 
@@ -157,11 +174,13 @@ void register_vendor()
 	}
 
 	set_on_mapping_changed(emit_mapping_changed);
+	set_on_overlay_changed(emit_overlay_changed);
 	obs_log(LOG_INFO, "obs-websocket vendor \"%s\" registered", kVendorName);
 }
 
 void unregister_vendor()
 {
 	set_on_mapping_changed(nullptr);
+	set_on_overlay_changed(nullptr);
 	g_vendor = nullptr;
 }

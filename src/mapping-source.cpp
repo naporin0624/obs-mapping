@@ -19,6 +19,7 @@ namespace {
 constexpr uint32_t kDefaultWidth = 1920;
 constexpr uint32_t kDefaultHeight = 1080;
 constexpr const char *kJsonKey = "mapping_json";
+constexpr const char *kLastValidKey = "mapping_json_last_valid";
 constexpr const char *kOverlayKey = "overlay";
 
 std::mutex g_hook_mutex;
@@ -30,6 +31,19 @@ void notify_mapping_changed(MappingSource &ms)
 	{
 		std::lock_guard lock(g_hook_mutex);
 		handler = g_on_mapping_changed;
+	}
+	if (handler)
+		handler(ms);
+}
+
+std::function<void(MappingSource &)> g_on_overlay_changed;
+
+void notify_overlay_changed(MappingSource &ms)
+{
+	std::function<void(MappingSource &)> handler;
+	{
+		std::lock_guard lock(g_hook_mutex);
+		handler = g_on_overlay_changed;
 	}
 	if (handler)
 		handler(ms);
@@ -104,9 +118,16 @@ MappingSource::MappingSource(obs_source_t *src, obs_data_t *settings) : source(s
 		obs_data_set_string(settings, kJsonKey, text.c_str());
 	} else {
 		std::lock_guard lock(write_mutex_);
-		if (auto applied = apply_json(json); !applied)
-			obs_log(LOG_WARNING, "invalid mapping_json, using the default mapping: %s",
-				applied.error().message.c_str());
+		if (auto applied = apply_json(json); !applied) {
+			// The invalid text is left in the settings untouched; fall back to the last good copy.
+			const char *last_valid = obs_data_get_string(settings, kLastValidKey);
+			if (last_valid && *last_valid && apply_json(last_valid))
+				obs_log(LOG_WARNING, "invalid mapping_json, restored the last valid mapping: %s",
+					applied.error().message.c_str());
+			else
+				obs_log(LOG_WARNING, "invalid mapping_json, using the default mapping: %s",
+					applied.error().message.c_str());
+		}
 	}
 
 	load_effect();
@@ -166,23 +187,33 @@ std::expected<bool, ParseError> MappingSource::apply_json(std::string_view json)
 	return changed;
 }
 
+std::expected<bool, ParseError> MappingSource::apply_and_store(std::string_view json)
+{
+	auto applied = apply_json(json);
+	if (!applied)
+		return applied;
+
+	// OBS_SOURCE_VIDEO sources get their update deferred to the next tick;
+	// that update re-parses this same text and finds nothing to change.
+	const std::string text(json);
+	const std::string last_valid = obs_mapping::serialize_mapping(snapshot()->mapping);
+	obs_data_t *patch = obs_data_create();
+	obs_data_set_string(patch, kJsonKey, text.c_str());
+	obs_data_set_string(patch, kLastValidKey, last_valid.c_str());
+	obs_source_update(source, patch);
+	obs_data_release(patch);
+	return applied;
+}
+
 std::expected<void, ParseError> MappingSource::set_mapping_json(std::string_view json)
 {
 	bool changed = false;
 	{
 		std::lock_guard lock(write_mutex_);
-		auto applied = apply_json(json);
+		auto applied = apply_and_store(json);
 		if (!applied)
 			return std::unexpected(std::move(applied.error()));
 		changed = *applied;
-
-		// OBS_SOURCE_VIDEO sources get their update deferred to the next tick;
-		// that update re-parses this same text and finds nothing to change.
-		const std::string text(json);
-		obs_data_t *patch = obs_data_create();
-		obs_data_set_string(patch, kJsonKey, text.c_str());
-		obs_source_update(source, patch);
-		obs_data_release(patch);
 	}
 	if (changed)
 		notify_mapping_changed(*this);
@@ -195,29 +226,42 @@ std::shared_ptr<const OverlayState> MappingSource::overlay() const
 	return overlay_;
 }
 
-void MappingSource::set_overlay(OverlayState state)
+bool MappingSource::overlay_enabled() const
 {
-	const bool enabled = state.enabled;
-	std::lock_guard lock(write_mutex_);
+	return overlay()->enabled;
+}
+
+void MappingSource::set_overlay(OverlayState state, std::optional<bool> enabled)
+{
 	bool enabled_changed = false;
+	bool now_enabled = false;
 	{
-		std::lock_guard state_lock(state_mutex_);
-		enabled_changed = overlay_->enabled != enabled;
-		overlay_ = std::make_shared<const OverlayState>(std::move(state));
+		std::lock_guard lock(write_mutex_);
+		{
+			std::lock_guard state_lock(state_mutex_);
+			// Without an explicit flag the current value stays; the request only moves the selection.
+			state.enabled = enabled.value_or(overlay_->enabled);
+			enabled_changed = overlay_->enabled != state.enabled;
+			now_enabled = state.enabled;
+			overlay_ = std::make_shared<const OverlayState>(std::move(state));
+		}
+		// Selection-only changes (sent on every click) just swap the in-memory state.
+		if (enabled_changed) {
+			// Same path as set_mapping_json: keep the property checkbox in step (update is deferred for video sources).
+			obs_data_t *patch = obs_data_create();
+			obs_data_set_bool(patch, kOverlayKey, now_enabled);
+			obs_source_update(source, patch);
+			obs_data_release(patch);
+		}
 	}
-	// Selection-only changes (sent on every click) just swap the in-memory state.
-	if (!enabled_changed)
-		return;
-	// Same path as set_mapping_json: keep the property checkbox in step (update is deferred for video sources).
-	obs_data_t *patch = obs_data_create();
-	obs_data_set_bool(patch, kOverlayKey, enabled);
-	obs_source_update(source, patch);
-	obs_data_release(patch);
+	if (enabled_changed)
+		notify_overlay_changed(*this);
 }
 
 void MappingSource::update(obs_data_t *settings)
 {
 	bool changed = false;
+	bool overlay_changed = false;
 	{
 		std::lock_guard lock(write_mutex_);
 		{
@@ -228,27 +272,49 @@ void MappingSource::update(obs_data_t *settings)
 				auto next = std::make_shared<OverlayState>(*overlay_);
 				next->enabled = enabled;
 				overlay_ = std::move(next);
+				overlay_changed = true;
 			}
 		}
-		const char *json = obs_data_get_string(settings, kJsonKey);
-		auto applied = apply_json(json ? json : "");
+		const char *raw = obs_data_get_string(settings, kJsonKey);
+		std::string json = raw ? raw : "";
+		if (json.empty()) {
+			// "Defaults" (or a cleared field) must not persist an empty mapping: write the live one back.
+			json = obs_mapping::serialize_mapping(snapshot()->mapping);
+			obs_data_set_string(settings, kJsonKey, json.c_str());
+		}
+		auto applied = apply_json(json);
 		if (!applied) {
 			obs_log(LOG_WARNING, "ignoring invalid mapping_json: %s", applied.error().message.c_str());
-			return;
+		} else {
+			changed = *applied;
+			const std::string last_valid = obs_mapping::serialize_mapping(snapshot()->mapping);
+			obs_data_set_string(settings, kLastValidKey, last_valid.c_str());
 		}
-		changed = *applied;
 	}
+	if (overlay_changed)
+		notify_overlay_changed(*this);
 	if (changed)
 		notify_mapping_changed(*this);
 }
 
 void MappingSource::on_source_renamed(const char *prev_name, const char *new_name)
 {
-	Mapping mapping = current();
-	if (!obs_mapping::rename_source(mapping, prev_name, new_name))
-		return;
-	if (auto saved = set_mapping_json(obs_mapping::serialize_mapping(mapping)); !saved)
-		obs_log(LOG_WARNING, "failed to save renamed source: %s", saved.error().message.c_str());
+	bool changed = false;
+	{
+		// Read, rename and apply under one lock so a concurrent SetMapping cannot be overwritten.
+		std::lock_guard lock(write_mutex_);
+		Mapping mapping = snapshot()->mapping;
+		if (!obs_mapping::rename_source(mapping, prev_name, new_name))
+			return;
+		auto saved = apply_and_store(obs_mapping::serialize_mapping(mapping));
+		if (!saved) {
+			obs_log(LOG_WARNING, "failed to save renamed source: %s", saved.error().message.c_str());
+			return;
+		}
+		changed = *saved;
+	}
+	if (changed)
+		notify_mapping_changed(*this);
 }
 
 uint32_t MappingSource::width() const
@@ -360,6 +426,12 @@ void set_on_mapping_changed(std::function<void(MappingSource &)> handler)
 {
 	std::lock_guard lock(g_hook_mutex);
 	g_on_mapping_changed = std::move(handler);
+}
+
+void set_on_overlay_changed(std::function<void(MappingSource &)> handler)
+{
+	std::lock_guard lock(g_hook_mutex);
+	g_on_overlay_changed = std::move(handler);
 }
 
 namespace {
