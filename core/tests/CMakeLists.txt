@@ -11,7 +11,7 @@ add_library(doctest::doctest ALIAS doctest)
 target_include_directories(doctest INTERFACE ${doctest_SOURCE_DIR})
 
 # Add new test files here (one per line).
-add_executable(obs_mapping_core_tests main.cpp test_mapping_json.cpp)
+add_executable(obs_mapping_core_tests main.cpp test_mapping_json.cpp test_homography.cpp)
 target_link_libraries(obs_mapping_core_tests PRIVATE obs_mapping_core doctest::doctest)
 set_target_properties(
   obs_mapping_core_tests
