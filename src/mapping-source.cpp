@@ -199,10 +199,15 @@ void MappingSource::set_overlay(OverlayState state)
 {
 	const bool enabled = state.enabled;
 	std::lock_guard lock(write_mutex_);
+	bool enabled_changed = false;
 	{
 		std::lock_guard state_lock(state_mutex_);
+		enabled_changed = overlay_->enabled != enabled;
 		overlay_ = std::make_shared<const OverlayState>(std::move(state));
 	}
+	// Selection-only changes (sent on every click) just swap the in-memory state.
+	if (!enabled_changed)
+		return;
 	// Same path as set_mapping_json: keep the property checkbox in step (update is deferred for video sources).
 	obs_data_t *patch = obs_data_create();
 	obs_data_set_bool(patch, kOverlayKey, enabled);

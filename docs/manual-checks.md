@@ -62,3 +62,26 @@ OBS の実機でしか確認できない項目。ビルドとコアのテスト�
 - [ ] (d) 重要: チェックを入れたまま OBS を終了し、再起動する。「Edit overlay」は外れていて、ハンドルは出ない。シーンコレクションを切り替えて戻した場合も同様に外れている。
 - [ ] (e) オーバーレイを出していてもログにエラーが出ない（`failed to load warp.effect` を含む）。
 - [ ] (f) 目視: 面の凸形の輪郭が 2px、グリッドが 1px、ハンドルが 12px 四方で出ている（選択状態は Task 6 以降の API から設定するため、ここでは確認しない）。
+
+## Task 6
+
+OBS の実機でしか確認できない項目。ビルドとコアのテスト（`wire` 変換を含む）は Task 6 の時点で確認済み。obs-websocket は OBS 33 に同梱されている。スモークテストは Mapping ソースのマッピングを書き換える（最後に元へ戻す）ので、ライブ配信中の OBS には向けないこと。
+
+前提:
+- OBS を終了してから `bash scripts/install-macos.sh` を実行し、OBS を起動する。
+- OBS の「ツール > WebSocket サーバー設定」でサーバーを有効にし、ポートとパスワードを確認する。
+- Mapping ソースを 1 つ作っておく（複数ある場合は `OBS_MAPPING_SOURCE` で指定する）。
+- 初回のみ `cd scripts && pnpm install`。
+
+実行:
+
+```sh
+OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD='<パスワード>' OBS_MAPPING_SOURCE='<ソース名>' node scripts/vendor-smoke.mjs
+```
+
+- [ ] (a) `smoke: all passed` が出て終了コードが 0 になる。途中で失敗した場合も `restored the original mapping` が出て、マッピングが元に戻っている。
+- [ ] (b) OBS のログに `obs-websocket vendor "obs-mapping" registered` が出ていて、警告 `obs-websocket not found` は出ていない。
+- [ ] (c) obs-websocket を無効にした状態（またはモジュールを外した状態）で OBS を起動しても、Mapping ソースは今まで通り使える。ログに `obs-websocket not found; the obs-mapping vendor API is unavailable` の警告だけが出る。
+- [ ] (d) 取り扱い上の注意の確認: ワイヤー形式では `corners` が `[{x, y}, ...]`、`selectedSurfaceIds` が `[{id}, ...]` になる（obs_data が配列の配列と文字列の配列を運べないため）。スモークテストはこの形式を使っている。
+- [ ] (e) プロパティのテキスト欄でマッピングを手で書き換えても、`MappingChanged` イベントが届く（`obs-websocket-js` の `VendorEvent` で確認、または Task 8 以降の UI で確認）。
+- [ ] (f) ソースの名前を変更すると、割り当て先のソース名が変わった面を持つ Mapping ソースから `MappingChanged` が 1 回届く。

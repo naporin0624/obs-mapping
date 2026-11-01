@@ -37,7 +37,7 @@ struct MappingSource {
 	// Any thread. Validates first; on failure nothing changes.
 	std::expected<void, obs_mapping::ParseError> set_mapping_json(std::string_view json);
 
-	// Any thread. Replaces the overlay state and mirrors `enabled` into the `overlay` setting.
+	// Any thread. Replaces the overlay state; mirrors `enabled` into the `overlay` setting only when it changes.
 	void set_overlay(OverlayState state);
 
 	// OBS source callbacks (graphics thread unless noted).

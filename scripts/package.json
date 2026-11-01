@@ -1,0 +1,8 @@
+{
+  "name": "obs-mapping-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "obs-websocket-js": "^5.0.6"
+  }
+}

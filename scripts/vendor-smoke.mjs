@@ -1,0 +1,143 @@
+// Smoke test for the obs-mapping obs-websocket vendor API.
+// Mutates the chosen Mapping source (and restores it at the end), so only run it against an OBS you can spare.
+//   OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD=... [OBS_MAPPING_SOURCE=name] node scripts/vendor-smoke.mjs
+import OBSWebSocket from "obs-websocket-js";
+
+const VENDOR = "obs-mapping";
+const url = process.env.OBS_WS_URL ?? "ws://127.0.0.1:4455";
+const password = process.env.OBS_WS_PASSWORD || undefined;
+const wantedSource = process.env.OBS_MAPPING_SOURCE || undefined;
+
+const obs = new OBSWebSocket();
+const events = [];
+
+class SmokeFailure extends Error {}
+
+function check(condition, message) {
+  if (!condition) throw new SmokeFailure(message);
+  console.log(`ok   ${message}`);
+}
+
+async function call(requestType, requestData) {
+  const res = await obs.call("CallVendorRequest", { vendorName: VENDOR, requestType, requestData });
+  return res.responseData;
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitFor(predicate, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate()) return true;
+    await sleep(50);
+  }
+  return predicate();
+}
+
+async function run() {
+  obs.on("VendorEvent", (e) => {
+    if (e.vendorName === VENDOR && e.eventType === "MappingChanged") events.push(e.eventData);
+  });
+
+  // 1. List
+  const list = await call("ListMappingSources", {});
+  check(list?.ok === true && Array.isArray(list.sources), "ListMappingSources returns ok with sources");
+  const target = wantedSource ?? list.sources[0]?.name;
+  check(
+    typeof target === "string" && list.sources.some((s) => s.name === target),
+    `target Mapping source exists (${target ?? "none found"})`,
+  );
+
+  // 2. Get
+  const got = await call("GetMapping", { sourceName: target });
+  check(got?.ok === true && got.mapping?.version === 1, "GetMapping returns a version 1 mapping");
+  const original = got.mapping;
+  let restoreNeeded = false;
+
+  try {
+    // 3. Set with one more surface
+    const added = {
+      id: `smoke-${Date.now()}`,
+      name: "Smoke",
+      type: "quad",
+      source: "",
+      crop: { x: 0, y: 0, width: 1, height: 1 },
+      corners: [
+        { x: 100, y: 100 },
+        { x: 500, y: 100 },
+        { x: 500, y: 400 },
+        { x: 100, y: 400 },
+      ],
+      visible: true,
+    };
+    const next = { ...original, surfaces: [...original.surfaces, added] };
+    const eventsBefore = events.length;
+    restoreNeeded = true;
+    const set = await call("SetMapping", { sourceName: target, mapping: next });
+    check(set?.ok === true, "SetMapping with an added surface succeeds");
+
+    // 4. Get again
+    const again = await call("GetMapping", { sourceName: target });
+    check(
+      again?.ok === true && again.mapping.surfaces.length === original.surfaces.length + 1,
+      "GetMapping reflects the added surface",
+    );
+    check(again.mapping.surfaces.at(-1)?.id === added.id, "the added surface is the last one");
+
+    // 6 (checked after the valid Set, before the invalid one). MappingChanged exactly once.
+    check(await waitFor(() => events.length > eventsBefore, 2000), "MappingChanged event received");
+    await sleep(300);
+    check(events.length - eventsBefore === 1, "MappingChanged received exactly once for the valid Set");
+    const ev = events.at(-1);
+    check(ev.sourceName === target && ev.mapping?.surfaces?.length === next.surfaces.length, "event carries sourceName and the new mapping");
+
+    // 5. Invalid Set (3 corners)
+    const bad = {
+      ...original,
+      surfaces: [{ ...added, id: "smoke-bad", corners: added.corners.slice(0, 3) }],
+    };
+    const eventsBeforeBad = events.length;
+    const rejected = await call("SetMapping", { sourceName: target, mapping: bad });
+    check(rejected?.ok === false, "SetMapping with 3 corners is rejected");
+    check(
+      typeof rejected.error === "string" && rejected.error.includes("surfaces[0].corners"),
+      `error names surfaces[0].corners (${rejected.error})`,
+    );
+    await sleep(300);
+    check(events.length === eventsBeforeBad, "rejected SetMapping emits no MappingChanged");
+
+    const overlay = await call("SetOverlay", {
+      sourceName: target,
+      enabled: false,
+      selectedSurfaceIds: [],
+      selectedCorner: null,
+    });
+    check(overlay?.ok === true, "SetOverlay succeeds");
+
+    const missing = await call("GetMapping", { sourceName: "__no_such_source__" });
+    check(missing?.ok === false && missing.error.startsWith("source not found"), "unknown source is reported");
+  } finally {
+    if (restoreNeeded) {
+      const restored = await call("SetMapping", { sourceName: target, mapping: original });
+      if (restored?.ok !== true) throw new SmokeFailure(`could not restore the original mapping: ${restored?.error}`);
+      console.log("restored the original mapping");
+    }
+  }
+}
+
+try {
+  await obs.connect(url, password);
+} catch (e) {
+  console.error(`smoke: cannot connect to ${url}: ${e.message}`);
+  process.exit(1);
+}
+
+try {
+  await run();
+  console.log("smoke: all passed");
+} catch (e) {
+  console.error(`smoke: FAILED: ${e.message}`);
+  process.exitCode = 1;
+} finally {
+  await obs.disconnect().catch(() => {});
+}

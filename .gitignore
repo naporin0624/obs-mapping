@@ -6,3 +6,4 @@ release/
 *.lock.json
 cmake/.CMakeBuildNumber
 build_core/
+node_modules/
