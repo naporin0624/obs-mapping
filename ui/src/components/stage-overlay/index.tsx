@@ -1,8 +1,9 @@
 import type { StageDrag } from '../../editor/use-stage-drag';
 import type { CornerIndex, Selection } from '../../editor/state';
+import { clipLine } from '../../geometry/clip';
 import { quadWarning, type QuadWarning } from '../../geometry/quad';
 import type { Mapping, Surface } from '../../model/mapping';
-import { outlineCls, selectedCls, hiddenCls, warnCls, handleCls, handleOnCls, gridLineCls, warnTextCls } from './styles.css';
+import { outlineCls, selectedCls, hiddenCls, warnCls, handleCls, handleOnCls, gridLineCls, guideLineCls, warnTextCls } from './styles.css';
 
 const HANDLE_PX = 10;
 const MIN_GRID_STAGE_PX = 4;
@@ -73,6 +74,17 @@ const Grid = ({ mapping, scale }: { mapping: Mapping; scale: number }) => {
   );
 };
 
+const Guides = ({ drag, mapping }: { drag: StageDrag; mapping: Mapping }) => (
+  <g pointerEvents="none" aria-hidden="true">
+    {drag.guides.map((g, i) => {
+      const seg = clipLine(g, mapping.canvas.width, mapping.canvas.height);
+      return seg === null ? null : (
+        <line key={i} data-guide="" x1={seg[0][0]} y1={seg[0][1]} x2={seg[1][0]} y2={seg[1][1]} className={guideLineCls} vectorEffect="non-scaling-stroke" pointerEvents="none" aria-hidden="true" />
+      );
+    })}
+  </g>
+);
+
 type Props = { mapping: Mapping; selection: Selection; scale: number; drag: StageDrag };
 
 /** SVG layer in canvas px: grid, surface outlines (danger dashed + text for bad quads), then corner handles. */
@@ -83,6 +95,7 @@ export const StageOverlay = ({ mapping, selection, scale, drag }: Props) => (
     {mapping.surfaces.map((s) => (
       <SurfaceOutline key={s.id} surface={s} selected={selection.surfaceIds.includes(s.id)} scale={scale} drag={drag} />
     ))}
+    <Guides drag={drag} mapping={mapping} />
     {mapping.surfaces
       .filter((s) => selection.surfaceIds.includes(s.id))
       .map((s) => (
