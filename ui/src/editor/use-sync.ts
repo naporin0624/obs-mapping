@@ -50,7 +50,8 @@ const useQueue = ({ client, source, shared, dispatch, report }: Env): void => {
         if (!shared.current.online) throw new Error('offline');
         dispatch({ type: 'sent', json: canonicalJson(m) });
         const r = await client.setMapping(source, m);
-        if (!r.ok && !shared.current.online) throw new Error(r.error);
+        // a transport failure can settle before the `online` flag flips: still keep the edit unsent
+        if (!r.ok && (r.transport === true || !shared.current.online)) throw new Error(r.error);
         const sh = shared.current;
         if (sh.unsent === m) sh.unsent = null;
         return r;

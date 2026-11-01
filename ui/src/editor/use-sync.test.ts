@@ -100,6 +100,22 @@ describe('useSync', () => {
     expect(result.current.state.mapping.grid.size).toBe(20);
   });
 
+  it('keeps an edit whose send failed in transport while still online and resends it on reconnect', async () => {
+    const f = fake(mapping(10));
+    const { result, rerender } = await mount(f);
+    f.setMapping.mockResolvedValueOnce({ ok: false, error: 'Not connected', transport: true });
+    act(() => result.current.dispatch({ type: 'setGrid', size: 20 }));
+    await settle();
+    expect(f.setMapping).toHaveBeenCalledTimes(1);
+    rerender({ on: false });
+    rerender({ on: true });
+    await settle();
+    expect(f.setMapping).toHaveBeenCalledTimes(2);
+    expect(f.setMapping.mock.calls[1]?.[1].grid.size).toBe(20);
+    expect(f.getMapping).toHaveBeenCalledTimes(1);
+    expect(result.current.state.mapping.grid.size).toBe(20);
+  });
+
   it('reloads from the plugin on reconnect when there is nothing unsent', async () => {
     const f = fake(mapping(10));
     const { result, rerender } = await mount(f);
