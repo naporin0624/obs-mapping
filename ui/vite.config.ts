@@ -6,6 +6,7 @@ import { defineConfig, type Plugin } from 'vite';
 // chunk plus one CSS file (see build options below).
 const classicScript = (): Plugin => ({
   name: 'classic-script',
+  apply: 'build',
   enforce: 'post',
   transformIndexHtml: (html) => {
     const out = html.replace(/<script type="module" crossorigin /g, '<script defer ').replace(/<link rel="stylesheet" crossorigin /g, '<link rel="stylesheet" ');
