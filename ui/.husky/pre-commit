@@ -1,0 +1,36 @@
+#!/bin/sh
+# cwd はリポジトリルート。staged ファイルの種類ごとに検査する。
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -z | tr '\0' '\n')
+[ -z "$staged" ] && exit 0
+
+# 条件に合う staged ファイルを NUL 区切りで返す（空白入りの名前に対応）
+pick() {
+  git diff --cached --name-only --diff-filter=ACM -z -- "$@"
+}
+
+fail() {
+  echo "pre-commit: $1" >&2
+  exit 1
+}
+
+if printf '%s\n' "$staged" | grep -q '^ui/'; then
+  pnpm -C ui lint || exit 1
+  pnpm -C ui typecheck || exit 1
+fi
+
+cpp=$(pick '*.c' '*.h' '*.cpp' '*.hpp' '*.m' '*.mm' | tr -d '\0')
+if [ -n "$cpp" ]; then
+  command -v clang-format-19 >/dev/null 2>&1 \
+    || fail "clang-format-19 が見つかりません: brew install obsproject/tools/clang-format@19"
+  pick '*.c' '*.h' '*.cpp' '*.hpp' '*.m' '*.mm' \
+    | xargs -0 ./build-aux/run-clang-format --fail-error --check || exit 1
+fi
+
+cmake=$(pick '*.cmake' 'CMakeLists.txt' '*/CMakeLists.txt' | tr -d '\0')
+if [ -n "$cmake" ]; then
+  command -v gersemi >/dev/null 2>&1 \
+    || fail "gersemi が見つかりません: brew install obsproject/tools/gersemi"
+  pick '*.cmake' 'CMakeLists.txt' '*/CMakeLists.txt' \
+    | xargs -0 ./build-aux/run-gersemi --fail-error --check || exit 1
+fi

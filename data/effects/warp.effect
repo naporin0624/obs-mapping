@@ -1,0 +1,49 @@
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+// Canvas px -> unit square (3x3 homography in the upper-left, uploaded transposed).
+uniform float4x4 inv_h;
+// Source sub-rectangle: x, y, w, h (normalized).
+uniform float4 crop;
+// Quad bounding box in canvas px: x, y, w, h.
+uniform float4 bbox;
+
+sampler_state textureSampler {
+	Filter    = Linear;
+	AddressU  = Clamp;
+	AddressV  = Clamp;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSWarp(VertData v_in)
+{
+	VertData vert_out;
+	vert_out.pos = mul(float4(v_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = bbox.xy + v_in.uv * bbox.zw;
+	return vert_out;
+}
+
+float4 PSWarp(VertData v_in) : TARGET
+{
+	float4 h = mul(inv_h, float4(v_in.uv.x, v_in.uv.y, 1.0, 0.0));
+	float2 s = h.xy / max(h.z, 0.00000001);
+
+	// Outside the quad: zero coverage (no-op under ONE / INVSRCALPHA).
+	float inside = step(0.00000001, h.z) * step(0.0, s.x) * step(s.x, 1.0) * step(0.0, s.y) * step(s.y, 1.0);
+
+	float2 src_uv = crop.xy + s * crop.zw;
+	return image.Sample(textureSampler, src_uv) * inside;
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSWarp(v_in);
+		pixel_shader  = PSWarp(v_in);
+	}
+}

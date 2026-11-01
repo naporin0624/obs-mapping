@@ -1,0 +1,24 @@
+@layer reset, base, tokens, recipes, utilities;
+
+/* LINE Seed JP, Latin subset; Japanese falls back to Hiragino Sans / Noto Sans JP. Bundled for file://. */
+@font-face {
+  font-family: 'LINE Seed JP';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/line-seed-jp-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'LINE Seed JP';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/line-seed-jp-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'LINE Seed JP';
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url('./assets/fonts/line-seed-jp-latin-800-normal.woff2') format('woff2');
+}

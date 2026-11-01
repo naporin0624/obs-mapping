@@ -1,2 +1,12 @@
 .superpowers/
 .DS_Store
+build_*/
+.deps/
+release/
+*.lock.json
+cmake/.CMakeBuildNumber
+build_core/
+node_modules/
+data/ui/
+ui/node_modules/
+ui/styled-system/
