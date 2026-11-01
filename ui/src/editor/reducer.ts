@@ -1,5 +1,5 @@
 import type { Mapping, Point, Surface } from '../model/mapping';
-import { alignSurfaces, distributeSurfaces, translateSurface, type AlignMode } from '../geometry/align';
+import { alignReference, alignSurfaces, distributeSurfaces, translateSurface, type AlignMode } from '../geometry/align';
 import { rectCorners, type Bounds } from '../geometry/rect';
 import { canonicalJson, emptySelection, initialEditorState, type CornerIndex, type EditorState, type InFlightEntry, type Selection } from './state';
 
@@ -191,7 +191,7 @@ const handlers: Handlers = {
       s,
       mapSurface(s.mapping, a.surfaceId, (x) => ({ ...x, corners: rectCorners(a.bounds) })),
     ),
-  align: (s, a) => commit(s, withSurfaces(s.mapping, alignSurfaces(s.mapping.surfaces, s.selection.surfaceIds, a.mode))),
+  align: (s, a) => commit(s, withSurfaces(s.mapping, alignSurfaces(s.mapping.surfaces, s.selection.surfaceIds, a.mode, alignReference(s.mapping.surfaces, s.selection.surfaceIds, s.mapping.canvas)))),
   distribute: (s, a) => commit(s, withSurfaces(s.mapping, distributeSurfaces(s.mapping.surfaces, s.selection.surfaceIds, a.axis))),
   addSurface: (s, a) => {
     const created = newSurface(s.mapping, a.source);

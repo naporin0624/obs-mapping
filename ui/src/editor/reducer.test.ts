@@ -65,6 +65,12 @@ describe('edits', () => {
     expect(s.mapping.surfaces[0]?.corners[0][0]).toBe(100);
     expect(s.past).toHaveLength(1);
   });
+  it('align with one selected surface aligns to the canvas in one undo step', () => {
+    const s = run(base(), sel(['b']), { type: 'align', mode: 'right' });
+    expect(s.mapping.surfaces[1]?.corners[0][0]).toBe(1910);
+    expect(s.past).toHaveLength(1);
+    expect(run(s, { type: 'undo' }).mapping).toEqual(base().mapping);
+  });
   it('removeSelected clears the selection', () => {
     const s = run(base(), sel(['a']), { type: 'removeSelected' });
     expect(s.mapping.surfaces.map((x) => x.id)).toEqual(['b']);

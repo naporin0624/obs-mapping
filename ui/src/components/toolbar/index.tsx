@@ -3,7 +3,10 @@ import type { AlignMode } from '../../geometry/align';
 import type { Action } from '../../editor/reducer';
 import { NumField } from '../field';
 import { barCls, buttonCls, buttonSolidCls, rowCls } from '../styles.css';
-import { tagCls, groupCls } from './styles.css';
+import { tagCls, groupCls, reasonCls } from './styles.css';
+
+const ALIGN_REASON_ID = 'align-reason';
+const DISTRIBUTE_REASON_ID = 'distribute-reason';
 
 const ALIGNS: readonly { mode: AlignMode; label: string }[] = [
   { mode: 'left', label: 'Left' },
@@ -13,6 +16,52 @@ const ALIGNS: readonly { mode: AlignMode; label: string }[] = [
   { mode: 'centerY', label: 'Middle' },
   { mode: 'bottom', label: 'Bottom' },
 ];
+
+const DISTRIBUTES: readonly { axis: 'x' | 'y'; label: string }[] = [
+  { axis: 'x', label: 'Horizontal' },
+  { axis: 'y', label: 'Vertical' },
+];
+
+type GroupProps = { dispatch: Dispatch<Action>; blocked: boolean };
+
+const AlignGroup = ({ dispatch, blocked }: GroupProps) => (
+  <div className={groupCls}>
+    <span className={tagCls}>Align</span>
+    {blocked && (
+      <span id={ALIGN_REASON_ID} className={reasonCls}>
+        面を選択
+      </span>
+    )}
+    {ALIGNS.map((a) => (
+      <button key={a.mode} type="button" className={buttonCls} disabled={blocked} aria-describedby={blocked ? ALIGN_REASON_ID : undefined} onClick={() => dispatch({ type: 'align', mode: a.mode })}>
+        {a.label}
+      </button>
+    ))}
+  </div>
+);
+
+const DistributeGroup = ({ dispatch, blocked }: GroupProps) => (
+  <div className={groupCls}>
+    <span className={tagCls}>Distribute</span>
+    {blocked && (
+      <span id={DISTRIBUTE_REASON_ID} className={reasonCls}>
+        3面以上を選択
+      </span>
+    )}
+    {DISTRIBUTES.map((d) => (
+      <button
+        key={d.axis}
+        type="button"
+        className={buttonCls}
+        disabled={blocked}
+        aria-describedby={blocked ? DISTRIBUTE_REASON_ID : undefined}
+        onClick={() => dispatch({ type: 'distribute', axis: d.axis })}
+      >
+        {d.label}
+      </button>
+    ))}
+  </div>
+);
 
 type Props = {
   dispatch: Dispatch<Action>;
@@ -36,23 +85,8 @@ export const Toolbar = ({ dispatch, canUndo, canRedo, selectedCount, gridSize, o
         Redo
       </button>
     </div>
-    <div className={groupCls}>
-      <span className={tagCls}>Align</span>
-      {ALIGNS.map((a) => (
-        <button key={a.mode} type="button" className={buttonCls} disabled={selectedCount < 2} onClick={() => dispatch({ type: 'align', mode: a.mode })}>
-          {a.label}
-        </button>
-      ))}
-    </div>
-    <div className={groupCls}>
-      <span className={tagCls}>Distribute</span>
-      <button type="button" className={buttonCls} disabled={selectedCount < 3} onClick={() => dispatch({ type: 'distribute', axis: 'x' })}>
-        Horizontal
-      </button>
-      <button type="button" className={buttonCls} disabled={selectedCount < 3} onClick={() => dispatch({ type: 'distribute', axis: 'y' })}>
-        Vertical
-      </button>
-    </div>
+    <AlignGroup dispatch={dispatch} blocked={selectedCount < 1} />
+    <DistributeGroup dispatch={dispatch} blocked={selectedCount < 3} />
     <div className={groupCls}>
       <NumField label="Grid" value={gridSize} onCommit={(size) => dispatch({ type: 'setGrid', size })} />
       <button type="button" className={overlayEnabled ? buttonSolidCls : buttonCls} aria-pressed={overlayEnabled} onClick={onToggleOverlay}>

@@ -1,5 +1,5 @@
 import type { Point, Surface } from '../model/mapping';
-import { boundsOf } from './rect';
+import { boundsOf, type Bounds } from './rect';
 
 export type AlignMode = 'left' | 'right' | 'top' | 'bottom' | 'centerX' | 'centerY';
 
@@ -10,14 +10,24 @@ export const translateSurface = (s: Surface, dx: number, dy: number): Surface =>
 
 const selected = (ss: readonly Surface[], ids: readonly string[]): readonly Surface[] => ss.filter((s) => ids.includes(s.id));
 
-export const alignSurfaces = (ss: readonly Surface[], ids: readonly string[], mode: AlignMode): Surface[] => {
+export const alignReference = (ss: readonly Surface[], ids: readonly string[], canvas: { width: number; height: number }): Bounds | undefined =>
+  selected(ss, ids).length === 1 ? { x: 0, y: 0, width: canvas.width, height: canvas.height } : undefined;
+
+const unionBounds = (sel: readonly Surface[]): Bounds => {
+  const bs = sel.map(boundsOf);
+  const x = Math.min(...bs.map((b) => b.x));
+  const y = Math.min(...bs.map((b) => b.y));
+  return { x, y, width: Math.max(...bs.map((b) => b.x + b.width)) - x, height: Math.max(...bs.map((b) => b.y + b.height)) - y };
+};
+
+export const alignSurfaces = (ss: readonly Surface[], ids: readonly string[], mode: AlignMode, reference?: Bounds): Surface[] => {
   const sel = selected(ss, ids);
   if (sel.length === 0) return [...ss];
-  const bs = sel.map(boundsOf);
-  const minX = Math.min(...bs.map((b) => b.x));
-  const maxX = Math.max(...bs.map((b) => b.x + b.width));
-  const minY = Math.min(...bs.map((b) => b.y));
-  const maxY = Math.max(...bs.map((b) => b.y + b.height));
+  const target = reference ?? unionBounds(sel);
+  const minX = target.x;
+  const maxX = target.x + target.width;
+  const minY = target.y;
+  const maxY = target.y + target.height;
 
   const delta = (s: Surface): readonly [number, number] => {
     const b = boundsOf(s);
