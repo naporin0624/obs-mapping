@@ -116,14 +116,64 @@ describe('remote sync', () => {
     expect(ended.pendingRemote).toBeNull();
     expect(ended.mapping.surfaces.map((x) => x.id)).toEqual(['a', 'b']);
   });
-  it('ignores an echo of the last sent mapping even with reordered keys and number formats', () => {
+  it('ignores an echo of a sent mapping even with reordered keys and number formats', () => {
     const s = run(base(), { type: 'sent', json: canonicalJson(base().mapping) });
     const echo = JSON.parse(
       '{"surfaces":[{"visible":true,"corners":[[0.0,0],[10,0],[10,10],[-0,10]],"crop":{"height":1,"width":1,"y":0,"x":0},"source":"src","type":"quad","name":"a","id":"a"},' +
         '{"visible":true,"corners":[[100,0],[110,0],[110,10],[100,10]],"crop":{"x":0,"y":0,"width":1,"height":1},"source":"src","type":"quad","name":"b","id":"b"}],' +
         '"grid":{"size":10.0},"canvas":{"height":1080,"width":1920},"version":1}',
     ) as Mapping;
-    expect(reducer(s, { type: 'remote', mapping: echo })).toBe(s);
+    const after = reducer(s, { type: 'remote', mapping: echo });
+    expect(after.mapping).toBe(s.mapping);
+    expect(after.inFlight).toEqual([]);
+  });
+  const sendNudge = (s: EditorState, dx: number): EditorState => {
+    const n = reducer(s, { type: 'nudge', dx, dy: 0 });
+    return reducer(n, { type: 'sent', json: canonicalJson(n.mapping) });
+  };
+  const z = () => mk(surf('z', 0, 0));
+  it('does not swallow a later remote equal to a stale send (A, external Z, plugin returns to A)', () => {
+    const a = sendNudge(run(base(), sel(['a'])), 1);
+    const sentA = a.mapping;
+    const atZ = run(a, { type: 'remote', mapping: z() });
+    expect(atZ.mapping.surfaces.map((x) => x.id)).toEqual(['z']);
+    const back = reducer(atZ, { type: 'remote', mapping: sentA });
+    expect(back.mapping).toEqual(sentA);
+  });
+  it('send A, send B, echo A is ignored, echo B no-ops', () => {
+    const a = sendNudge(run(base(), sel(['a'])), 1);
+    const mapA = a.mapping;
+    const b = sendNudge(a, 1);
+    const e1 = reducer(b, { type: 'remote', mapping: mapA });
+    expect(e1.mapping).toBe(b.mapping);
+    const e2 = reducer(e1, { type: 'remote', mapping: b.mapping });
+    expect(e2.mapping).toBe(b.mapping);
+    expect(e2.inFlight).toEqual([]);
+  });
+  it('A, B, then external Z between echoes ends on B', () => {
+    const a = sendNudge(run(base(), sel(['a'])), 1);
+    const mapA = a.mapping;
+    const b = sendNudge(a, 1);
+    const end = run(b, { type: 'remote', mapping: mapA }, { type: 'remote', mapping: z() }, { type: 'remote', mapping: b.mapping });
+    expect(end.mapping).toEqual(b.mapping);
+  });
+  it('A, B, echoes, then external Z ends on Z', () => {
+    const a = sendNudge(run(base(), sel(['a'])), 1);
+    const mapA = a.mapping;
+    const b = sendNudge(a, 1);
+    const end = run(b, { type: 'remote', mapping: mapA }, { type: 'remote', mapping: b.mapping }, { type: 'remote', mapping: z() });
+    expect(end.mapping).toEqual(z());
+  });
+  it('caps inFlight at 32', () => {
+    const s = Array.from({ length: 40 }, (_, i) => ({ type: 'sent', json: String(i) }) as const).reduce(reducer, base());
+    expect(s.inFlight).toHaveLength(32);
+    expect(s.inFlight[0]).toBe('8');
+  });
+  it('ignores mapping-changing edits while dragging', () => {
+    const d = run(base(), sel(['a']), { type: 'dragStart' });
+    for (const a of [{ type: 'nudge', dx: 1, dy: 0 }, { type: 'removeSelected' }, { type: 'setGrid', size: 20 }, { type: 'undo' }] as const) {
+      expect(reducer(d, a)).toBe(d);
+    }
   });
   it('load resets everything', () => {
     const s = run(base(), sel(['a']), { type: 'nudge', dx: 1, dy: 0 }, { type: 'load', mapping: mk() });

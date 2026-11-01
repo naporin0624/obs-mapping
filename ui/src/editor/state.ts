@@ -13,8 +13,8 @@ export type EditorState = {
   dragging: boolean;
   past: Mapping[];
   future: Mapping[];
-  /** canonicalJson of the last mapping sent to the plugin. */
-  lastSent: string | null;
+  /** canonicalJson of own sends not yet echoed back by the plugin, oldest first (max 32). */
+  inFlight: readonly string[];
   pendingRemote: Mapping | null;
 };
 
@@ -42,6 +42,6 @@ export const initialEditorState = (mapping: Mapping): EditorState => ({
   dragging: false,
   past: [],
   future: [],
-  lastSent: null,
+  inFlight: [],
   pendingRemote: null,
 });

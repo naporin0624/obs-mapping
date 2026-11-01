@@ -29,6 +29,13 @@ export type Action =
 const HISTORY_LIMIT = 100;
 const GRID_MAX = 1024;
 const COPY_OFFSET = 20;
+const IN_FLIGHT_LIMIT = 32;
+
+// Mapping-changing actions that are ignored while a drag is in progress.
+const DRAG_BLOCKED: ReadonlySet<Action['type']> = new Set([
+  'nudge', 'setCorner', 'setBounds', 'align', 'distribute', 'addSurface', 'removeSelected',
+  'duplicateSelected', 'reorder', 'patchSurface', 'setGrid',
+]);
 
 // ---- helpers -------------------------------------------------------------
 
@@ -162,12 +169,18 @@ const handlers: Handlers = {
     Number.isFinite(a.size) && a.size > 0 && a.size <= GRID_MAX ? commit(s, { ...s.mapping, grid: { size: a.size } }) : s,
   undo: (s) => travel(s, 'past'),
   redo: (s) => travel(s, 'future'),
-  sent: (s, a) => ({ ...s, lastSent: a.json }),
+  sent: (s, a) => ({ ...s, inFlight: [...s.inFlight, a.json].slice(-IN_FLIGHT_LIMIT) }),
   remote: (s, a) => {
     if (s.dragging) return { ...s, pendingRemote: a.mapping };
-    if (canonicalJson(a.mapping) === s.lastSent) return s;
-    return { ...s, mapping: a.mapping, selection: pruneSelection(s.selection, a.mapping) };
+    const json = canonicalJson(a.mapping);
+    const at = s.inFlight.indexOf(json);
+    const inFlight = at < 0 ? s.inFlight : s.inFlight.slice(at + 1);
+    // Own echo with newer sends pending, or already equal to local: nothing to apply.
+    const ignore = at >= 0 && (inFlight.length > 0 || canonicalJson(s.mapping) === json);
+    if (ignore) return inFlight.length === s.inFlight.length ? s : { ...s, inFlight };
+    return { ...s, inFlight, mapping: a.mapping, selection: pruneSelection(s.selection, a.mapping) };
   },
 };
 
-export const reducer = (s: EditorState, a: Action): EditorState => (handlers[a.type] as (s: EditorState, a: Action) => EditorState)(s, a);
+export const reducer = (s: EditorState, a: Action): EditorState =>
+  s.dragging && DRAG_BLOCKED.has(a.type) ? s : (handlers[a.type] as (s: EditorState, a: Action) => EditorState)(s, a);
