@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <set>
+#include <string_view>
 
 namespace obs_mapping {
 
@@ -21,13 +22,13 @@ struct Fail {
 	throw Fail{path + ": " + msg};
 }
 
-const json &require(const json &obj, const char *key, const std::string &path)
+const json &require(const json &obj, const char *key, std::string_view path)
 {
 	if (!obj.is_object())
-		fail(path, "expected object");
+		fail(std::string(path), "expected object");
 	auto it = obj.find(key);
 	if (it == obj.end())
-		fail(path.empty() ? key : path + "." + key, "missing");
+		fail(path.empty() ? std::string(key) : std::string(path) + "." + key, "missing");
 	return *it;
 }
 
@@ -94,8 +95,7 @@ Surface parse_surface(const json &s, size_t i, std::set<std::string> &ids)
 	out.crop.width = number(require(c, "width", cp), cp + ".width");
 	out.crop.height = number(require(c, "height", cp), cp + ".height");
 	const CropRect &cr = out.crop;
-	if (cr.x < 0 || cr.y < 0 || cr.width <= 0 || cr.height <= 0 || cr.x + cr.width > 1 ||
-	    cr.y + cr.height > 1)
+	if (cr.x < 0 || cr.y < 0 || cr.width <= 0 || cr.height <= 0 || cr.x + cr.width > 1 || cr.y + cr.height > 1)
 		fail(cp, "must satisfy x,y >= 0, width,height > 0, x+width <= 1, y+height <= 1");
 
 	const std::string kp = p + ".corners";

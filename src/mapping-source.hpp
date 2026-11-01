@@ -64,7 +64,7 @@ private:
 	mutable std::mutex state_mutex_;
 	std::shared_ptr<const MappingSnapshot> snapshot_;
 	std::shared_ptr<const OverlayState> overlay_; // guarded by state_mutex_
-	std::mutex write_mutex_; // serializes apply_json + settings writes
+	std::mutex write_mutex_;                      // serializes apply_json + settings writes
 
 	SourceCache cache_;
 	gs_effect_t *effect_ = nullptr;

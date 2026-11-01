@@ -96,7 +96,8 @@ void SourceCache::tick(const std::set<std::string> &wanted_names)
 		}
 		if (obs_source_removed(r.source) || !obs_source_add_active_child(owner_, r.source)) {
 			if (!obs_source_removed(r.source) && warned_.insert(name).second)
-				obs_log(LOG_WARNING, "source '%s' would create a recursion; not attached", name.c_str());
+				obs_log(LOG_WARNING, "source '%s' would create a recursion; not attached",
+					name.c_str());
 			obs_source_release(r.source);
 			continue;
 		}

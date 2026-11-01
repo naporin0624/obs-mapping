@@ -101,8 +101,8 @@ TEST_CASE("degenerate_same_point")
 TEST_CASE("convexity")
 {
 	CHECK(is_convex_quad({{{0, 0}, {4, 0}, {4, 4}, {0, 4}}}));
-	CHECK(is_convex_quad({{{0, 0}, {0, 4}, {4, 4}, {4, 0}}})); // opposite winding
-	CHECK_FALSE(is_convex_quad({{{0, 0}, {4, 0}, {4, 4}, {3, 1}}}));   // concave
-	CHECK_FALSE(is_convex_quad({{{0, 0}, {4, 4}, {4, 0}, {0, 4}}}));   // twisted
-	CHECK_FALSE(is_convex_quad({{{0, 0}, {1, 1}, {2, 2}, {3, 3}}}));   // degenerate
+	CHECK(is_convex_quad({{{0, 0}, {0, 4}, {4, 4}, {4, 0}}}));       // opposite winding
+	CHECK_FALSE(is_convex_quad({{{0, 0}, {4, 0}, {4, 4}, {3, 1}}})); // concave
+	CHECK_FALSE(is_convex_quad({{{0, 0}, {4, 4}, {4, 0}, {0, 4}}})); // twisted
+	CHECK_FALSE(is_convex_quad({{{0, 0}, {1, 1}, {2, 2}, {3, 3}}})); // degenerate
 }

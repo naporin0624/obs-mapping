@@ -41,8 +41,7 @@ void respond_ok(obs_data_t *response)
 }
 
 // Runs `fn(MappingSource&)` for request.sourceName; replies with an error if it is not a Mapping source.
-template <typename Fn>
-void with_mapping_source(obs_data_t *request, obs_data_t *response, Fn fn)
+template<typename Fn> void with_mapping_source(obs_data_t *request, obs_data_t *response, Fn fn)
 {
 	const std::string name = obs_data_get_string(request, "sourceName");
 	SourceRef ref(name.c_str());

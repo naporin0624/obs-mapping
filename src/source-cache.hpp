@@ -45,7 +45,7 @@ private:
 	void publish_attached();
 
 	obs_source_t *owner_;
-	std::vector<Entry> entries_; // graphics thread only
+	std::vector<Entry> entries_;   // graphics thread only
 	std::set<std::string> warned_; // graphics thread only
 	uint64_t frame_ = 0;
 

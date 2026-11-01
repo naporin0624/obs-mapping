@@ -41,7 +41,10 @@ std::string replace(std::string s, const std::string &a, const std::string &b)
 	return s.replace(pos, a.size(), b);
 }
 
-bool starts_with(const std::string &s, const std::string &p) { return s.rfind(p, 0) == 0; }
+bool starts_with(const std::string &s, const std::string &p)
+{
+	return s.rfind(p, 0) == 0;
+}
 
 } // namespace
 
@@ -89,15 +92,18 @@ TEST_CASE("validation errors")
 	CHECK(starts_with(error_of(replace(kValid, "\"id\": \"s-2\"", "\"id\": \"s-1\"")),
 			  "surfaces[1].id: duplicate id \"s-1\""));
 	CHECK(starts_with(error_of(replace(kValid, "\"id\": \"s-1\"", "\"id\": \"\"")), "surfaces[0].id: "));
-	CHECK(starts_with(error_of(replace(kValid, "\"x\": 0, \"y\": 0, \"width\": 1,", "\"x\": 0.2, \"y\": 0, \"width\": 1,")),
-			  "surfaces[0].crop: "));
+	CHECK(starts_with(
+		error_of(replace(kValid, "\"x\": 0, \"y\": 0, \"width\": 1,", "\"x\": 0.2, \"y\": 0, \"width\": 1,")),
+		"surfaces[0].crop: "));
 	CHECK(starts_with(error_of(replace(kValid, "\"width\": 1, \"height\": 1 }", "\"width\": 0, \"height\": 1 }")),
 			  "surfaces[0].crop: "));
 	CHECK(starts_with(error_of(replace(kValid, ", [120, 680]]", "]")), "surfaces[0].corners: expected 4 points"));
 	CHECK(starts_with(error_of(replace(kValid, "[880, 700]", "null")), "surfaces[0].corners[2]: "));
-	CHECK(starts_with(error_of(replace(kValid, "\"type\": \"quad\", \"source\": \"VJ A\",\n      \"crop\": { \"x\": 0, \"y\": 0",
-					   "\"type\": \"mesh\", \"source\": \"VJ A\",\n      \"crop\": { \"x\": 0, \"y\": 0")),
-			  "surfaces[0].type: unknown type \"mesh\""));
+	CHECK(starts_with(
+		error_of(replace(kValid,
+				 "\"type\": \"quad\", \"source\": \"VJ A\",\n      \"crop\": { \"x\": 0, \"y\": 0",
+				 "\"type\": \"mesh\", \"source\": \"VJ A\",\n      \"crop\": { \"x\": 0, \"y\": 0")),
+		"surfaces[0].type: unknown type \"mesh\""));
 	CHECK(starts_with(error_of(replace(kValid, "\"visible\": true", "\"visible\": 1")), "surfaces[0].visible: "));
 	CHECK(starts_with(error_of("{ not json"), "json: "));
 }

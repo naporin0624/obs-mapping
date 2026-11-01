@@ -16,12 +16,12 @@ struct Color {
 	float r, g, b, a;
 };
 
-constexpr Color kGridColor{0.9321f, 0.9374f, 0.9483f, 0.25f};          // colors-gray-1 @ 25%
-constexpr Color kOutlineColor{0.5254f, 0.5254f, 0.5254f, 1.0f};         // colors-dark-border-strong
-constexpr Color kSelectedColor{0.2243f, 0.5868f, 1.0f, 1.0f};           // colors-neon-blue
-constexpr Color kInvalidColor{1.0f, 0.1356f, 0.209f, 1.0f};             // colors-red-text (danger-text)
-constexpr Color kHandleColor{0.9321f, 0.9374f, 0.9483f, 1.0f};          // colors-gray-1 (fg-default)
-constexpr Color kSelectedCornerColor{0.2243f, 0.5868f, 1.0f, 1.0f};     // colors-neon-blue
+constexpr Color kGridColor{0.9321f, 0.9374f, 0.9483f, 0.25f};       // colors-gray-1 @ 25%
+constexpr Color kOutlineColor{0.5254f, 0.5254f, 0.5254f, 1.0f};     // colors-dark-border-strong
+constexpr Color kSelectedColor{0.2243f, 0.5868f, 1.0f, 1.0f};       // colors-neon-blue
+constexpr Color kInvalidColor{1.0f, 0.1356f, 0.209f, 1.0f};         // colors-red-text (danger-text)
+constexpr Color kHandleColor{0.9321f, 0.9374f, 0.9483f, 1.0f};      // colors-gray-1 (fg-default)
+constexpr Color kSelectedCornerColor{0.2243f, 0.5868f, 1.0f, 1.0f}; // colors-neon-blue
 
 constexpr double kGridThickness = 1.0;
 constexpr double kOutlineThickness = 2.0;
@@ -118,7 +118,8 @@ void draw_overlay(const obs_mapping::Mapping &mapping, const OverlayState &state
 
 		for (const auto &surface : mapping.surfaces) {
 			for (size_t i = 0; i < 4; ++i) {
-				const bool selected = state.selected_corner && state.selected_corner->first == surface.id &&
+				const bool selected = state.selected_corner &&
+						      state.selected_corner->first == surface.id &&
 						      state.selected_corner->second == static_cast<int>(i);
 				painter.set_color(selected ? kSelectedCornerColor : kHandleColor);
 				painter.strip(obs_mapping::square_strip(surface.corners[i],
