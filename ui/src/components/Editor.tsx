@@ -2,6 +2,7 @@ import { css } from '../../styled-system/css';
 import { useInputs } from '../editor/use-inputs';
 import { useSync } from '../editor/use-sync';
 import type { ObsClient } from '../obs/client';
+import { ImportExport } from './ImportExport';
 import { Inspector } from './Inspector';
 import { Stage } from './Stage';
 import { SurfaceList } from './SurfaceList';
@@ -48,8 +49,7 @@ export const Editor = ({ client, source, online }: Props) => {
         overlayEnabled={sync.overlayEnabled}
         onToggleOverlay={() => sync.setOverlayEnabled(!sync.overlayEnabled)}
       >
-        {/* Task 11 mounts Import / Export here */}
-        {null}
+        <ImportExport mapping={state.mapping} online={online} onApply={sync.applyImport} onError={sync.reportError} />
       </Toolbar>
       <div className={bodyCls}>
         <div className={stageColCls}>

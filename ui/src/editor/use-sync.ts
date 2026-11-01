@@ -22,6 +22,10 @@ export type Sync = {
   retry: () => void;
   toast: ToastMessage | null;
   dismissToast: () => void;
+  /** Shows an error text in the toast. */
+  reportError: (text: string) => void;
+  /** Sends an imported mapping straight to the plugin (not undoable); on success the view reloads, on failure the plugin error is toasted. */
+  applyImport: (mapping: Mapping) => Promise<boolean>;
 };
 
 type Shared = {
@@ -202,5 +206,20 @@ export const useSync = (client: ObsClient, source: string, online: boolean): Syn
   useResync(env, state, online);
   useOverlay(client, source, online, loaded, state, overlayEnabled);
 
-  return { state, dispatch, loaded, overlayEnabled, setOverlayEnabled, loadError, retry, toast, dismissToast };
+  const applyImport = useCallback(
+    async (mapping: Mapping): Promise<boolean> => {
+      const r = await client.setMapping(source, mapping);
+      if (!r.ok) {
+        report(r.error);
+        return false;
+      }
+      // the plugin's echo converges via `remote`; loading now updates the view at once and resets history
+      shared.current.skip = mapping;
+      dispatch({ type: 'load', mapping });
+      return true;
+    },
+    [client, source, report],
+  );
+
+  return { state, dispatch, loaded, overlayEnabled, setOverlayEnabled, loadError, retry, toast, dismissToast, reportError: report, applyImport };
 };
