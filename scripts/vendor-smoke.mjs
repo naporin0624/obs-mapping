@@ -10,6 +10,7 @@ const wantedSource = process.env.OBS_MAPPING_SOURCE || undefined;
 
 const obs = new OBSWebSocket();
 const events = [];
+const overlayEvents = [];
 
 class SmokeFailure extends Error {}
 
@@ -37,6 +38,7 @@ async function waitFor(predicate, timeoutMs) {
 async function run() {
   obs.on("VendorEvent", (e) => {
     if (e.vendorName === VENDOR && e.eventType === "MappingChanged") events.push(e.eventData);
+    if (e.vendorName === VENDOR && e.eventType === "OverlayChanged") overlayEvents.push(e.eventData);
   });
 
   // 1. List
@@ -51,6 +53,8 @@ async function run() {
   // 2. Get
   const got = await call("GetMapping", { sourceName: target });
   check(got?.ok === true && typeof got.mappingJson === "string", "GetMapping returns mappingJson");
+  check(typeof got.overlayEnabled === "boolean", "GetMapping returns overlayEnabled");
+  const originalOverlay = got.overlayEnabled;
   const original = JSON.parse(got.mappingJson);
   check(original.version === 1, "GetMapping returns a version 1 mapping");
   let restoreNeeded = false;
@@ -92,6 +96,7 @@ async function run() {
     check(events.length - eventsBefore === 1, "MappingChanged received exactly once for the valid Set");
     const ev = events.at(-1);
     check(ev.sourceName === target && JSON.parse(ev.mappingJson ?? "{}").surfaces?.length === next.surfaces.length, "event carries sourceName and the new mappingJson");
+    check(typeof ev.overlayEnabled === "boolean", "MappingChanged carries overlayEnabled");
 
     // 5. Invalid Set (3 corners)
     const bad = {
@@ -108,12 +113,26 @@ async function run() {
     await sleep(300);
     check(events.length === eventsBeforeBad, "rejected SetMapping emits no MappingChanged");
 
-    const overlay = await call("SetOverlay", {
-      sourceName: target,
-      enabled: false,
-      selectionJson: JSON.stringify({ selectedSurfaceIds: [], selectedCorner: null }),
-    });
-    check(overlay?.ok === true, "SetOverlay succeeds");
+    // SetOverlay: selection-only keeps the flag; an explicit enabled flips it and emits OverlayChanged once.
+    const selection = JSON.stringify({ selectedSurfaceIds: [], selectedCorner: null });
+    const keep = await call("SetOverlay", { sourceName: target, selectionJson: selection });
+    check(keep?.ok === true, "SetOverlay without enabled succeeds");
+    const afterKeep = await call("GetMapping", { sourceName: target });
+    check(afterKeep?.overlayEnabled === originalOverlay, "SetOverlay without enabled keeps the overlay flag");
+
+    const flipped = !originalOverlay;
+    const overlayBefore = overlayEvents.length;
+    const flip = await call("SetOverlay", { sourceName: target, enabled: flipped, selectionJson: selection });
+    check(flip?.ok === true, "SetOverlay with enabled succeeds");
+    check(await waitFor(() => overlayEvents.length > overlayBefore, 2000), "OverlayChanged event received");
+    check(overlayEvents.at(-1).sourceName === target && overlayEvents.at(-1).enabled === flipped, "OverlayChanged carries sourceName and enabled");
+    const afterFlip = await call("GetMapping", { sourceName: target });
+    check(afterFlip?.overlayEnabled === flipped, "GetMapping reflects the new overlay flag");
+    const unchangedBefore = overlayEvents.length;
+    await call("SetOverlay", { sourceName: target, enabled: flipped, selectionJson: selection });
+    await sleep(300);
+    check(overlayEvents.length === unchangedBefore, "setting the same overlay flag emits no OverlayChanged");
+    await call("SetOverlay", { sourceName: target, enabled: originalOverlay, selectionJson: selection });
 
     const missing = await call("GetMapping", { sourceName: "__no_such_source__" });
     check(missing?.ok === false && missing.error.startsWith("source not found"), "unknown source is reported");

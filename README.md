@@ -21,7 +21,7 @@ cmake --preset macos
 cmake --build --preset macos
 ```
 
-UI を先にビルドしておかないと、バンドルに UI が入りません。
+UI を先にビルドしておかないと、バンドルに UI が入りません。UI を作り直したあと（開発ビルドで確認するとき）は、`cmake --preset macos` をもう一度実行してから `cmake --build --preset macos` を行ってください。UI の出力先が変わると、バンドルへのコピー対象が更新されません。
 
 コア（JSON の検証など、OBS に依存しない部分）の単体テスト:
 
@@ -91,7 +91,7 @@ pnpm -C ui preview   # http://localhost:4173
 | 矢印キー | 1px 移動（Shift で 10px）。Stage をクリックしてフォーカスしておく |
 | Delete / Backspace | 選択中の面を削除 |
 | Cmd+D | 面を複製 |
-| Shift+クリック | 複数選択。Align / Distribute で整列・等間隔配置 |
+| Shift+クリック / Cmd+クリック | 複数選択。Align / Distribute で整列・等間隔配置 |
 | Undo / Redo | ツールバーのボタン、または Cmd+Z / Cmd+Shift+Z。OBS 本体が Cmd+Z を取る場合があるので、ボタンを使うのが確実 |
 | Export / Import | JSON の書き出し・読み込み（後述） |
 | Overlay | OBS の出力に輪郭とハンドルを描く編集用オーバーレイのオン・オフ |
@@ -100,7 +100,7 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 
 ## 運用上の注意
 
-- **オーバーレイは配信や録画にも映ります。** 編集用の輪郭とハンドルは Mapping ソースの出力に直接描かれるため、本番中は Overlay をオフにしてください。OBS を起動した時点で、オーバーレイは必ずオフに戻ります。
+- **オーバーレイは配信や録画にも映ります。** 編集用の輪郭とハンドルは Mapping ソースの出力に直接描かれるため、本番中は Overlay をオフにしてください。OBS を起動した時点で、オーバーレイは必ずオフに戻ります。ドックを表示したまま OBS を再起動しても、ドックが勝手にオンにすることはありません（オン・オフの値はプラグインが持ち、ドックはそれに従います）。
 - どのシーンにも入っていないソースを面に割り当てた場合、そのソースは Mapping ソースが Program でアクティブなときだけ再生されます。
 - 「アクティブになったときに再生を最初から」を有効にしたメディアは、ソースプロジェクターだけでは再生されません。
 - 凸でない四角形もそのまま描画されます（オーバーレイでは赤い破線の輪郭になります）。退化した四角形（3 点が一直線上）は表示されなくなります。
@@ -151,13 +151,14 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 | リクエスト | 入力 | 応答 |
 |---|---|---|
 | `ListMappingSources` | なし | `{ ok, sources: [{ name, width, height }] }` |
-| `GetMapping` | `{ sourceName }` | `{ ok, mappingJson }` |
+| `GetMapping` | `{ sourceName }` | `{ ok, mappingJson, overlayEnabled }` |
 | `SetMapping` | `{ sourceName, mappingJson }` | `{ ok }` |
-| `SetOverlay` | `{ sourceName, enabled, selectionJson }` | `{ ok }` |
+| `SetOverlay` | `{ sourceName, enabled?, selectionJson? }` | `{ ok }` |
 
 | イベント | ペイロード |
 |---|---|
-| `MappingChanged` | `{ sourceName, mappingJson }` |
+| `MappingChanged` | `{ sourceName, mappingJson, overlayEnabled }` |
+| `OverlayChanged` | `{ sourceName, enabled }`（オーバーレイの有効・無効が変わったとき。`SetOverlay` でもプロパティのチェックボックスでも発行される） |
 
 失敗時は `{ ok: false, error }` を返します。`error` は次のいずれかです。
 
@@ -166,7 +167,7 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 - `mappingJson: missing`
 - JSON v1 の検証エラー（上の表のパスつきメッセージ）、または `selectionJson` のパースエラー
 
-`selectionJson` を省略すると、選択なしとして扱います。
+`selectionJson` を省略すると、選択なしとして扱います。`enabled` を省略すると、現在のオン・オフはそのままで、選択だけを更新します（ドックは選択の変更ではこの形で送ります）。
 
 ## 今後の予定（未実装）
 
