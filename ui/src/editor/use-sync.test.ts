@@ -159,6 +159,73 @@ describe('useSync', () => {
     expect(result.current.state.mapping.grid.size).toBe(50);
   });
 
+  describe('divergence resync', () => {
+    const divergence = async (f: Fake) => {
+      const { result } = await mount(f);
+      act(() => result.current.dispatch({ type: 'setGrid', size: 20 })); // A
+      await settle();
+      act(() => f.emit(mapping(99))); // foreign Z while A is unanswered
+      act(() => result.current.dispatch({ type: 'setGrid', size: 30 })); // B
+      await settle();
+      return result;
+    };
+
+    it('fetches the plugin copy exactly once after the last echo drains inFlight', async () => {
+      const f = fake(mapping(10));
+      const result = await divergence(f);
+      expect(f.plugin.mapping.grid.size).toBe(30);
+      expect(result.current.state.mapping.grid.size).toBe(30);
+      f.getMapping.mockClear();
+      act(() => f.emit(mapping(20))); // echo A
+      await settle();
+      expect(f.getMapping).not.toHaveBeenCalled();
+      act(() => f.emit(mapping(30))); // echo B
+      await settle();
+      expect(f.getMapping).toHaveBeenCalledTimes(1);
+      expect(result.current.state.mapping.grid.size).toBe(30);
+      expect(result.current.state.needsResync).toBe(false);
+      await settle(5000);
+      expect(f.getMapping).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fetch when no divergence happened', async () => {
+      const f = fake(mapping(10));
+      const { result } = await mount(f);
+      act(() => result.current.dispatch({ type: 'setGrid', size: 20 }));
+      await settle();
+      f.getMapping.mockClear();
+      act(() => f.emit(mapping(20)));
+      await settle(5000);
+      expect(f.getMapping).not.toHaveBeenCalled();
+    });
+
+    it('does not fetch while a send is still queued', async () => {
+      const f = fake(mapping(10));
+      const result = await divergence(f);
+      f.getMapping.mockClear();
+      let release: () => void = () => undefined;
+      f.setMapping.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            release = () => resolve({ ok: true });
+          }),
+      );
+      act(() => result.current.dispatch({ type: 'setGrid', size: 40 })); // C, unanswered
+      await settle();
+      act(() => f.emit(mapping(20)));
+      act(() => f.emit(mapping(30))); // A and B echoes; C is still unsent
+      await settle();
+      expect(f.getMapping).not.toHaveBeenCalled();
+      await act(async () => {
+        release();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      act(() => f.emit(mapping(40)));
+      await settle();
+      expect(f.getMapping).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('shows a failed initial load and retries it', async () => {
     const f = fake(mapping(10));
     f.getMapping.mockResolvedValueOnce({ ok: false, error: 'no such source' });

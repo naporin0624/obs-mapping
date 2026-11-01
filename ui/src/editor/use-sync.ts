@@ -39,6 +39,9 @@ type Shared = {
   overlayOwned: boolean;
   /** The inFlight list a resync was already attempted for (avoids resyncing the same stale entries forever). */
   resynced: readonly string[] | null;
+  /** Re-evaluates the divergence resync; called when `unsent` clears (no state change to trigger the effect). */
+  recheck: (() => void) | null;
+  resyncing: boolean;
 };
 
 type LoadCtl = { tick: number; setLoaded: (v: boolean) => void; setError: (e: string | null) => void; setOverlay: (v: boolean) => void };
@@ -61,7 +64,10 @@ const useQueue = ({ client, source, shared, dispatch, report }: Env): void => {
         // a transport failure can settle before the `online` flag flips: still keep the edit unsent
         if (!r.ok && (r.transport === true || !shared.current.online)) throw new Error(r.error);
         const sh = shared.current;
-        if (sh.unsent === m) sh.unsent = null;
+        if (sh.unsent === m) {
+          sh.unsent = null;
+          sh.recheck?.();
+        }
         return r;
       },
       onError: report,
@@ -174,6 +180,46 @@ const useResync = (env: Env, state: EditorState, online: boolean): void => {
   }, [client, source, online, state.inFlight, state.mapping, state.dragging, shared, dispatch]);
 };
 
+/** After a foreign remote landed amid own sends, one getMapping once everything is answered settles on the plugin's copy. */
+const useDivergenceResync = (env: Env, state: EditorState, online: boolean): void => {
+  const { client, source, shared, dispatch } = env;
+  const latest = useRef(state);
+  useEffect(() => {
+    latest.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const settled = (): boolean => {
+      const st = latest.current;
+      return shared.current.online && st.needsResync && st.inFlight.length === 0 && !st.dragging && shared.current.unsent === null;
+    };
+    const check = (): void => {
+      const sh = shared.current;
+      if (cancelled || sh.resyncing || !settled()) return;
+      sh.resyncing = true;
+      void (async () => {
+        const r = await client.getMapping(source);
+        sh.resyncing = false;
+        if (cancelled || !r.ok || !settled()) return;
+        sh.skip = r.mapping;
+        dispatch({ type: 'remote', mapping: r.mapping });
+      })();
+    };
+    shared.current.recheck = check;
+    check();
+    return () => {
+      cancelled = true;
+      shared.current.recheck = null;
+    };
+  }, [client, source, online, state.needsResync, state.inFlight, state.dragging, shared, dispatch]);
+};
+
+const useResyncs = (env: Env, state: EditorState, online: boolean): void => {
+  useResync(env, state, online);
+  useDivergenceResync(env, state, online);
+};
+
 /** Selection changes go to the plugin without `enabled` (the plugin owns that flag); only the toggle sends it. */
 const useOverlay = (env: Env, online: boolean, loaded: boolean, state: EditorState, setOverlay: (v: boolean) => void): void => {
   const { client, source } = env;
@@ -255,7 +301,7 @@ export const useSync = (client: ObsClient, source: string, online: boolean): Syn
   const [overlayEnabled, setOverlay] = useState(false);
   const { loaded, loadError, retry, ctl } = useLoadState();
   const { toast, report, dismissToast } = useToast();
-  const shared = useRef<Shared>({ skip: null, unsent: null, queue: null, online, overlayOwned: false, resynced: null });
+  const shared = useRef<Shared>({ skip: null, unsent: null, queue: null, online, overlayOwned: false, resynced: null, recheck: null, resyncing: false });
 
   useEffect(() => {
     const sh = shared.current;
@@ -266,7 +312,7 @@ export const useSync = (client: ObsClient, source: string, online: boolean): Syn
   useQueue(env);
   useLoad(env, online, { ...ctl, setOverlay });
   useMappingFlow(env, state, loaded, setOverlay);
-  useResync(env, state, online);
+  useResyncs(env, state, online);
   useOverlay(env, online, loaded, state, setOverlay);
 
   const setOverlayEnabled = useOverlayToggle(env, state, setOverlay);

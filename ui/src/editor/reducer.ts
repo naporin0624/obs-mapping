@@ -213,7 +213,7 @@ const handlers: Handlers = {
     // An own echo only consumes its in-flight entries; local edits made during the round trip must not flash back.
     // (A lost or reordered echo is reconciled by the 2 s idle resync.)
     if (at >= 0) return { ...s, inFlight: s.inFlight.slice(at + 1) };
-    return { ...s, mapping: a.mapping, selection: pruneSelection(s.selection, a.mapping) };
+    return { ...s, mapping: a.mapping, selection: pruneSelection(s.selection, a.mapping), needsResync: s.inFlight.length > 0 };
   },
 };
 
