@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { css } from '../../styled-system/css';
-import type { ConnState } from '../obs/connection';
-import type { ConnSettings } from '../obs/use-obs-connection';
-import { buttonCls, buttonSolidCls, barCls, inputCls, labelCls, rowCls } from './styles';
+import type { ConnState } from '../../obs/connection';
+import type { ConnSettings } from '../../obs/use-obs-connection';
+import { buttonCls, buttonSolidCls, barCls, inputCls, labelCls, rowCls } from '../styles.css';
+import { statusCls } from './styles.css';
 
 const label = (s: ConnState): string => {
   switch (s.kind) {
@@ -18,13 +18,6 @@ const label = (s: ConnState): string => {
       return '認証に失敗しました。パスワードを確認してください';
   }
 };
-
-const statusCls = css({
-  fontSize: '11px',
-  color: 'fg.muted',
-  '&[data-kind=open]': { color: 'accent.text' },
-  '&[data-kind=auth_failed]': { color: 'danger.text' },
-});
 
 type Props = {
   initial: ConnSettings;

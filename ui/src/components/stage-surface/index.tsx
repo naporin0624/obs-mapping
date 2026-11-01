@@ -1,13 +1,10 @@
-import { css } from '../../styled-system/css';
-import { cssMatrix3d } from '../geometry/homography';
-import type { Surface } from '../model/mapping';
+import { cssMatrix3d } from '../../geometry/homography';
+import type { Surface } from '../../model/mapping';
+import { cropCls, imgCls } from './styles.css';
 
 // The element is sized in "source units" (1000 per unit of crop); only ratios matter because
 // cssMatrix3d maps the element's rectangle onto the quad.
 const UNIT = 1000;
-
-const cropCls = css({ position: 'absolute', left: 0, top: 0, overflow: 'hidden', transformOrigin: '0 0', pointerEvents: 'none' });
-const imgCls = css({ position: 'absolute', display: 'block', maxWidth: 'none', userSelect: 'none' });
 
 type Props = { surface: Surface; image: string | undefined; scale: number };
 

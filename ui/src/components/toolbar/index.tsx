@@ -1,9 +1,9 @@
 import type { Dispatch, ReactNode } from 'react';
-import { css } from '../../styled-system/css';
-import type { AlignMode } from '../geometry/align';
-import type { Action } from '../editor/reducer';
-import { NumField } from './Field';
-import { barCls, buttonCls, buttonSolidCls, rowCls } from './styles';
+import type { AlignMode } from '../../geometry/align';
+import type { Action } from '../../editor/reducer';
+import { NumField } from '../field';
+import { barCls, buttonCls, buttonSolidCls, rowCls } from '../styles.css';
+import { tagCls, groupCls } from './styles.css';
 
 const ALIGNS: readonly { mode: AlignMode; label: string }[] = [
   { mode: 'left', label: 'Left' },
@@ -13,10 +13,6 @@ const ALIGNS: readonly { mode: AlignMode; label: string }[] = [
   { mode: 'centerY', label: 'Middle' },
   { mode: 'bottom', label: 'Bottom' },
 ];
-
-const tagCls = css({ color: 'fg.subtle', fontWeight: 700, fontSize: '11px' });
-
-const groupCls = css({ display: 'flex', gap: '1', alignItems: 'center', pr: '2', mr: '1', borderRightWidth: 'default', borderRightStyle: 'solid', borderRightColor: 'border.subtle' });
 
 type Props = {
   dispatch: Dispatch<Action>;

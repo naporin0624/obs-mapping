@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import { downloadMapping } from '../io/export';
-import { parseImport, scaleMapping, type ImportResult } from '../io/import';
-import type { Mapping } from '../model/mapping';
-import { ImportDialog } from './ImportDialog';
-import { buttonCls } from './styles';
+import { downloadMapping } from '../../io/export';
+import { parseImport, scaleMapping, type ImportResult } from '../../io/import';
+import type { Mapping } from '../../model/mapping';
+import { ImportDialog } from '../import-dialog';
+import { buttonCls } from '../styles.css';
 
 type Mismatch = Extract<ImportResult, { kind: 'mismatch' }>;
 

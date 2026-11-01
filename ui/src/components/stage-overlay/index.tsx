@@ -1,20 +1,11 @@
-import { css } from '../../styled-system/css';
-import type { StageDrag } from '../editor/use-stage-drag';
-import type { CornerIndex, Selection } from '../editor/state';
-import { quadWarning, type QuadWarning } from '../geometry/quad';
-import type { Mapping, Surface } from '../model/mapping';
+import type { StageDrag } from '../../editor/use-stage-drag';
+import type { CornerIndex, Selection } from '../../editor/state';
+import { quadWarning, type QuadWarning } from '../../geometry/quad';
+import type { Mapping, Surface } from '../../model/mapping';
+import { outlineCls, selectedCls, hiddenCls, warnCls, handleCls, handleOnCls, gridLineCls, warnTextCls } from './styles.css';
 
 const HANDLE_PX = 10;
 const MIN_GRID_STAGE_PX = 4;
-
-const outlineCls = css({ fill: 'transparent', stroke: 'accent.solid', strokeWidth: '1px', cursor: 'move' });
-const selectedCls = css({ strokeWidth: '2px' });
-const hiddenCls = css({ stroke: 'border.default', strokeDasharray: '4 4' });
-const warnCls = css({ stroke: 'danger.text', strokeDasharray: '6 4', strokeWidth: '2px' });
-const handleCls = css({ fill: 'bg.canvas', stroke: 'accent.solid', strokeWidth: '1px', cursor: 'crosshair' });
-const handleOnCls = css({ fill: 'accent.solid' });
-const gridLineCls = css({ stroke: 'border.subtle', strokeWidth: '1px', opacity: 0.6 });
-const warnTextCls = css({ fill: 'danger.text', fontFamily: 'mono', fontWeight: 700, pointerEvents: 'none', paintOrder: 'stroke', stroke: 'bg.canvas', strokeWidth: '3px' });
 
 const WARNING_TEXT: Record<Exclude<QuadWarning, null>, string> = { not_convex: 'NOT CONVEX', degenerate: 'DEGENERATE' };
 

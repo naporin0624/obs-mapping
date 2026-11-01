@@ -1,31 +1,11 @@
 import { useState, type Dispatch } from 'react';
-import { css } from '../../styled-system/css';
-import type { Action } from '../editor/reducer';
-import type { Selection } from '../editor/state';
-import type { Mapping } from '../model/mapping';
-import { countSurfacesBySource, surfaceCountLabel } from '../model/source-usage';
-import { SourceSelect } from './SourceSelect';
-import { buttonCls, buttonSolidCls, rowCls } from './styles';
-
-const sectionCls = css({ display: 'flex', flexDirection: 'column', gap: '2', p: '2', borderBottomWidth: 'default', borderBottomStyle: 'solid', borderBottomColor: 'border.subtle' });
-const headingCls = css({ fontFamily: 'mono', fontWeight: 700, color: 'fg.muted' });
-const listCls = css({ display: 'flex', flexDirection: 'column', gap: '1', listStyle: 'none', m: 0, p: 0 });
-const itemCls = css({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1',
-  px: '1.5',
-  minHeight: 'target-min',
-  borderWidth: 'default',
-  borderStyle: 'solid',
-  borderColor: 'border.default',
-  cursor: 'pointer',
-  '&[aria-selected=true]': { bg: 'bg.emphasis', outline: '1px solid token(colors.accent.solid)', outlineOffset: '-3px' },
-  '&[data-over=true]': { borderColor: 'accent.border' },
-});
-const nameCls = css({ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' });
-const subCls = css({ color: 'fg.subtle', fontSize: '11px', maxWidth: '40%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' });
-const hintCls = css({ color: 'fg.muted' });
+import type { Action } from '../../editor/reducer';
+import type { Selection } from '../../editor/state';
+import type { Mapping } from '../../model/mapping';
+import { countSurfacesBySource, surfaceCountLabel } from '../../model/source-usage';
+import { SourceSelect } from '../source-select';
+import { buttonCls, buttonSolidCls, rowCls } from '../styles.css';
+import { sectionCls, headingCls, listCls, itemCls, nameCls, subCls, hintCls, growCls } from './styles.css';
 
 type Props = {
   mapping: Mapping;
@@ -119,7 +99,7 @@ export const SurfaceList = ({ mapping, selection, inputs, dispatch, onReloadInpu
       {mapping.surfaces.length === 0 ? <div className={hintCls}>面がありません。ソースを選んで追加してください。</div> : null}
       <div className={rowCls}>
         <SourceSelect
-          className={css({ flex: 1 })}
+          className={growCls}
           ariaLabel="Source"
           placeholder="No inputs"
           items={inputs.map((name) => ({ id: name, label: name, detail: surfaceCountLabel(counts.get(name) ?? 0) }))}

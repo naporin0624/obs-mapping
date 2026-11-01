@@ -1,28 +1,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type Dispatch, type KeyboardEvent, type RefObject } from 'react';
-import { css } from '../../styled-system/css';
-import { keyAction } from '../editor/keys';
-import type { Action } from '../editor/reducer';
-import type { EditorState } from '../editor/state';
-import { useScreenshots } from '../editor/use-screenshots';
-import { useStageDrag } from '../editor/use-stage-drag';
-import type { ObsClient } from '../obs/client';
-import { StageOverlay } from './StageOverlay';
-import { StageSurface } from './StageSurface';
-import { focusRing } from './styles';
+import { keyAction } from '../../editor/keys';
+import type { Action } from '../../editor/reducer';
+import type { EditorState } from '../../editor/state';
+import { useScreenshots } from '../../editor/use-screenshots';
+import { useStageDrag } from '../../editor/use-stage-drag';
+import type { ObsClient } from '../../obs/client';
+import { StageOverlay } from '../stage-overlay';
+import { StageSurface } from '../stage-surface';
+import { outerCls, frameCls, layerCls } from './styles.css';
 
 // the focus ring lives on the outer element so the frame's overflow:hidden does not clip it
-const outerCls = css({ ...focusRing });
-const frameCls = css({
-  position: 'relative',
-  width: '100%',
-  bg: 'bg.canvas',
-  borderWidth: 'default',
-  borderStyle: 'solid',
-  borderColor: 'border.default',
-  overflow: 'hidden',
-  userSelect: 'none',
-});
-const layerCls = css({ position: 'absolute', inset: 0, width: '100%', height: '100%' });
 
 type Props = { state: EditorState; dispatch: Dispatch<Action>; client: ObsClient; online: boolean };
 

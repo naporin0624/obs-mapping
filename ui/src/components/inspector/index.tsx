@@ -1,17 +1,13 @@
 import type { Dispatch } from 'react';
-import { css } from '../../styled-system/css';
-import { withCrop, type CropKey } from '../editor/crop';
-import type { Action } from '../editor/reducer';
-import type { CornerIndex, Selection } from '../editor/state';
-import { boundsOf, type Bounds } from '../geometry/rect';
-import type { Mapping, Surface } from '../model/mapping';
-import { countSurfacesBySource, surfaceCountLabel } from '../model/source-usage';
-import { NumField, TextField } from './Field';
-import { SourceSelect } from './SourceSelect';
-
-const sectionCls = css({ display: 'flex', flexDirection: 'column', gap: '2', p: '2' });
-const headingCls = css({ fontFamily: 'mono', fontWeight: 700, color: 'fg.muted' });
-const gridCls = css({ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: '1', justifyContent: 'start' });
+import { withCrop, type CropKey } from '../../editor/crop';
+import type { Action } from '../../editor/reducer';
+import type { CornerIndex, Selection } from '../../editor/state';
+import { boundsOf, type Bounds } from '../../geometry/rect';
+import type { Mapping, Surface } from '../../model/mapping';
+import { countSurfacesBySource, surfaceCountLabel } from '../../model/source-usage';
+import { NumField, TextField } from '../field';
+import { SourceSelect } from '../source-select';
+import { sectionCls, headingCls, gridCls, hintCls } from './styles.css';
 
 const CROP_FIELDS: readonly { key: CropKey; label: string }[] = [
   { key: 'x', label: 'X' },
@@ -101,7 +97,7 @@ export const Inspector = ({ mapping, selection, inputs, dispatch }: Props) => {
     <section className={sectionCls}>
       <div className={headingCls}>Inspector</div>
       {surface === undefined ? (
-        <div className={css({ color: 'fg.muted' })}>面を 1 つ選択すると編集できます。</div>
+        <div className={hintCls}>面を 1 つ選択すると編集できます。</div>
       ) : (
         <SurfaceFields key={surface.id} surface={surface} selection={selection} inputs={inputs} counts={countSurfacesBySource(mapping)} dispatch={dispatch} />
       )}

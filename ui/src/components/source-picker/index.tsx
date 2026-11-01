@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { css } from '../../styled-system/css';
-import type { ObsClient } from '../obs/client';
-import { SourceSelect } from './SourceSelect';
-import { buttonCls, barCls, rowCls } from './styles';
+import type { ObsClient } from '../../obs/client';
+import { SourceSelect } from '../source-select';
+import { buttonCls, barCls, rowCls } from '../styles.css';
+import { errorCls, emptyCls } from './styles.css';
 
 type MappingSource = { name: string; width: number; height: number };
 
@@ -43,11 +43,11 @@ export const SourcePicker = ({ client, selected, onSelect }: Props) => {
         Reload
       </button>
       {error === null ? null : (
-        <span role="alert" className={css({ color: 'danger.text' })}>
+        <span role="alert" className={errorCls}>
           {error}
         </span>
       )}
-      {error === null && sources.length === 0 ? <span className={css({ color: 'fg.muted' })}>Mapping ソースがありません</span> : null}
+      {error === null && sources.length === 0 ? <span className={emptyCls}>Mapping ソースがありません</span> : null}
     </div>
   );
 };

@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { css } from '../../styled-system/css';
-import { inputCls } from './styles';
-
-const fieldCls = css({ display: 'flex', alignItems: 'center', gap: '1.5', color: 'fg.muted', fontWeight: 700, '& > span': { minWidth: '16px' } });
-const numberCls = css({ width: '80px' });
+import { css } from '../../../styled-system/css';
+import { inputCls } from '../styles.css';
+import { fieldCls, numberCls } from './styles.css';
 
 type TextProps = { label: string; value: string; onCommit: (v: string) => void; disabled?: boolean };
 

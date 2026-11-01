@@ -1,13 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-aria-components';
-import { css } from '../../styled-system/css';
-import { SourceSelect, type SourceOption } from '../components/SourceSelect';
-
-const pageCls = css({ display: 'flex', flexDirection: 'column', gap: '6', p: '6', maxWidth: '480px' });
-const headingCls = css({ fontFamily: 'mono', fontWeight: 700, fontSize: '16px' });
-const caseCls = css({ display: 'flex', flexDirection: 'column', gap: '2' });
-const captionCls = css({ color: 'fg.muted' });
-const linkCls = css({ color: 'accent.text', textDecoration: 'underline' });
+import { SourceSelect, type SourceOption } from '../../components/source-select';
+import { pageCls, headingCls, caseCls, captionCls, linkCls } from './styles.css';
 
 const options: readonly SourceOption[] = [
   { id: 'Mapping', label: 'Mapping', detail: '1920x1080' },

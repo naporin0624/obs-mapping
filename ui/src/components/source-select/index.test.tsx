@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { SourceSelect, type SourceOption } from './SourceSelect';
+import { SourceSelect, type SourceOption } from '.';
 
 const items: readonly SourceOption[] = [
   { id: 'Mapping', label: 'Mapping', detail: '1920x1080' },

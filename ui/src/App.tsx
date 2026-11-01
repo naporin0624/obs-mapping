@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Editor } from './components/Editor';
-import { ConnectPanel } from './components/ConnectPanel';
-import { SourcePicker } from './components/SourcePicker';
+import { Editor } from './components/editor';
+import { ConnectPanel } from './components/connect-panel';
+import { SourcePicker } from './components/source-picker';
 import { useObsConnection } from './obs/use-obs-connection';
 import { DEFAULT_URL, readStored, STORAGE_KEYS, writeStored } from './storage';
 

@@ -1,19 +1,14 @@
-import { css } from '../../styled-system/css';
-import { useInputs } from '../editor/use-inputs';
-import { useSync } from '../editor/use-sync';
-import type { ObsClient } from '../obs/client';
-import { ImportExport } from './ImportExport';
-import { Inspector } from './Inspector';
-import { Stage } from './Stage';
-import { SurfaceList } from './SurfaceList';
-import { buttonCls } from './styles';
-import { Toast } from './Toast';
-import { Toolbar } from './Toolbar';
-
-const bodyCls = css({ display: 'flex', alignItems: 'flex-start', gap: '2', p: '2', flexWrap: 'wrap' });
-const stageColCls = css({ flex: '3 1 480px', minWidth: 0 });
-const sideCls = css({ flex: '1 1 260px', minWidth: '240px', borderWidth: 'default', borderStyle: 'solid', borderColor: 'border.subtle' });
-const noteCls = css({ p: '3', color: 'fg.muted', display: 'flex', alignItems: 'center', gap: '3' });
+import { useInputs } from '../../editor/use-inputs';
+import { useSync } from '../../editor/use-sync';
+import type { ObsClient } from '../../obs/client';
+import { ImportExport } from '../import-export';
+import { Inspector } from '../inspector';
+import { Stage } from '../stage';
+import { SurfaceList } from '../surface-list';
+import { buttonCls } from '../styles.css';
+import { Toast } from '../toast';
+import { Toolbar } from '../toolbar';
+import { bodyCls, stageColCls, sideCls, noteCls } from './styles.css';
 
 type Props = { client: ObsClient; source: string; online: boolean };
 
