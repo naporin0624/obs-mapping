@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ConnState } from '../../obs/connection';
 import type { ConnSettings } from '../../app/obs-session';
 import { buttonCls, buttonSolidCls, barCls, inputCls, labelCls, rowCls } from '../styles.css';
-import { statusCls } from './styles.css';
+import { revealCls, statusCls } from './styles.css';
 
 const label = (s: ConnState): string => {
   switch (s.kind) {
@@ -17,6 +17,16 @@ const label = (s: ConnState): string => {
     case 'auth_failed':
       return '認証に失敗しました。パスワードを確認してください';
   }
+};
+
+const useRevealUntilOpen = (open: boolean) => {
+  const [revealed, setRevealed] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setRevealed(false);
+  }
+  return [revealed, () => setRevealed((r) => !r)] as const;
 };
 
 type Props = {
@@ -35,6 +45,8 @@ export const ConnectPanel = ({ initial, state, onConnect, onDisconnect }: Props)
     setUrl(initial.url);
     setPassword(initial.password);
   }
+  const passwordId = useId();
+  const [revealed, toggleReveal] = useRevealUntilOpen(state.kind === 'open');
   const active = state.kind === 'open' || state.kind === 'connecting' || state.kind === 'waiting';
 
   return (
@@ -49,9 +61,21 @@ export const ConnectPanel = ({ initial, state, onConnect, onDisconnect }: Props)
       <label className={labelCls}>
         URL <input className={inputCls} value={url} onChange={(e) => setUrl(e.target.value)} disabled={active} />
       </label>
-      <label className={labelCls}>
-        Password <input className={inputCls} type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={active} autoComplete="off" />
-      </label>
+      <span className={labelCls}>
+        <label htmlFor={passwordId}>Password</label>
+        <input id={passwordId} className={inputCls} type={revealed ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} disabled={active} autoComplete="off" />
+        <button
+          type="button"
+          className={`${buttonCls} ${revealCls}`}
+          aria-controls={passwordId}
+          onClick={(e) => {
+            e.currentTarget.focus();
+            toggleReveal();
+          }}
+        >
+          {revealed ? '隠す' : '表示'}
+        </button>
+      </span>
       <button type="submit" className={active ? buttonCls : buttonSolidCls}>
         {active ? 'Disconnect' : 'Connect'}
       </button>
