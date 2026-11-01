@@ -5,13 +5,14 @@
   "description": "obs-mapping editor UI (OBS custom browser dock)",
   "type": "module",
   "scripts": {
-    "prepare": "panda codegen",
+    "prepare": "panda codegen && cd .. && husky ui/.husky",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "lint": "oxlint --type-aware .",
+    "lint": "oxlint --type-aware . && oxfmt --check .",
     "typecheck": "tsgo --noEmit",
+    "fmt": "oxlint --type-aware . && oxfmt --write .",
     "format": "oxfmt --write ."
   },
   "dependencies": {
@@ -32,6 +33,7 @@
     "@types/react-dom": "^19.3.0",
     "@typescript/native-preview": "7.0.0-dev.20251229.1",
     "@vitejs/plugin-react": "^6.1.2",
+    "husky": "^9.1.7",
     "jsdom": "^30.1.3",
     "oxfmt": "^0.75.0",
     "oxlint": "^1.90.0",

@@ -174,6 +174,23 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 - 1 つのバンドルにまとめた配布。署名なしのため、初回は「システム設定 > プライバシーとセキュリティ」で「このまま開く」が必要です。
 - Windows 対応。
 
+## 開発
+
+`pnpm -C ui install` で husky が入り、`git commit` 時に `ui/.husky/pre-commit` が動きます。staged ファイルに応じて次を検査します。
+
+- `ui/` 配下: `pnpm -C ui lint`（oxlint と oxfmt --check）と `pnpm -C ui typecheck`
+- C/C++/Objective-C（`.c` `.h` `.cpp` `.hpp` `.m` `.mm`）: `build-aux/run-clang-format`（clang-format 19.1.1）
+- CMake（`CMakeLists.txt` `*.cmake`）: `build-aux/run-gersemi`（gersemi）
+
+C++ と CMake の検査には次のツールが必要です。未インストールの場合、フックは案内を出して失敗します。
+
+```sh
+brew install obsproject/tools/clang-format@19
+brew install obsproject/tools/gersemi
+```
+
+UI のコードは `pnpm -C ui fmt`（oxlint と oxfmt --write）で整形できます。
+
 ## ライセンス
 
 [LICENSE](LICENSE) を参照してください。
