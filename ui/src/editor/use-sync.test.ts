@@ -21,9 +21,7 @@ const fake = (initial: Mapping): Fake => {
   const plugin = { mapping: initial, overlayEnabled: false };
   let listener: ((name: string, m: Mapping, overlayEnabled: boolean | undefined) => void) | null = null;
   let overlayListener: ((name: string, enabled: boolean) => void) | null = null;
-  const getMapping = vi.fn(
-    async () => ({ ok: true, mapping: plugin.mapping, overlayEnabled: plugin.overlayEnabled }) as VendorResult<{ mapping: Mapping; overlayEnabled: boolean }>,
-  );
+  const getMapping = vi.fn(async () => ({ ok: true, mapping: plugin.mapping, overlayEnabled: plugin.overlayEnabled }) as VendorResult<{ mapping: Mapping; overlayEnabled: boolean }>);
   const setOverlay = vi.fn(async () => ({ ok: true }) as VendorResult<{}>);
   const setMapping = vi.fn(async (_n: string, m: Mapping) => {
     plugin.mapping = m;
@@ -225,7 +223,22 @@ describe('useSync', () => {
 
   const withSurface = (): Mapping => ({
     ...mapping(10),
-    surfaces: [{ id: 'x', name: 'x', type: 'quad', source: 's', crop: { x: 0, y: 0, width: 1, height: 1 }, corners: [[0, 0], [10, 0], [10, 10], [0, 10]], visible: true }],
+    surfaces: [
+      {
+        id: 'x',
+        name: 'x',
+        type: 'quad',
+        source: 's',
+        crop: { x: 0, y: 0, width: 1, height: 1 },
+        corners: [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+        ],
+        visible: true,
+      },
+    ],
   });
 
   it('flushes a throttled pending edit to the old source before switching', async () => {

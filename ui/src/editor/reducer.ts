@@ -33,8 +33,17 @@ const IN_FLIGHT_LIMIT = 32;
 
 // Mapping-changing actions that are ignored while a drag is in progress.
 const DRAG_BLOCKED: ReadonlySet<Action['type']> = new Set([
-  'nudge', 'setCorner', 'setBounds', 'align', 'distribute', 'addSurface', 'removeSelected',
-  'duplicateSelected', 'reorder', 'patchSurface', 'setGrid',
+  'nudge',
+  'setCorner',
+  'setBounds',
+  'align',
+  'distribute',
+  'addSurface',
+  'removeSelected',
+  'duplicateSelected',
+  'reorder',
+  'patchSurface',
+  'setGrid',
 ]);
 
 // ---- helpers -------------------------------------------------------------
@@ -42,7 +51,10 @@ const DRAG_BLOCKED: ReadonlySet<Action['type']> = new Set([
 const withSurfaces = (m: Mapping, surfaces: readonly Surface[]): Mapping => ({ ...m, surfaces });
 
 const mapSurface = (m: Mapping, id: string, f: (s: Surface) => Surface): Mapping =>
-  withSurfaces(m, m.surfaces.map((s) => (s.id === id ? f(s) : s)));
+  withSurfaces(
+    m,
+    m.surfaces.map((s) => (s.id === id ? f(s) : s)),
+  );
 
 const setCornerOf = (s: Surface, index: CornerIndex, to: Point): Surface => ({
   ...s,
@@ -52,8 +64,7 @@ const setCornerOf = (s: Surface, index: CornerIndex, to: Point): Surface => ({
 const pushPast = (past: readonly Mapping[], m: Mapping): Mapping[] => [...past, m].slice(-HISTORY_LIMIT);
 
 /** Replace the mapping and record one undo step; a no-op when nothing changed. */
-const commit = (s: EditorState, next: Mapping): EditorState =>
-  canonicalJson(next) === canonicalJson(s.mapping) ? s : { ...s, mapping: next, past: pushPast(s.past, s.mapping), future: [] };
+const commit = (s: EditorState, next: Mapping): EditorState => (canonicalJson(next) === canonicalJson(s.mapping) ? s : { ...s, mapping: next, past: pushPast(s.past, s.mapping), future: [] });
 
 /** Replace the mapping without history (drag updates). */
 const replaceLive = (s: EditorState, next: Mapping): EditorState => ({ ...s, mapping: next });
@@ -77,7 +88,10 @@ const nudged = (s: EditorState, dx: number, dy: number): Mapping => {
   if (corner !== null) {
     return mapSurface(s.mapping, corner.surfaceId, (x) => setCornerOf(x, corner.index, [x.corners[corner.index][0] + dx, x.corners[corner.index][1] + dy]));
   }
-  return withSurfaces(s.mapping, s.mapping.surfaces.map((x) => (surfaceIds.includes(x.id) ? translateSurface(x, dx, dy) : x)));
+  return withSurfaces(
+    s.mapping,
+    s.mapping.surfaces.map((x) => (surfaceIds.includes(x.id) ? translateSurface(x, dx, dy) : x)),
+  );
 };
 
 const duplicated = (m: Mapping, ids: readonly string[]): { mapping: Mapping; newIds: string[] } => {
@@ -119,10 +133,7 @@ const travel = (s: EditorState, from: 'past' | 'future'): EditorState => {
   const target = stack.at(-1);
   if (s.dragging || target === undefined) return s;
   const rest = stack.slice(0, -1);
-  const patch =
-    from === 'past'
-      ? { past: rest, future: [...s.future, s.mapping] }
-      : { past: pushPast(s.past, s.mapping), future: rest };
+  const patch = from === 'past' ? { past: rest, future: [...s.future, s.mapping] } : { past: pushPast(s.past, s.mapping), future: rest };
   return { ...s, ...patch, mapping: target, selection: pruneSelection(s.selection, target) };
 };
 
@@ -134,8 +145,16 @@ const handlers: Handlers = {
   load: (_s, a) => initialEditorState(a.mapping),
   select: (s, a) => ({ ...s, selection: a.selection }),
   dragStart: (s) => (s.dragging ? s : { ...s, dragging: true, past: pushPast(s.past, s.mapping), future: [] }),
-  dragCorner: (s, a) => replaceLive(s, mapSurface(s.mapping, a.surfaceId, (x) => setCornerOf(x, a.index, a.to))),
-  dragSurface: (s, a) => replaceLive(s, mapSurface(s.mapping, a.surfaceId, (x) => translateSurface(x, a.dx, a.dy))),
+  dragCorner: (s, a) =>
+    replaceLive(
+      s,
+      mapSurface(s.mapping, a.surfaceId, (x) => setCornerOf(x, a.index, a.to)),
+    ),
+  dragSurface: (s, a) =>
+    replaceLive(
+      s,
+      mapSurface(s.mapping, a.surfaceId, (x) => translateSurface(x, a.dx, a.dy)),
+    ),
   dragEnd: (s) => {
     if (!s.dragging) return s;
     const last = s.past.at(-1);
@@ -144,8 +163,16 @@ const handlers: Handlers = {
     return { ...s, dragging: false, pendingRemote: null, past: unchanged ? s.past.slice(0, -1) : s.past };
   },
   nudge: (s, a) => (s.selection.corner === null && s.selection.surfaceIds.length === 0 ? s : commit(s, nudged(s, a.dx, a.dy))),
-  setCorner: (s, a) => commit(s, mapSurface(s.mapping, a.surfaceId, (x) => setCornerOf(x, a.index, a.to))),
-  setBounds: (s, a) => commit(s, mapSurface(s.mapping, a.surfaceId, (x) => ({ ...x, corners: rectCorners(a.bounds) }))),
+  setCorner: (s, a) =>
+    commit(
+      s,
+      mapSurface(s.mapping, a.surfaceId, (x) => setCornerOf(x, a.index, a.to)),
+    ),
+  setBounds: (s, a) =>
+    commit(
+      s,
+      mapSurface(s.mapping, a.surfaceId, (x) => ({ ...x, corners: rectCorners(a.bounds) })),
+    ),
   align: (s, a) => commit(s, withSurfaces(s.mapping, alignSurfaces(s.mapping.surfaces, s.selection.surfaceIds, a.mode))),
   distribute: (s, a) => commit(s, withSurfaces(s.mapping, distributeSurfaces(s.mapping.surfaces, s.selection.surfaceIds, a.axis))),
   addSurface: (s, a) => {
@@ -155,7 +182,13 @@ const handlers: Handlers = {
   },
   removeSelected: (s) => {
     const ids = s.selection.surfaceIds;
-    const next = commit(s, withSurfaces(s.mapping, s.mapping.surfaces.filter((x) => !ids.includes(x.id))));
+    const next = commit(
+      s,
+      withSurfaces(
+        s.mapping,
+        s.mapping.surfaces.filter((x) => !ids.includes(x.id)),
+      ),
+    );
     return next === s ? s : { ...next, selection: emptySelection() };
   },
   duplicateSelected: (s) => {
@@ -164,9 +197,12 @@ const handlers: Handlers = {
     return next === s ? s : { ...next, selection: { surfaceIds: newIds, corner: null } };
   },
   reorder: (s, a) => commit(s, moved(s.mapping, a.surfaceId, a.toIndex)),
-  patchSurface: (s, a) => commit(s, mapSurface(s.mapping, a.surfaceId, (x) => ({ ...x, ...a.patch }))),
-  setGrid: (s, a) =>
-    Number.isFinite(a.size) && a.size > 0 && a.size <= GRID_MAX ? commit(s, { ...s.mapping, grid: { size: a.size } }) : s,
+  patchSurface: (s, a) =>
+    commit(
+      s,
+      mapSurface(s.mapping, a.surfaceId, (x) => ({ ...x, ...a.patch })),
+    ),
+  setGrid: (s, a) => (Number.isFinite(a.size) && a.size > 0 && a.size <= GRID_MAX ? commit(s, { ...s.mapping, grid: { size: a.size } }) : s),
   undo: (s) => travel(s, 'past'),
   redo: (s) => travel(s, 'future'),
   sent: (s, a) => ({ ...s, inFlight: [...s.inFlight, a.json].slice(-IN_FLIGHT_LIMIT) }),
@@ -181,5 +217,4 @@ const handlers: Handlers = {
   },
 };
 
-export const reducer = (s: EditorState, a: Action): EditorState =>
-  s.dragging && DRAG_BLOCKED.has(a.type) ? s : (handlers[a.type] as (s: EditorState, a: Action) => EditorState)(s, a);
+export const reducer = (s: EditorState, a: Action): EditorState => (s.dragging && DRAG_BLOCKED.has(a.type) ? s : (handlers[a.type] as (s: EditorState, a: Action) => EditorState)(s, a));

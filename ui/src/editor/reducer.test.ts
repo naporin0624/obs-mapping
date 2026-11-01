@@ -11,7 +11,14 @@ const base = () => initialEditorState(mk(surf('a', 0, 0), surf('b', 100, 0)));
 
 describe('drag history', () => {
   it('undoes a whole drag in one step', () => {
-    const s = run(base(), { type: 'dragStart' }, { type: 'dragCorner', surfaceId: 'a', index: 0, to: [1, 1] }, { type: 'dragCorner', surfaceId: 'a', index: 0, to: [2, 2] }, { type: 'dragCorner', surfaceId: 'a', index: 0, to: [3, 3] }, { type: 'dragEnd' });
+    const s = run(
+      base(),
+      { type: 'dragStart' },
+      { type: 'dragCorner', surfaceId: 'a', index: 0, to: [1, 1] },
+      { type: 'dragCorner', surfaceId: 'a', index: 0, to: [2, 2] },
+      { type: 'dragCorner', surfaceId: 'a', index: 0, to: [3, 3] },
+      { type: 'dragEnd' },
+    );
     expect(s.mapping.surfaces[0]?.corners[0]).toEqual([3, 3]);
     expect(s.past).toHaveLength(1);
     expect(run(s, { type: 'undo' }).mapping).toEqual(base().mapping);
@@ -26,7 +33,12 @@ describe('drag history', () => {
 describe('edits', () => {
   it('nudge moves only the selected corner', () => {
     const s = run(base(), sel(['a'], { surfaceId: 'a', index: 2 }), { type: 'nudge', dx: 1, dy: 2 });
-    expect(s.mapping.surfaces[0]?.corners).toEqual([[0, 0], [10, 0], [11, 12], [0, 10]]);
+    expect(s.mapping.surfaces[0]?.corners).toEqual([
+      [0, 0],
+      [10, 0],
+      [11, 12],
+      [0, 10],
+    ]);
   });
   it('nudge moves the whole surface without a corner, and is a no-op with no selection', () => {
     const s = run(base(), sel(['a']), { type: 'nudge', dx: 1, dy: 2 });
@@ -37,7 +49,12 @@ describe('edits', () => {
   });
   it('setBounds makes the surface that rectangle', () => {
     const s = run(base(), { type: 'setBounds', surfaceId: 'a', bounds: { x: 5, y: 6, width: 7, height: 8 } });
-    expect(s.mapping.surfaces[0]?.corners).toEqual([[5, 6], [12, 6], [12, 14], [5, 14]]);
+    expect(s.mapping.surfaces[0]?.corners).toEqual([
+      [5, 6],
+      [12, 6],
+      [12, 14],
+      [5, 14],
+    ]);
   });
   it('align with no selection is a no-op', () => {
     const n = base();
