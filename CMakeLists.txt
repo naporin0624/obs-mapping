@@ -37,7 +37,7 @@ endif()
 add_subdirectory(core)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE obs_mapping_core)
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp src/mapping-source.cpp src/source-cache.cpp)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.cpp src/mapping-source.cpp src/overlay.cpp src/source-cache.cpp)
 
 set_target_properties(
   ${CMAKE_PROJECT_NAME}

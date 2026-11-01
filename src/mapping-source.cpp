@@ -19,6 +19,7 @@ namespace {
 constexpr uint32_t kDefaultWidth = 1920;
 constexpr uint32_t kDefaultHeight = 1080;
 constexpr const char *kJsonKey = "mapping_json";
+constexpr const char *kOverlayKey = "overlay";
 
 std::mutex g_hook_mutex;
 std::function<void(MappingSource &)> g_on_mapping_changed;
@@ -93,6 +94,9 @@ void rename_signal_cb(void *param, calldata_t *cd)
 MappingSource::MappingSource(obs_source_t *src, obs_data_t *settings) : source(src), cache_(src)
 {
 	snapshot_ = make_snapshot(obs_mapping::default_mapping(kDefaultWidth, kDefaultHeight));
+	overlay_ = std::make_shared<const OverlayState>();
+	// Handles must never reappear after a restart or scene collection load: the first update() reads this.
+	obs_data_set_bool(settings, kOverlayKey, false);
 
 	const char *json = obs_data_get_string(settings, kJsonKey);
 	if (!json || !*json) {
@@ -185,11 +189,42 @@ std::expected<void, ParseError> MappingSource::set_mapping_json(std::string_view
 	return {};
 }
 
+std::shared_ptr<const OverlayState> MappingSource::overlay() const
+{
+	std::lock_guard lock(state_mutex_);
+	return overlay_;
+}
+
+void MappingSource::set_overlay(OverlayState state)
+{
+	const bool enabled = state.enabled;
+	std::lock_guard lock(write_mutex_);
+	{
+		std::lock_guard state_lock(state_mutex_);
+		overlay_ = std::make_shared<const OverlayState>(std::move(state));
+	}
+	// Same path as set_mapping_json: keep the property checkbox in step (update is deferred for video sources).
+	obs_data_t *patch = obs_data_create();
+	obs_data_set_bool(patch, kOverlayKey, enabled);
+	obs_source_update(source, patch);
+	obs_data_release(patch);
+}
+
 void MappingSource::update(obs_data_t *settings)
 {
 	bool changed = false;
 	{
 		std::lock_guard lock(write_mutex_);
+		{
+			// Selection is left untouched; only the enabled flag follows the setting.
+			const bool enabled = obs_data_get_bool(settings, kOverlayKey);
+			std::lock_guard state_lock(state_mutex_);
+			if (overlay_->enabled != enabled) {
+				auto next = std::make_shared<OverlayState>(*overlay_);
+				next->enabled = enabled;
+				overlay_ = std::move(next);
+			}
+		}
 		const char *json = obs_data_get_string(settings, kJsonKey);
 		auto applied = apply_json(json ? json : "");
 		if (!applied) {
@@ -301,6 +336,9 @@ void MappingSource::video_render()
 
 	gs_blend_state_pop();
 	gs_enable_framebuffer_srgb(previous_srgb);
+
+	if (const auto overlay_state = overlay(); overlay_state->enabled)
+		draw_overlay(mapping, *overlay_state);
 }
 
 MappingSource *mapping_source_from(obs_source_t *src)
@@ -360,6 +398,7 @@ obs_properties_t *mapping_get_properties(void *)
 {
 	obs_properties_t *props = obs_properties_create();
 	obs_properties_add_text(props, kJsonKey, obs_module_text("MappingJson"), OBS_TEXT_MULTILINE);
+	obs_properties_add_bool(props, kOverlayKey, obs_module_text("Overlay"));
 	return props;
 }
 

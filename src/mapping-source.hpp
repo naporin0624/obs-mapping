@@ -12,6 +12,7 @@
 
 #include "obs-mapping/homography.hpp"
 #include "obs-mapping/mapping_json.hpp"
+#include "overlay.hpp"
 #include "source-cache.hpp"
 
 extern struct obs_source_info mapping_source_info;
@@ -36,6 +37,9 @@ struct MappingSource {
 	// Any thread. Validates first; on failure nothing changes.
 	std::expected<void, obs_mapping::ParseError> set_mapping_json(std::string_view json);
 
+	// Any thread. Replaces the overlay state and mirrors `enabled` into the `overlay` setting.
+	void set_overlay(OverlayState state);
+
 	// OBS source callbacks (graphics thread unless noted).
 	void update(obs_data_t *settings);
 	void video_tick();
@@ -47,12 +51,14 @@ struct MappingSource {
 
 private:
 	std::shared_ptr<const MappingSnapshot> snapshot() const;
+	std::shared_ptr<const OverlayState> overlay() const;
 	// Caller holds write_mutex_. Returns whether the applied mapping changed.
 	std::expected<bool, obs_mapping::ParseError> apply_json(std::string_view json);
 	void load_effect();
 
 	mutable std::mutex state_mutex_;
 	std::shared_ptr<const MappingSnapshot> snapshot_;
+	std::shared_ptr<const OverlayState> overlay_; // guarded by state_mutex_
 	std::mutex write_mutex_; // serializes apply_json + settings writes
 
 	SourceCache cache_;
