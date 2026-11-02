@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/naporin0624/obs-mapping/compare/0.2.0...0.3.0) (2026-11-02)
+
+
+### Features
+
+* **ui:** Stage のキャンバス外に作業余白を表示する ([2f1cb47](https://github.com/naporin0624/obs-mapping/commit/2f1cb478b3eced3562a94a66f75bc153914bcdcb))
+* **ui:** Stage の操作性改善（作業余白・敷き詰め） ([0f292e1](https://github.com/naporin0624/obs-mapping/commit/0f292e185d2a80ed7750f8b337fc70050fe0153e))
+* **ui:** 選んだ面やグループをキャンバスに敷き詰める ([41f32f8](https://github.com/naporin0624/obs-mapping/commit/41f32f83a4ac81b965ecfea73bda02a5ff9aa7b2))
+
 ## [0.2.0](https://github.com/naporin0624/obs-mapping/compare/0.1.0...0.2.0) (2026-11-02)
 
 
