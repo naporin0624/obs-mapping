@@ -121,6 +121,15 @@ export const DistributeVIcon = () => (
   </SvgIcon>
 );
 
+export const TileIcon = () => (
+  <SvgIcon name="tile">
+    <rect x="2" y="2" width="5" height="5" />
+    <rect x="9" y="2" width="5" height="5" />
+    <rect x="2" y="9" width="5" height="5" />
+    <rect x="9" y="9" width="5" height="5" />
+  </SvgIcon>
+);
+
 export const GroupIcon = () => (
   <SvgIcon name="group">
     <rect x="1" y="1" width="14" height="14" strokeDasharray="2 2" />

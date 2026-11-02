@@ -4,11 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Provider, createStore } from 'jotai';
 import { localeAtom, type Locale } from '../../i18n/locale';
+import type { TileTarget } from '../../editor/tile-group';
 import { Toolbar } from '.';
 
 afterEach(cleanup);
 
-type Extra = { immovableReason?: string | null; canGroup?: boolean; canUngroup?: boolean; onGroup?: () => void; dispatch?: () => void };
+type Extra = { tile?: TileTarget; immovableReason?: string | null; canGroup?: boolean; canUngroup?: boolean; onGroup?: () => void; dispatch?: () => void };
+
+const surfaces = (count: number): TileTarget => (count === 0 ? { kind: 'blocked', why: 'noSurface' } : { kind: 'surfaces', count });
 
 const show = (selectedCount: number, extra: Extra = {}) =>
   render(
@@ -18,6 +21,8 @@ const show = (selectedCount: number, extra: Extra = {}) =>
       canRedo={false}
       selectedCount={selectedCount}
       immovableReason={extra.immovableReason ?? null}
+      tile={extra.tile ?? surfaces(selectedCount)}
+      canvas={{ width: 1920, height: 1080 }}
       canGroup={extra.canGroup ?? false}
       canUngroup={extra.canUngroup ?? false}
       onGroup={extra.onGroup ?? vi.fn()}
@@ -56,6 +61,46 @@ describe('Toolbar immovable selection', () => {
     show(0, { immovableReason: note });
     expect(screen.getByRole('button', { name: '左揃え', description: note })).toBeTruthy();
     expect(screen.getByRole('button', { name: '横に等間隔', description: note })).toBeTruthy();
+  });
+});
+
+describe('Toolbar tile', () => {
+  it('disables 敷き詰め without a top-level surface and explains why', () => {
+    show(1, { tile: { kind: 'blocked', why: 'noSurface' } });
+    expect(screen.getByRole('button', { name: '敷き詰め', description: '面を選択' }).hasAttribute('disabled')).toBe(true);
+  });
+  it('shares the immovable reason with the other layout buttons', () => {
+    const note = 'グループの中の要素は、グループが位置を決めています';
+    show(0, { immovableReason: note });
+    expect(screen.getByRole('button', { name: '敷き詰め', description: note })).toBeTruthy();
+  });
+  it('dispatches tile with the grid from the popover', async () => {
+    const dispatch = vi.fn();
+    const user = userEvent.setup();
+    show(2, { dispatch });
+    await user.click(screen.getByRole('button', { name: '敷き詰め' }));
+    await user.click(await screen.findByRole('button', { name: '適用' }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'tile', cols: 2, rows: 1, gap: 0 });
+  });
+});
+
+describe('Toolbar tile a group', () => {
+  it('dispatches tileGroup with the group, direction and gap', async () => {
+    const dispatch = vi.fn();
+    const user = userEvent.setup();
+    show(1, { dispatch, tile: { kind: 'group', groupId: 'g-1', count: 2, direction: 'column' } });
+    await user.click(screen.getByRole('button', { name: '敷き詰め' }));
+    await user.click(await screen.findByRole('button', { name: '適用' }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'tileGroup', groupId: 'g-1', direction: 'column', gap: 0 });
+  });
+  it.each([
+    ['mixed', 'グループは 1 つだけ選んでください'],
+    ['subgroup', '中にグループがあるグループは敷き詰められません'],
+    ['empty', '表示中の面がないグループは敷き詰められません'],
+    ['nested', 'グループの中の要素は、グループが位置を決めています'],
+  ] as const)('explains a %s selection', (why, reason) => {
+    show(1, { tile: { kind: 'blocked', why } });
+    expect(screen.getByRole('button', { name: '敷き詰め', description: reason }).hasAttribute('disabled')).toBe(true);
   });
 });
 
@@ -108,6 +153,8 @@ const showIn = (locale: Locale, extra: Extra = {}) => {
         canRedo
         selectedCount={extra.immovableReason === undefined ? 3 : 0}
         immovableReason={extra.immovableReason ?? null}
+        tile={surfaces(extra.immovableReason === undefined ? 3 : 0)}
+        canvas={{ width: 1920, height: 1080 }}
         canGroup
         canUngroup
         onGroup={vi.fn()}
@@ -121,15 +168,15 @@ const showIn = (locale: Locale, extra: Extra = {}) => {
 };
 
 const NAMES: Record<Locale, readonly string[]> = {
-  ja: ['元に戻す', 'やり直す', '左揃え', '左右中央', '右揃え', '上揃え', '上下中央', '下揃え', '横に等間隔', '縦に等間隔', 'グループ化', 'グループ解除'],
-  en: ['Undo', 'Redo', 'Left', 'Center', 'Right', 'Top', 'Middle', 'Bottom', 'Distribute horizontally', 'Distribute vertically', 'Group selection', 'Ungroup'],
+  ja: ['元に戻す', 'やり直す', '左揃え', '左右中央', '右揃え', '上揃え', '上下中央', '下揃え', '横に等間隔', '縦に等間隔', '敷き詰め', 'グループ化', 'グループ解除'],
+  en: ['Undo', 'Redo', 'Left', 'Center', 'Right', 'Top', 'Middle', 'Bottom', 'Distribute horizontally', 'Distribute vertically', 'Tile', 'Group selection', 'Ungroup'],
 };
 
 describe('Toolbar icon buttons', () => {
   it.each(['ja', 'en'] as const)('names every icon button in %s, in keyboard order', (locale) => {
     showIn(locale);
     const names = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'));
-    expect(names.slice(0, 12)).toEqual([...NAMES[locale]]);
+    expect(names.slice(0, 13)).toEqual([...NAMES[locale]]);
   });
   it('hides the icon glyphs and shows no visible text in icon buttons', () => {
     showIn('ja');
@@ -144,7 +191,7 @@ describe('Toolbar icon buttons', () => {
   });
   it('separates clusters without a trailing separator', () => {
     showIn('ja');
-    expect(screen.getAllByRole('separator').length).toBe(4);
+    expect(screen.getAllByRole('separator').length).toBe(5);
   });
   it('appends the disabled reason to the tooltip and describes the button with it', () => {
     show(2);
@@ -159,6 +206,6 @@ describe('Toolbar icon buttons', () => {
   it('keeps the file actions slot in the first row', () => {
     showIn('ja');
     const buttons = screen.getAllByRole('button');
-    expect(buttons[12]?.textContent).toBe('file');
+    expect(buttons[13]?.textContent).toBe('file');
   });
 });

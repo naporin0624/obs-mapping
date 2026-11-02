@@ -1,13 +1,12 @@
-import { useId, type Dispatch } from 'react';
+import type { Dispatch } from 'react';
 import type { UiAction } from '../../editor/reducer';
 import type { Direction, Group, GroupLayout, LayoutAlign } from '../../model/mapping';
 import type { Messages } from '../../i18n/messages';
 import { useT } from '../../i18n/use-t';
 import { NumField, TextField } from '../field';
 import { headingCls } from '../inspector/styles.css';
-import { fieldsetCls, groupCls, legendCls, radioCls, rowCls, segmentCls, segmentsCls } from './styles.css';
-
-type Option<T extends string> = { value: T; label: string };
+import { Segmented, type Option } from '../segmented';
+import { groupCls, rowCls } from './styles.css';
 
 const directionsOf = (t: Messages): readonly Option<Direction>[] => [
   { value: 'row', label: t.directionRow },
@@ -19,25 +18,6 @@ const alignsOf = (t: Messages): readonly Option<LayoutAlign>[] => [
   { value: 'center', label: t.alignCenter },
   { value: 'end', label: t.alignEnd },
 ];
-
-type SegmentedProps<T extends string> = { legend: string; options: readonly Option<T>[]; value: T; onChange: (v: T) => void };
-
-const Segmented = <T extends string>({ legend, options, value, onChange }: SegmentedProps<T>) => {
-  const name = useId();
-  return (
-    <fieldset className={fieldsetCls}>
-      <legend className={legendCls}>{legend}</legend>
-      <div className={segmentsCls}>
-        {options.map((o) => (
-          <label key={o.value} className={segmentCls}>
-            <input type="radio" className={radioCls} name={name} value={o.value} checked={o.value === value} onChange={() => onChange(o.value)} />
-            {o.label}
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-};
 
 type GroupPatch = Partial<Pick<Group, 'name' | 'layout'>>;
 

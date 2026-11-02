@@ -4,6 +4,7 @@ import type { StageDrag } from '../../editor/use-stage-drag';
 import type { CornerIndex, Selection } from '../../editor/state';
 import { isLaidOut, isTopLevel } from '../../editor/items';
 import { clipLine } from '../../geometry/clip';
+import { pasteboardBounds } from '../../geometry/pasteboard';
 import { groupFrame } from '../../layout/frame';
 import { quadWarning, type QuadWarning } from '../../geometry/quad';
 import type { Mapping, Surface } from '../../model/mapping';
@@ -95,7 +96,7 @@ const GroupFrames = ({ mapping, selection, scale, drag }: { mapping: Mapping; se
 const Guides = ({ drag, mapping }: { drag: StageDrag; mapping: Mapping }) => (
   <g pointerEvents="none" aria-hidden="true">
     {drag.guides.map((g, i) => {
-      const seg = clipLine(g, mapping.canvas.width, mapping.canvas.height);
+      const seg = clipLine(g, pasteboardBounds(mapping.canvas));
       return seg === null ? null : (
         <line key={i} data-guide="" x1={seg[0][0]} y1={seg[0][1]} x2={seg[1][0]} y2={seg[1][1]} className={guideLineCls} vectorEffect="non-scaling-stroke" pointerEvents="none" aria-hidden="true" />
       );
@@ -103,12 +104,17 @@ const Guides = ({ drag, mapping }: { drag: StageDrag; mapping: Mapping }) => (
   </g>
 );
 
+const Background = ({ mapping, drag }: { mapping: Mapping; drag: StageDrag }) => {
+  const b = pasteboardBounds(mapping.canvas);
+  return <rect data-background="" x={b.x} y={b.y} width={b.width} height={b.height} fill="transparent" onPointerDown={() => drag.onBackgroundDown()} />;
+};
+
 type Props = { mapping: Mapping; selection: Selection; visibleIds: ReadonlySet<string>; scale: number; drag: StageDrag };
 
-/** SVG layer in canvas px: grid, surface outlines (danger dashed + text for bad quads), group frames, then corner handles. */
+/** SVG layer in canvas px (pasteboard margin included): grid, surface outlines (danger dashed + text for bad quads), group frames, then corner handles. */
 export const StageOverlay = ({ mapping, selection, visibleIds, scale, drag }: Props) => (
   <>
-    <rect x={0} y={0} width={mapping.canvas.width} height={mapping.canvas.height} fill="transparent" onPointerDown={() => drag.onBackgroundDown()} />
+    <Background mapping={mapping} drag={drag} />
     <Grid mapping={mapping} scale={scale} />
     {mapping.surfaces.map((s) => (
       <SurfaceOutline

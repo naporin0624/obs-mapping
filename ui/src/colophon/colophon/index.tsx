@@ -17,6 +17,7 @@ import {
   ImportIcon,
   PlusIcon,
   RedoIcon,
+  TileIcon,
   TrashIcon,
   UndoIcon,
   UngroupIcon,
@@ -27,11 +28,13 @@ import { Inspector } from '../../components/inspector';
 import { LayerTree } from '../../components/layer-tree';
 import { SourceSelect, type SourceOption } from '../../components/source-select';
 import { StageGroupFrame } from '../../components/stage-group-frame';
+import { Segmented } from '../../components/segmented';
+import { TilePopover } from '../../components/tile-popover';
 import { UnderlayImage } from '../../components/stage-underlay';
 import { UnderlayControlsView, type UnderlayView } from '../../components/underlay-controls';
 import { emptySelection } from '../../editor/state';
 import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
-import type { Mapping } from '../../model/mapping';
+import type { Direction, Mapping } from '../../model/mapping';
 import { pageCls, headingCls, caseCls, captionCls, linkCls, frameCls } from './styles.css';
 
 const options: readonly SourceOption[] = [
@@ -116,7 +119,7 @@ const IconCases = () => (
     <Case title="Icons / Toolbar">
       <div>
         <UndoIcon /> <RedoIcon /> <AlignLeftIcon /> <AlignCenterHIcon /> <AlignRightIcon /> <AlignTopIcon /> <AlignCenterVIcon /> <AlignBottomIcon /> <DistributeHIcon /> <DistributeVIcon />{' '}
-        <GroupIcon /> <UngroupIcon /> <ImportIcon /> <ExportIcon />
+        <TileIcon /> <GroupIcon /> <UngroupIcon /> <ImportIcon /> <ExportIcon />
       </div>
     </Case>
     <Case title="IconButton / enabled, disabled with reason">
@@ -125,6 +128,41 @@ const IconCases = () => (
         <IconButton label="Distribute horizontally" icon={<DistributeHIcon />} unavailable={{ reason: 'Select 3 or more surfaces' }} onClick={noop} />
       </div>
     </Case>
+  </>
+);
+
+const SegmentedCase = () => {
+  const [direction, setDirection] = useState<Direction>('row');
+  return (
+    <Case title="Segmented / one row or one column (interactive)">
+      <Segmented
+        legend="Direction"
+        options={[
+          { value: 'row', label: 'One row' },
+          { value: 'column', label: 'One column' },
+        ]}
+        value={direction}
+        onChange={setDirection}
+      />
+    </Case>
+  );
+};
+
+const TileCases = () => (
+  <>
+    <Case title="TilePopover / 3 surfaces (interactive)">
+      <TilePopover subject={{ kind: 'surfaces', count: 3, onApply: noop }} canvas={{ width: 1920, height: 1080 }} />
+    </Case>
+    <Case title="TilePopover / group of 2 in a column (interactive)">
+      <TilePopover subject={{ kind: 'group', count: 2, direction: 'column', onApply: noop }} canvas={{ width: 1920, height: 1080 }} />
+    </Case>
+    <Case title="TilePopover / disabled with reason">
+      <TilePopover subject={{ kind: 'surfaces', count: 0, onApply: noop }} canvas={{ width: 1920, height: 1080 }} unavailable={{ reason: 'Select a surface' }} />
+    </Case>
+    <Case title="TilePopover / group holding a group">
+      <TilePopover subject={{ kind: 'surfaces', count: 0, onApply: noop }} canvas={{ width: 1920, height: 1080 }} unavailable={{ reason: 'A group that holds a group cannot be tiled' }} />
+    </Case>
+    <SegmentedCase />
   </>
 );
 
@@ -148,6 +186,9 @@ export const Colophon = () => {
       <Link href="https://react-spectrum.adobe.com/react-aria/Tree.html" className={linkCls} onClick={(e) => e.preventDefault()}>
         LayerTree is built on react-aria-components Tree
       </Link>
+      <Link href="https://react-spectrum.adobe.com/react-aria/Popover.html" className={linkCls} onClick={(e) => e.preventDefault()}>
+        TilePopover is built on react-aria-components DialogTrigger + Popover
+      </Link>
       <Case title="LayerTree / 入れ子と折りたたみ">
         <LayerTreeCase hideGroup={false} />
       </Case>
@@ -157,6 +198,7 @@ export const Colophon = () => {
       <FrameCases />
       <InspectorCases />
       <IconCases />
+      <TileCases />
       <Case title="SourceSelect / placeholder">
         <SourceSelect label="Source" placeholder="Select a source" items={options} value={null} onChange={noop} />
       </Case>

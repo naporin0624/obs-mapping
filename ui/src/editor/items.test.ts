@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
 import type { LayerNode, Mapping } from '../model/mapping';
-import { isLaidOut, leadingRoot, movableItems, moveItem } from './items';
+import { isLaidOut, leadingRoot, movableItems, moveItem, tileableSurfaceIds } from './items';
 
 const withLayers = (layers: LayerNode[], hiddenIds: string[] = []): Mapping => {
   const m = mapOf(surf('a', 0, 0), surf('b', 0, 0), surf('c', 0, 0), surf('x', 0, 0));
@@ -67,5 +67,12 @@ describe('movableItems / moveItem', () => {
     const base = m();
     expect(moveItem(base, 'a', [1, 2])).toBe(base);
     expect(moveItem(base, 'h', [1, 2])).toBe(base);
+  });
+});
+
+describe('tileableSurfaceIds', () => {
+  it('keeps selected top-level surfaces and drops groups and laid-out children', () => {
+    const m = withLayers([gn('g', sn('a')), sn('b'), sn('x')]);
+    expect(tileableSurfaceIds(m, { surfaceIds: ['a', 'b', 'x'], groupIds: ['g'], corner: null })).toEqual(['b', 'x']);
   });
 });

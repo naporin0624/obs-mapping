@@ -17,22 +17,31 @@ beforeEach(() => {
       disconnect = vi.fn();
     },
   );
-  vi.spyOn(SVGSVGElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 1920, height: 1080 } as DOMRect);
+  vi.spyOn(SVGSVGElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 2400, height: 1560 } as DOMRect);
+});
+
+const renderStage = (dispatch = vi.fn()) => {
+  const mapping = { ...mapOf(surf('s1', 0, 0, 100, 100)), groups: [groupOf('g1')], layers: [gn('g1', sn('s1'))] };
+  const client = {} as ObsClient;
+  return render(
+    <Provider>
+      <Stage state={initialEditorState(mapping)} dispatch={dispatch} client={client} online={false} />
+    </Provider>,
+  );
+};
+
+describe('Stage pasteboard', () => {
+  it('extends the svg viewBox by the margin around the canvas', () => {
+    expect(renderStage().container.querySelector('svg')?.getAttribute('viewBox')).toBe('-240 -240 2400 1560');
+  });
 });
 
 describe('Stage double click', () => {
   it('drills into the group under the pointer from the svg root', () => {
-    const mapping = { ...mapOf(surf('s1', 0, 0, 100, 100)), groups: [groupOf('g1')], layers: [gn('g1', sn('s1'))] };
     const dispatch = vi.fn();
-    const client = {} as ObsClient;
-    const { container } = render(
-      <Provider>
-        <Stage state={initialEditorState(mapping)} dispatch={dispatch} client={client} online={false} />
-      </Provider>,
-    );
-    const svg = container.querySelector('svg');
+    const svg = renderStage(dispatch).container.querySelector('svg');
     if (svg === null) throw new Error('no svg');
-    fireEvent.doubleClick(svg, { clientX: 50, clientY: 50 });
+    fireEvent.doubleClick(svg, { clientX: 290, clientY: 290 });
     expect(dispatch).toHaveBeenCalledWith({ type: 'select', selection: { surfaceIds: [], groupIds: ['g1'], corner: null } });
   });
 });

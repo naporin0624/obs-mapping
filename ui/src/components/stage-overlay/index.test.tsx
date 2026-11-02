@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
 import { emptySelection, type Selection } from '../../editor/state';
@@ -28,15 +28,41 @@ const renderOverlay = (guides: StageDrag['guides']) =>
   );
 
 describe('StageOverlay guides', () => {
-  it('draws each guide clipped to the canvas, hidden from assistive tech and inert to the pointer', () => {
+  it('draws each guide clipped to the pasteboard, hidden from assistive tech and inert to the pointer', () => {
     const { container } = renderOverlay([{ origin: [300, 40], dir: [1, 0] }]);
     const line = container.querySelector('line[data-guide]');
     expect(line?.getAttribute('aria-hidden')).toBe('true');
     expect(line?.getAttribute('pointer-events')).toBe('none');
-    expect([line?.getAttribute('x1'), line?.getAttribute('x2'), line?.getAttribute('y1')]).toEqual(['0', '1920', '40']);
+    expect([line?.getAttribute('x1'), line?.getAttribute('x2'), line?.getAttribute('y1')]).toEqual(['-240', '2160', '40']);
   });
   it('draws nothing without guides', () => {
     expect(renderOverlay([]).container.querySelector('line[data-guide]')).toBeNull();
+  });
+});
+
+describe('StageOverlay pasteboard', () => {
+  it('draws the handle of a corner that sits outside the canvas', () => {
+    const outside = mapOf(surf('s1', -40, 10, 100, 100));
+    const { container } = render(
+      <svg>
+        <StageOverlay mapping={outside} selection={{ ...emptySelection(), surfaceIds: ['s1'] }} visibleIds={new Set(['s1'])} scale={1} drag={drag([])} />
+      </svg>,
+    );
+    const xs = Array.from(container.querySelectorAll('rect')).map((r) => r.getAttribute('x'));
+    expect(xs).toContain(String(-40 - 10 / 2));
+  });
+  it('deselects on a press in the margin outside the canvas', () => {
+    const d = drag([]);
+    const { container } = render(
+      <svg>
+        <StageOverlay mapping={mapping} selection={emptySelection()} visibleIds={new Set()} scale={1} drag={d} />
+      </svg>,
+    );
+    const background = container.querySelector('rect[data-background]');
+    expect([background?.getAttribute('x'), background?.getAttribute('y'), background?.getAttribute('width'), background?.getAttribute('height')]).toEqual(['-240', '-240', '2400', '1560']);
+    if (background === null) throw new Error('no background');
+    fireEvent.pointerDown(background);
+    expect(d.onBackgroundDown).toHaveBeenCalled();
   });
 });
 

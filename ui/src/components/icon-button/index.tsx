@@ -9,7 +9,8 @@ type Props = {
   unavailable?: Unavailable;
   label: string;
   icon: ReactNode;
-  onClick: () => void;
+  /** Omitted when a wrapping trigger (e.g. DialogTrigger) handles the press. */
+  onClick?: () => void;
 };
 
 const EnabledButton = ({ label, icon, onClick }: Omit<Props, 'unavailable'>) => (

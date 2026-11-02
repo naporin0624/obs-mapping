@@ -7,12 +7,14 @@ import type { UiAction } from '../../editor/reducer';
 import type { EditorState } from '../../editor/state';
 import { useScreenshots } from '../../editor/use-screenshots';
 import { useStageDrag } from '../../editor/use-stage-drag';
+import { pasteboardBounds } from '../../geometry/pasteboard';
+import type { Bounds } from '../../geometry/rect';
 import { effectiveVisibleIds } from '../../model/visibility';
 import type { ObsClient } from '../../obs/client';
 import { StageOverlay } from '../stage-overlay';
 import { StageUnderlay } from '../stage-underlay';
 import { StageSurface } from '../stage-surface';
-import { outerCls, frameCls, layerCls } from './styles.css';
+import { outerCls, frameCls, canvasCls, layerCls } from './styles.css';
 
 // the focus ring lives on the outer element so the frame's overflow:hidden does not clip it
 
@@ -42,6 +44,16 @@ const useStageKeys = (dispatch: Dispatch<UiAction>) => {
   };
 };
 
+const percent = (part: number, whole: number): string => `${String((part / whole) * 100)}%`;
+
+/** Places the canvas inside the pasteboard in percentages, so it needs no measured width. */
+const canvasBox = (board: Bounds, canvas: { width: number; height: number }) => ({
+  left: percent(-board.x, board.width),
+  top: percent(-board.y, board.height),
+  width: percent(canvas.width, board.width),
+  height: percent(canvas.height, board.height),
+});
+
 /** Live preview of every surface (screenshots warped in the browser) with draggable corner handles on top. */
 export const Stage = ({ state, dispatch, client, online }: Props) => {
   const t = useT();
@@ -51,7 +63,8 @@ export const Stage = ({ state, dispatch, client, online }: Props) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const width = useWidth(frameRef);
   const { mapping, selection } = state;
-  const scale = Math.max(width, 1) / mapping.canvas.width;
+  const board = pasteboardBounds(mapping.canvas);
+  const scale = Math.max(width, 1) / board.width;
   const visibleIds = useMemo(() => effectiveVisibleIds(mapping), [mapping]);
   const images = useScreenshots(
     client,
@@ -66,17 +79,19 @@ export const Stage = ({ state, dispatch, client, online }: Props) => {
 
   return (
     <div className={outerCls} tabIndex={0} role="application" aria-label={t.stageLabel} ref={focusRef} onPointerDown={() => focusRef.current?.focus({ preventScroll: true })} onKeyDown={onKeyDown}>
-      <div ref={frameRef} className={frameCls} style={{ aspectRatio: `${String(mapping.canvas.width)} / ${String(mapping.canvas.height)}` }}>
-        <StageUnderlay />
-        <div className={layerCls}>
-          {mapping.surfaces.map((s) => (
-            <StageSurface key={s.id} surface={s} image={images[s.source]} scale={scale} visible={visibleIds.has(s.id)} />
-          ))}
+      <div ref={frameRef} className={frameCls} style={{ aspectRatio: `${String(board.width)} / ${String(board.height)}` }}>
+        <div className={canvasCls} style={canvasBox(board, mapping.canvas)}>
+          <StageUnderlay />
+          <div className={layerCls}>
+            {mapping.surfaces.map((s) => (
+              <StageSurface key={s.id} surface={s} image={images[s.source]} scale={scale} visible={visibleIds.has(s.id)} />
+            ))}
+          </div>
         </div>
         <svg
           ref={svgRef}
           className={layerCls}
-          viewBox={`0 0 ${String(mapping.canvas.width)} ${String(mapping.canvas.height)}`}
+          viewBox={`${String(board.x)} ${String(board.y)} ${String(board.width)} ${String(board.height)}`}
           preserveAspectRatio="none"
           style={{ touchAction: 'none' }}
           onPointerMove={drag.onMove}
