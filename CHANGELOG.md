@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/naporin0624/obs-mapping/compare/0.1.0...0.2.0) (2026-11-02)
+
+
+### Features
+
+* **ui:** turn the toolbar actions into icon buttons with tooltips ([1259cd2](https://github.com/naporin0624/obs-mapping/commit/1259cd2d25da5b8fbecd43a01e4f27ad8422480f))
+* **ui:** ツールバーの操作をアイコンボタンにする ([d0c0611](https://github.com/naporin0624/obs-mapping/commit/d0c0611a3ddfc7b5050daad14fcf55a644741722))
+
 ## 0.1.0 (2026-11-02)
 
 
