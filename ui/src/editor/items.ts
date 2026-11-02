@@ -43,6 +43,9 @@ const itemOf = (m: Mapping, id: string): Item | null => {
 /** Selected top-level surfaces and groups; a group is represented by its frame. */
 export const movableItems = (m: Mapping, sel: Selection): Item[] => [...sel.surfaceIds, ...sel.groupIds].filter((id) => isTopLevel(m, id)).flatMap((id) => itemOf(m, id) ?? []);
 
+/** Groups are sized by their contents, so only top-level surfaces can take a tile cell. */
+export const tileableSurfaceIds = (m: Mapping, sel: Selection): string[] => sel.surfaceIds.filter((id) => isTopLevel(m, id));
+
 export const moveItem = (m: Mapping, id: string, d: Point): Mapping => {
   if (!isTopLevel(m, id)) return m;
   if (m.surfaces.some((s) => s.id === id)) return { ...m, surfaces: m.surfaces.map((s) => (s.id === id ? translateSurface(s, d[0], d[1]) : s)) };

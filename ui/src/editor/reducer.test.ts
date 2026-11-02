@@ -73,6 +73,35 @@ describe('edits', () => {
     expect(s.past).toHaveLength(1);
     expect(run(s, { type: 'undo' }).mapping).toEqual(base().mapping);
   });
+  it('tile fills the canvas with equal cells in one undo step', () => {
+    const s = run(base(), sel(['b', 'a']), { type: 'tile', cols: 2, rows: 1, gap: 20 });
+    expect(s.mapping.surfaces.map((x) => [x.corners[0], x.corners[2]])).toEqual([
+      [
+        [0, 0],
+        [950, 1080],
+      ],
+      [
+        [970, 0],
+        [1920, 1080],
+      ],
+    ]);
+    expect(s.past).toHaveLength(1);
+    expect(run(s, { type: 'undo' }).mapping).toEqual(base().mapping);
+  });
+  it.each([
+    { cols: 0, rows: 1, gap: 0 },
+    { cols: 1.5, rows: 1, gap: 0 },
+    { cols: 2, rows: Number.NaN, gap: 0 },
+    { cols: 2, rows: 1, gap: -1 },
+    { cols: 2, rows: 1, gap: 5000 },
+  ])('tile ignores an unusable grid %o', (grid) => {
+    const n = run(base(), sel(['a', 'b']));
+    expect(reducer(n, { type: 'tile', ...grid })).toBe(n);
+  });
+  it('tile is blocked while dragging', () => {
+    const n = run(base(), sel(['a']), { type: 'dragStart' });
+    expect(reducer(n, { type: 'tile', cols: 1, rows: 1, gap: 0 })).toBe(n);
+  });
   it('removeSelected clears the selection', () => {
     const s = run(base(), sel(['a']), { type: 'removeSelected' });
     expect(s.mapping.surfaces.map((x) => x.id)).toEqual(['b']);
@@ -576,6 +605,54 @@ describe('group items', () => {
     expect(reducer(idle, { type: 'nudge', dx: 1, dy: 0 })).toBe(idle);
     const onlyGrouped = run(idle, pick(['a'], []));
     expect(reducer(onlyGrouped, { type: 'nudge', dx: 1, dy: 0 })).toBe(onlyGrouped);
+  });
+  it('tile fits only top-level surfaces and ignores selected groups', () => {
+    const s = run(world(), pick(['x', 'a'], ['g']), { type: 'tile', cols: 2, rows: 1, gap: 0 });
+    expect(s.mapping.surfaces.find((x) => x.id === 'x')?.corners[0]).toEqual([0, 0]);
+    expect(s.mapping.surfaces.find((x) => x.id === 'x')?.corners[2]).toEqual([960, 1080]);
+    expect(s.mapping.groups[0]?.origin).toEqual([100, 100]);
+  });
+  it('tileGroup fits the group children across the canvas in one undo step', () => {
+    const w = run(world(), pick([], ['g']));
+    const s = reducer(w, { type: 'tileGroup', groupId: 'g', direction: 'row', gap: 0 });
+    expect(s.mapping.surfaces.find((x) => x.id === 'a')?.corners).toEqual([
+      [0, 0],
+      [960, 0],
+      [960, 1080],
+      [0, 1080],
+    ]);
+    expect(s.mapping.surfaces.find((x) => x.id === 'b')?.corners[0]).toEqual([960, 0]);
+    expect(s.mapping.groups[0]).toMatchObject({ origin: [0, 0], layout: { direction: 'row', gap: 0, align: 'start', padding: 0 } });
+    expect(s.past).toHaveLength(w.past.length + 1);
+    expect(run(s, { type: 'undo' }).mapping).toEqual(w.mapping);
+  });
+  it('tileGroup lays a column out from the top', () => {
+    const s = run(world(), { type: 'tileGroup', groupId: 'g', direction: 'column', gap: 20 });
+    expect(s.mapping.surfaces.find((x) => x.id === 'b')?.corners[0]).toEqual([0, 550]);
+    expect(s.mapping.groups[0]?.layout.direction).toBe('column');
+  });
+  it.each([
+    { groupId: 'nope', gap: 0 },
+    { groupId: 'g', gap: -1 },
+    { groupId: 'g', gap: Number.NaN },
+    { groupId: 'g', gap: 5000 },
+  ])('tileGroup ignores an unusable request %o', ({ groupId, gap }) => {
+    const w = world();
+    expect(reducer(w, { type: 'tileGroup', groupId, direction: 'row', gap })).toBe(w);
+  });
+  it('tileGroup ignores a nested group and a group holding a sub-group', () => {
+    const m: Mapping = { ...mk(surf('a', 0, 0), surf('b', 20, 0)), groups: [groupOf('outer'), groupOf('inner')], layers: [gn('outer', sn('a'), gn('inner', sn('b')))] };
+    const w = initialEditorState(m);
+    expect(reducer(w, { type: 'tileGroup', groupId: 'inner', direction: 'row', gap: 0 })).toBe(w);
+    expect(reducer(w, { type: 'tileGroup', groupId: 'outer', direction: 'row', gap: 0 })).toBe(w);
+  });
+  it('tileGroup is blocked while dragging', () => {
+    const w = run(world(), { type: 'dragStart' });
+    expect(reducer(w, { type: 'tileGroup', groupId: 'g', direction: 'row', gap: 0 })).toBe(w);
+  });
+  it('tile with only grouped surfaces is a no-op', () => {
+    const w = run(world(), pick(['a', 'b'], []));
+    expect(reducer(w, { type: 'tile', cols: 2, rows: 1, gap: 0 })).toBe(w);
   });
   it('align and distribute with nothing movable return the same state', () => {
     const ignored = run(offSlot(), pick(['a'], []));

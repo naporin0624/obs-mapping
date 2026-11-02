@@ -3,13 +3,15 @@ import type { Group, Mapping, Point, Surface } from '../model/mapping';
 import { MAX_SPACING } from '../model/validate-tree';
 import { alignDeltas, distributeDeltas, itemsReference, translateSurface, type AlignMode } from '../geometry/align';
 import { rectCorners, type Bounds } from '../geometry/rect';
+import { tileSurfaces, type LineTile, type TileGrid } from '../geometry/tile';
 import { followCorner } from '../layout/follow-corner';
 import { layoutTree } from '../layout/layout-tree';
 import { groupItems, groupProblem, selectedItemIds, ungroupItems } from './grouping';
 import { freshId, idNumber } from './ids';
-import { isLaidOut, movableItems, moveItem } from './items';
+import { isLaidOut, movableItems, moveItem, tileableSurfaceIds } from './items';
 import type { Naming } from './naming';
 import { duplicateItems, removeItems } from './structure';
+import { tiledGroup } from './tile-group';
 import { canonicalJson, emptySelection, initialEditorState, type CornerIndex, type EditorState, type InFlightEntry, type Selection } from './state';
 
 type NamedType = 'addSurface' | 'duplicateSelected' | 'group';
@@ -30,6 +32,8 @@ export type Action =
   | { type: 'setBounds'; surfaceId: string; bounds: Bounds }
   | { type: 'align'; mode: AlignMode }
   | { type: 'distribute'; axis: 'x' | 'y' }
+  | ({ type: 'tile' } & TileGrid)
+  | ({ type: 'tileGroup'; groupId: string } & LineTile)
   | { type: 'addSurface'; source: string; naming: Naming }
   | { type: 'removeSelected' }
   | { type: 'duplicateSelected'; naming: Naming }
@@ -57,6 +61,8 @@ const DRAG_BLOCKED: ReadonlySet<Action['type']> = new Set([
   'setBounds',
   'align',
   'distribute',
+  'tile',
+  'tileGroup',
   'addSurface',
   'removeSelected',
   'duplicateSelected',
@@ -120,6 +126,17 @@ const aligned = (s: EditorState, mode: AlignMode): Mapping => {
 };
 
 const distributed = (s: EditorState, axis: 'x' | 'y'): Mapping => moveAll(s.mapping, distributeDeltas(movableItems(s.mapping, s.selection), axis));
+
+const isCount = (n: number): boolean => Number.isInteger(n) && n >= 1;
+
+const isTileGrid = ({ cols, rows, gap }: TileGrid): boolean => isCount(cols) && isCount(rows) && Number.isFinite(gap) && gap >= 0;
+
+const tiled = (s: EditorState, grid: TileGrid): Mapping => {
+  const ids = tileableSurfaceIds(s.mapping, s.selection);
+  if (ids.length === 0 || !isTileGrid(grid)) return s.mapping;
+  const { width, height } = s.mapping.canvas;
+  return withSurfaces(s.mapping, tileSurfaces(s.mapping.surfaces, ids, { x: 0, y: 0, width, height }, grid));
+};
 
 const movedNodes = (m: Mapping, ids: readonly string[], target: NodeTarget): Mapping => {
   if (!fitsDepth(m.layers, ids, target.parentId)) return m;
@@ -234,6 +251,8 @@ const handlers: Handlers = {
     ),
   align: (s, a) => (movableItems(s.mapping, s.selection).length < 1 ? s : commit(s, aligned(s, a.mode))),
   distribute: (s, a) => (movableItems(s.mapping, s.selection).length < 3 ? s : commit(s, distributed(s, a.axis))),
+  tile: (s, { cols, rows, gap }) => commit(s, tiled(s, { cols, rows, gap })),
+  tileGroup: (s, { groupId, direction, gap }) => commit(s, tiledGroup(s.mapping, groupId, { direction, gap })),
   addSurface: (s, a) => {
     const created = newSurface(s.mapping, a.source, a.naming);
     const next = commit(s, withAppendedSurface(s.mapping, created));

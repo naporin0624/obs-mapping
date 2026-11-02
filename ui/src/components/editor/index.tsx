@@ -5,6 +5,7 @@ import { clientAtom, inputsAtom, onlineAtom, reloadInputsAtom } from '../../atom
 import { reportErrorAtom } from '../../atoms/toast';
 import { useT } from '../../i18n/use-t';
 import { movableItems } from '../../editor/items';
+import { tileTarget } from '../../editor/tile-group';
 import { ImportExport } from '../import-export';
 import { Inspector } from '../inspector';
 import { Stage } from '../stage';
@@ -51,6 +52,8 @@ const EditorBody = () => {
         canRedo={editor.future.length > 0 && !editor.dragging}
         selectedCount={movableCount}
         immovableReason={movableCount === 0 && selectedCount > 0 ? t.editorImmovable : null}
+        tile={tileTarget(editor.mapping, editor.selection)}
+        canvas={editor.mapping.canvas}
         canGroup={selectedCount > 0}
         canUngroup={editor.selection.groupIds.length > 0}
         onGroup={group}

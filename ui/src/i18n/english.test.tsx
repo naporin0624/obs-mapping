@@ -8,6 +8,7 @@ import { Inspector } from '../components/inspector';
 import { Toolbar } from '../components/toolbar';
 import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
 import type { Selection } from '../editor/state';
+import type { TileTarget } from '../editor/tile-group';
 import type { Mapping } from '../model/mapping';
 import { LocaleProvider } from './locale-provider';
 import { localeAtom, type Locale } from './locale';
@@ -30,13 +31,15 @@ const inEnglish = (ui: ReactNode) => render(<Provider store={storeOf('en')}>{ui}
 
 const inspect = (selection: Partial<Selection>) => inEnglish(<Inspector mapping={mapping} selection={{ surfaceIds: [], groupIds: [], corner: null, ...selection }} inputs={[]} dispatch={vi.fn()} />);
 
-const toolbar = () => (
+const toolbar = (tile: TileTarget = { kind: 'blocked', why: 'noSurface' }) => (
   <Toolbar
     dispatch={vi.fn()}
     canUndo={false}
     canRedo={false}
     selectedCount={0}
     immovableReason={null}
+    tile={tile}
+    canvas={{ width: 1920, height: 1080 }}
     canGroup={false}
     canUngroup={false}
     onGroup={vi.fn()}
@@ -62,7 +65,13 @@ describe('English locale', () => {
     expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Left' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Left', description: 'Select a surface' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tile', description: 'Select a surface' })).toBeTruthy();
     expect(screen.queryByText('元に戻す')).toBeNull();
+  });
+
+  it('explains in English why a group cannot be tiled', () => {
+    inEnglish(toolbar({ kind: 'blocked', why: 'subgroup' }));
+    expect(screen.getByRole('button', { name: 'Tile', description: 'A group that holds a group cannot be tiled' })).toBeTruthy();
   });
 
   it('keeps the group action distinct from the toolbar section label', () => {
