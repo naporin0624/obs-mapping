@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projection Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a full-bleed dark room with a control rail on the right (bottom on phones). */
+  :root {
+    color-scheme: dark;
+    --room: oklch(0.13 0.01 260);
+    --rail: oklch(0.19 0.012 260);
+    --line: oklch(0.32 0.015 260);
+    --fg: oklch(0.93 0.005 260);
+    --muted: oklch(0.72 0.01 260);
+    --beam: oklch(0.86 0.12 85);
+    --danger: oklch(0.75 0.14 25);
+    --sans: "IBM Plex Sans JP", "Hiragino Sans", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--room); color: var(--fg); font: 14px/1.6 var(--sans);
+    display: grid; grid-template-columns: minmax(0, 1fr) 372px;
+  }
+  #view { position: relative; min-width: 0; min-height: 0; }
+  #view canvas { display: block; width: 100%; height: 100%; outline: none; }
+  .hint {
+    position: absolute; left: 16px; bottom: 12px; margin: 0;
+    font-size: 12px; color: var(--muted); pointer-events: none;
+  }
+  aside {
+    background: var(--rail); border-left: 1px solid var(--line);
+    overflow-y: auto; padding: 20px 18px 28px; display: grid; gap: 22px; align-content: start;
+  }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.02em; }
+  h1 + p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+  section { display: grid; gap: 10px; }
+  h2 {
+    margin: 0; font-size: 11px; font-weight: 600; color: var(--muted);
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg label { position: relative; text-align: center; padding: 7px 4px; cursor: pointer; font-size: 13px; }
+  .seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .seg label:has(input:checked) { background: var(--fg); color: var(--room); font-weight: 600; }
+  .seg label:has(input:focus-visible) { outline: 2px solid var(--beam); outline-offset: -2px; }
+  select, input[type="number"], button {
+    font: inherit; color: var(--fg); background: var(--room);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px;
+  }
+  select { width: 100%; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--beam); outline-offset: 2px; }
+  .status { margin: 0; font-size: 12.5px; color: var(--muted); }
+  .status[data-tone="error"] { color: var(--danger); }
+  .status[data-tone="live"] { color: var(--beam); }
+  .frame {
+    position: relative; aspect-ratio: 16 / 9; max-width: 100%;
+    background: #000; border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
+  }
+  .frame > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+  .range { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; font-size: 13px; }
+  .range input { grid-column: 1 / -1; width: 100%; accent-color: var(--beam); }
+  .range output { font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+  .check input { accent-color: var(--beam); }
+  .size { display: flex; gap: 6px; align-items: center; font: 12.5px var(--mono); }
+  .size input { width: 76px; }
+  .coords { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font: 11.5px var(--mono); font-variant-numeric: tabular-nums; }
+  th, td { padding: 4px 8px 4px 0; text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; }
+  tbody tr + tr td { border-top: 1px solid var(--line); }
+  .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+  ol { margin: 0; padding-left: 1.3em; color: var(--muted); font-size: 12.5px; display: grid; gap: 4px; }
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; }
+    aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hint { display: none; } }
+</style>
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  } }
+</script>
+</head>
+<body>
+<div id="view"><p class="hint">ドラッグで回り込み・ホイールで寄る・右ドラッグで平行移動</p></div>
+<aside>
+  <header>
+    <h1>Projection Room</h1>
+    <p>obs-mapping の出力を、部屋の角の壁 2 面いっぱいに投影したときの見え方。</p>
+  </header>
+
+  <section aria-labelledby="src-h">
+    <h2 id="src-h">投影する映像</h2>
+    <div class="seg" role="radiogroup" aria-labelledby="src-h">
+      <label><input type="radio" name="source" id="src-sample" value="sample" checked>サンプル</label>
+      <label><input type="radio" name="source" id="src-camera" value="camera">OBS 仮想カメラ</label>
+    </div>
+    <select id="device" aria-label="カメラ" hidden></select>
+    <p class="status" id="status">サンプル映像を投影しています。面の座標どおりにマッピングした絵です。</p>
+    <div class="frame" aria-label="プロジェクターに入力されている映像"><canvas id="sample" width="1280" height="720"></canvas><video id="video" playsinline muted hidden></video></div>
+  </section>
+
+  <section aria-labelledby="light-h">
+    <h2 id="light-h">光</h2>
+    <label class="range">投影の明るさ<output id="intensity-out">1.2</output><input type="range" id="intensity" min="0" max="2.5" step="0.05" value="1.2"></label>
+    <label class="range">部屋の明かり<output id="ambient-out">0.12</output><input type="range" id="ambient" min="0" max="0.8" step="0.01" value="0.12"></label>
+    <label class="check"><input type="checkbox" id="beam" checked>投影範囲を表示</label>
+  </section>
+
+  <section aria-labelledby="coords-h">
+    <h2 id="coords-h">面の座標</h2>
+    <p class="status">obs-mapping の各面の角に、この座標を入れると壁にぴったり合います（左上・右上・右下・左下の順）。</p>
+    <div class="size"><label for="cw">キャンバス</label><input type="number" id="cw" value="1920" min="16" step="1"><span>×</span><input type="number" id="ch" value="1080" min="16" step="1" aria-label="キャンバスの高さ"></div>
+    <div class="coords"><table><thead><tr><th>面</th><th>左上</th><th>右上</th><th>右下</th><th>左下</th></tr></thead><tbody id="coords"></tbody></table></div>
+    <button type="button" id="copy">座標を JSON でコピー</button>
+  </section>
+
+  <section aria-labelledby="how-h">
+    <h2 id="how-h">OBS からつなぐ</h2>
+    <ol>
+      <li>OBS で obs-mapping の面を上の座標に合わせる。</li>
+      <li>OBS の「仮想カメラ開始」を押す。</li>
+      <li>ここで「OBS 仮想カメラ」を選び、カメラの使用を許可する。</li>
+    </ol>
+  </section>
+</aside>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = (id) => document.getElementById(id);
+const view = $('view');
+
+// ---- room: the corner sits at the origin, walls on x=0 and z=0, floor on y=0 (metres)
+// each wall is 4.8 m × 2.7 m, exactly 16:9, so a 16:9 source covers it whole without distortion
+const ROOM = { size: 4.8, height: 2.7, floor: 9 };
+const PROJECTOR = { position: new THREE.Vector3(6.6, 2.5, 6.6), target: new THREE.Vector3(1.2, 1.25, 1.2), fov: 38 };
+
+const W = ROOM.size;
+const H = ROOM.height;
+const SURFACES = [
+  { name: '左の壁', color: '#4fd1c5', corners: [[0, H, W], [0, H, 0], [0, 0, 0], [0, 0, W]] },
+  { name: '右の壁', color: '#f6ad55', corners: [[0, H, 0], [W, H, 0], [W, 0, 0], [0, 0, 0]] },
+].map((s) => ({ ...s, corners: s.corners.map((c) => new THREE.Vector3(...c)) }));
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+view.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07080b);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 100);
+camera.position.set(11.5, 5.0, 12.5);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(2.6, 1.2, 2.6);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.minDistance = 1.5;
+controls.maxDistance = 26;
+
+// ---- projector: a perspective camera whose frame is the OBS output
+const projCam = new THREE.PerspectiveCamera(PROJECTOR.fov, 16 / 9, 0.1, 50);
+projCam.position.copy(PROJECTOR.position);
+projCam.lookAt(PROJECTOR.target);
+const updateProjector = () => {
+  projCam.aspect = canvasSize().w / canvasSize().h;
+  projCam.updateProjectionMatrix();
+  projCam.updateMatrixWorld();
+};
+
+const blank = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+blank.needsUpdate = true;
+const projUniforms = {
+  map: { value: blank },
+  projVP: { value: new THREE.Matrix4() },
+  projPos: { value: projCam.position },
+  intensity: { value: 1.2 },
+  ambient: { value: 0.12 },
+};
+
+const projectedMaterial = (albedo) => new THREE.ShaderMaterial({
+  uniforms: { ...projUniforms, albedo: { value: new THREE.Color(albedo) } },
+  vertexShader: /* glsl */`
+    varying vec3 vWorld; varying vec3 vNormal;
+    void main() {
+      vec4 w = modelMatrix * vec4(position, 1.0);
+      vWorld = w.xyz;
+      vNormal = normalize(mat3(modelMatrix) * normal);
+      gl_Position = projectionMatrix * viewMatrix * w;
+    }`,
+  fragmentShader: /* glsl */`
+    uniform sampler2D map; uniform mat4 projVP; uniform vec3 projPos;
+    uniform vec3 albedo; uniform float intensity; uniform float ambient;
+    varying vec3 vWorld; varying vec3 vNormal;
+    void main() {
+      vec3 light = vec3(ambient);
+      vec4 clip = projVP * vec4(vWorld, 1.0);
+      if (clip.w > 0.0) {
+        vec2 ndc = clip.xy / clip.w;
+        if (abs(ndc.x) <= 1.0 && abs(ndc.y) <= 1.0) {
+          float facing = max(dot(normalize(vNormal), normalize(projPos - vWorld)), 0.0);
+          light += texture2D(map, ndc * 0.5 + 0.5).rgb * intensity * (0.35 + 0.65 * facing);
+        }
+      }
+      gl_FragColor = vec4(albedo * light, 1.0);
+    }`,
+});
+// every surface material shares the same uniform objects, so one update reaches all
+const shareUniforms = (m) => { Object.assign(m.uniforms, projUniforms); return m; };
+
+const plane = (w, h, albedo, place) => {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), shareUniforms(projectedMaterial(albedo)));
+  place(mesh);
+  scene.add(mesh);
+};
+plane(ROOM.size, ROOM.height, 0xd9d7d2, (m) => { m.position.set(ROOM.size / 2, ROOM.height / 2, 0); });
+plane(ROOM.size, ROOM.height, 0xd9d7d2, (m) => { m.rotation.y = Math.PI / 2; m.position.set(0, ROOM.height / 2, ROOM.size / 2); });
+plane(ROOM.floor, ROOM.floor, 0x8f8b85, (m) => { m.rotation.x = -Math.PI / 2; m.position.set(ROOM.floor / 2, 0, ROOM.floor / 2); });
+
+// the projector body is lit normally; the room only receives projected light
+scene.add(new THREE.HemisphereLight(0xc8d0ff, 0x202020, 0.6));
+const key = new THREE.DirectionalLight(0xffffff, 0.8);
+key.position.set(5, 6, 3);
+scene.add(key);
+
+const projectorBody = (() => {
+  const g = new THREE.Group();
+  const dark = new THREE.MeshStandardMaterial({ color: 0x2a2c31, roughness: 0.55, metalness: 0.2 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.13, 0.28), dark);
+  body.position.z = 0.1;
+  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.05, 32), new THREE.MeshStandardMaterial({ color: 0x0d0e10, roughness: 0.2 }));
+  lens.rotation.x = Math.PI / 2;
+  lens.position.set(0.07, 0, -0.06);
+  const glow = new THREE.Mesh(new THREE.CircleGeometry(0.036, 32), new THREE.MeshBasicMaterial({ color: 0xfff3d0 }));
+  glow.position.set(0.07, 0, -0.086);
+  glow.rotation.y = Math.PI;
+  g.add(body, lens, glow);
+  g.position.copy(projCam.position).add(new THREE.Vector3(-0.07, 0, 0).applyQuaternion(projCam.quaternion));
+  g.quaternion.copy(projCam.quaternion);
+  const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, projCam.position.y - 0.07, 12), dark);
+  stand.position.set(projCam.position.x, (projCam.position.y - 0.07) / 2, projCam.position.z);
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.03, 32), dark);
+  foot.position.set(projCam.position.x, 0.015, projCam.position.z);
+  scene.add(g, stand, foot);
+})();
+
+// ---- beam: frustum edges run from the lens until they hit a wall or the floor
+const ROOM_PLANES = [new THREE.Plane(new THREE.Vector3(1, 0, 0), 0), new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
+const hitRoom = (ndcX, ndcY) => {
+  const dir = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(projCam).sub(projCam.position).normalize();
+  const ray = new THREE.Ray(projCam.position.clone(), dir);
+  const hits = ROOM_PLANES.map((p) => ray.intersectPlane(p, new THREE.Vector3())).filter(Boolean);
+  return hits.reduce((a, b) => (a.distanceTo(projCam.position) < b.distanceTo(projCam.position) ? a : b));
+};
+const beam = new THREE.Group();
+scene.add(beam);
+const buildBeam = () => {
+  beam.clear();
+  const ends = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => hitRoom(x, y));
+  const o = projCam.position;
+  const lines = new THREE.BufferGeometry().setFromPoints(ends.flatMap((e) => [o, e]));
+  beam.add(new THREE.LineSegments(lines, new THREE.LineBasicMaterial({ color: 0xffe9b0, transparent: true, opacity: 0.35 })));
+  const fan = new THREE.BufferGeometry().setFromPoints(ends.flatMap((e, i) => [o, e, ends[(i + 1) % 4]]));
+  beam.add(new THREE.Mesh(fan, new THREE.MeshBasicMaterial({ color: 0xffe9b0, transparent: true, opacity: 0.045, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })));
+};
+
+// ---- coordinates of each surface in the projector frame (= OBS canvas pixels)
+const canvasSize = () => ({ w: Math.max(16, Number($('cw').value) || 1920), h: Math.max(16, Number($('ch').value) || 1080) });
+const toFrame = (p, w, h) => {
+  const n = p.clone().project(projCam);
+  return [(n.x * 0.5 + 0.5) * w, (0.5 - n.y * 0.5) * h];
+};
+const surfaceCoords = () => {
+  const { w, h } = canvasSize();
+  return SURFACES.map((s) => ({ name: s.name, corners: s.corners.map((c) => toFrame(c, w, h).map(Math.round)) }));
+};
+const renderCoords = () => {
+  $('coords').replaceChildren(...surfaceCoords().map((s, i) => {
+    const tr = document.createElement('tr');
+    const name = document.createElement('td');
+    const sw = document.createElement('span');
+    sw.className = 'swatch';
+    sw.style.background = SURFACES[i].color;
+    name.append(sw, s.name);
+    tr.append(name, ...s.corners.map(([x, y]) => Object.assign(document.createElement('td'), { textContent: `${x}, ${y}` })));
+    return tr;
+  }));
+};
+$('copy').addEventListener('click', async () => {
+  const text = JSON.stringify(surfaceCoords(), null, 2);
+  try {
+    await navigator.clipboard.writeText(text);
+    $('copy').textContent = 'コピーしました';
+  } catch {
+    $('copy').textContent = 'コピーできませんでした';
+  }
+  setTimeout(() => { $('copy').textContent = '座標を JSON でコピー'; }, 1600);
+});
+
+// ---- sample source: content drawn already mapped onto the three surfaces
+const sample = $('sample');
+const sctx = sample.getContext('2d');
+const sampleTexture = new THREE.CanvasTexture(sample);
+const lerp3 = (a, b, t) => a.clone().lerp(b, t);
+const onSurface = (s, u, v) => lerp3(lerp3(s.corners[0], s.corners[1], u), lerp3(s.corners[3], s.corners[2], u), v);
+const pathOf = (pts) => {
+  sctx.beginPath();
+  pts.forEach((p, i) => { const [x, y] = toFrame(p, sample.width, sample.height); i ? sctx.lineTo(x, y) : sctx.moveTo(x, y); });
+  sctx.closePath();
+};
+const drawSample = (t) => {
+  sctx.fillStyle = '#000';
+  sctx.fillRect(0, 0, sample.width, sample.height);
+  SURFACES.forEach((s, si) => {
+    pathOf(s.corners);
+    sctx.fillStyle = s.color + '26';
+    sctx.fill();
+    sctx.strokeStyle = s.color + '66';
+    sctx.lineWidth = 1;
+    // a 16 × 9 grid: square cells on a 16:9 panel show the source is not stretched
+    const gridLines = [
+      ...Array.from({ length: 15 }, (_, k) => [(k + 1) / 16, 0, (k + 1) / 16, 1]),
+      ...Array.from({ length: 8 }, (_, k) => [0, (k + 1) / 9, 1, (k + 1) / 9]),
+    ];
+    gridLines.forEach(([u0, v0, u1, v1]) => {
+      sctx.beginPath();
+      sctx.moveTo(...toFrame(onSurface(s, u0, v0), sample.width, sample.height));
+      sctx.lineTo(...toFrame(onSurface(s, u1, v1), sample.width, sample.height));
+      sctx.stroke();
+    });
+    // a bright band sweeping across each surface, offset so it travels around the corner
+    const u = (t * 0.22 + si / 3) % 1;
+    pathOf([onSurface(s, u, 0), onSurface(s, Math.min(1, u + 0.1), 0), onSurface(s, Math.min(1, u + 0.1), 1), onSurface(s, u, 1)]);
+    sctx.fillStyle = s.color + 'd9';
+    sctx.fill();
+    pathOf(s.corners);
+    sctx.strokeStyle = s.color;
+    sctx.lineWidth = 3;
+    sctx.stroke();
+  });
+  // a scanline rising across both walls, unbroken at the corner
+  const y = ((t * 0.18) % 1) * H;
+  sctx.beginPath();
+  [[0, y, W], [0, y, 0], [W, y, 0]].forEach((p, i) => {
+    const [x, py] = toFrame(new THREE.Vector3(...p), sample.width, sample.height);
+    i ? sctx.lineTo(x, py) : sctx.moveTo(x, py);
+  });
+  sctx.strokeStyle = '#ffffff';
+  sctx.lineWidth = 4;
+  sctx.stroke();
+  sampleTexture.needsUpdate = true;
+};
+
+// ---- camera source: the OBS virtual camera, whose frame is the mapped program output
+const video = $('video');
+const videoTexture = new THREE.VideoTexture(video);
+let stream = null;
+const setStatus = (text, tone = '') => { $('status').textContent = text; $('status').dataset.tone = tone; };
+const stopStream = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; };
+const isObs = (d) => /obs/i.test(d.label);
+
+const openCamera = async (deviceId) => {
+  stopStream();
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { ...(deviceId ? { deviceId: { exact: deviceId } } : {}), width: { ideal: 1920 }, height: { ideal: 1080 } },
+    audio: false,
+  });
+  video.srcObject = stream;
+  await video.play();
+  return stream.getVideoTracks()[0]?.getSettings().deviceId;
+};
+
+const fillDevices = async (activeId) => {
+  const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+  $('device').replaceChildren(...cams.map((d, i) => Object.assign(document.createElement('option'), { value: d.deviceId, textContent: d.label || `カメラ ${i + 1}`, selected: d.deviceId === activeId })));
+  $('device').hidden = cams.length === 0;
+  return cams;
+};
+
+const useCamera = async () => {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setStatus('このページからはカメラを使えません。Chrome でファイルを直接開くか、localhost で配信して開いてください。', 'error');
+    return false;
+  }
+  setStatus('カメラの使用を許可してください。');
+  try {
+    let active = await openCamera();
+    const cams = await fillDevices(active);
+    const obs = cams.find(isObs);
+    if (obs && obs.deviceId !== active) active = await openCamera(obs.deviceId);
+    await fillDevices(active);
+    showVideo();
+    const label = cams.find((d) => d.deviceId === active)?.label ?? 'カメラ';
+    setStatus(obs ? `${label} を投影しています（${video.videoWidth}×${video.videoHeight}）。` : `OBS 仮想カメラが見つからないので ${label} を投影しています。OBS で「仮想カメラ開始」を押してから選び直してください。`, obs ? 'live' : 'error');
+    return true;
+  } catch (e) {
+    const reason = e?.name === 'NotAllowedError' ? 'カメラの使用が許可されませんでした。アドレスバーのカメラ設定から許可してください。'
+      : e?.name === 'NotFoundError' ? 'カメラが見つかりません。OBS で「仮想カメラ開始」を押してください。'
+      : e?.name === 'NotReadableError' ? 'カメラを開けませんでした。ほかのアプリが使っていないか確認してください。'
+      : `カメラを開けませんでした（${e?.message ?? e}）。`;
+    setStatus(reason, 'error');
+    return false;
+  }
+};
+
+const showVideo = () => { video.hidden = false; sample.hidden = true; projUniforms.map.value = videoTexture; };
+const showSample = () => {
+  stopStream();
+  video.hidden = true; sample.hidden = false; $('device').hidden = true;
+  projUniforms.map.value = sampleTexture;
+  setStatus('サンプル映像を投影しています。面の座標どおりにマッピングした絵です。');
+};
+
+document.querySelectorAll('input[name="source"]').forEach((r) => r.addEventListener('change', async () => {
+  if (r.value === 'sample') return showSample();
+  if (!(await useCamera())) { $('src-sample').checked = true; showSample(); setStatus($('status').textContent, 'error'); }
+}));
+$('device').addEventListener('change', async (e) => {
+  try {
+    await openCamera(e.target.value);
+    setStatus(`${e.target.selectedOptions[0].textContent} を投影しています（${video.videoWidth}×${video.videoHeight}）。`, 'live');
+  } catch (err) {
+    setStatus(`このカメラは開けませんでした（${err?.name ?? err}）。`, 'error');
+  }
+});
+
+// ---- controls
+const bindRange = (id, apply) => {
+  const input = $(id);
+  const sync = () => { apply(Number(input.value)); $(`${id}-out`).textContent = Number(input.value).toFixed(2); };
+  input.addEventListener('input', sync);
+  sync();
+};
+bindRange('intensity', (v) => { projUniforms.intensity.value = v; });
+bindRange('ambient', (v) => { projUniforms.ambient.value = v; });
+$('beam').addEventListener('change', (e) => { beam.visible = e.target.checked; });
+const reframe = () => {
+  updateProjector();
+  projUniforms.projVP.value.multiplyMatrices(projCam.projectionMatrix, projCam.matrixWorldInverse);
+  const { w, h } = canvasSize();
+  document.querySelector('.frame').style.aspectRatio = `${w} / ${h}`;
+  buildBeam();
+  renderCoords();
+};
+['cw', 'ch'].forEach((id) => $(id).addEventListener('change', reframe));
+
+const resize = () => {
+  const { clientWidth: w, clientHeight: h } = view;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / Math.max(1, h);
+  camera.updateProjectionMatrix();
+};
+new ResizeObserver(resize).observe(view);
+
+reframe();
+showSample();
+resize();
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+renderer.setAnimationLoop((ms) => {
+  if (projUniforms.map.value === sampleTexture) drawSample(still ? 1.3 : ms / 1000);
+  controls.update();
+  renderer.render(scene, camera);
+});
+window.__surfaceCoords = surfaceCoords;
+</script>
+</body>
+</html>
