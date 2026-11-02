@@ -3,6 +3,7 @@ import type { LayerNode } from '../../model/mapping';
 import type { Action } from '../../editor/reducer';
 import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
 import { fakeObs, mapping, type FakeObs } from '../../test/fake-obs';
+import { collapsedGroupsAtom, toggleCollapsedAtom } from '../layers';
 import { lifecycleAtom } from '../lifecycle';
 import { selectedSourceAtom, selectSourceAtom } from '../session';
 import { toastAtom } from '../toast';
@@ -287,5 +288,37 @@ describe('groupSelectionAtom', () => {
     store.set(groupSelectionAtom);
     expect(store.get(toastAtom)?.text).toBe('これ以上深い階層にはできません（16 階層まで）');
     expect(JSON.stringify(instances.sync.getState().editor?.mapping)).toBe(before);
+  });
+});
+
+describe('dispatchAtom collapsed groups', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('a deleted group is forgotten, so a new group with the same id starts expanded', async () => {
+    const map = { ...mapOf(surf('a', 0, 0), surf('b', 20, 0)), groups: [groupOf('g-1')], layers: [gn('g-1', sn('a')), sn('b')] };
+    const { store } = await mounted(fakeObs(map));
+    store.sub(mappingViewAtom, noop);
+    await store.get(mappingViewAtom);
+    await store.set(activateMappingAtom);
+    store.set(toggleCollapsedAtom, 'g-1');
+    store.set(dispatchAtom, { type: 'select', selection: { surfaceIds: [], groupIds: ['g-1'], corner: null } });
+    store.set(dispatchAtom, { type: 'removeSelected' });
+    expect(store.get(collapsedGroupsAtom).size).toBe(0);
+  });
+
+  it('keeps the collapsed state of groups that still exist', async () => {
+    const map = { ...mapOf(surf('a', 0, 0)), groups: [groupOf('g-1')], layers: [gn('g-1', sn('a'))] };
+    const { store } = await mounted(fakeObs(map));
+    store.sub(mappingViewAtom, noop);
+    await store.get(mappingViewAtom);
+    await store.set(activateMappingAtom);
+    store.set(toggleCollapsedAtom, 'g-1');
+    store.set(dispatchAtom, { type: 'setGrid', size: 20 });
+    expect([...store.get(collapsedGroupsAtom)]).toEqual(['g-1']);
   });
 });

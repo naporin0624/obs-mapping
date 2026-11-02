@@ -61,10 +61,20 @@ describe('Toolbar immovable selection', () => {
 });
 
 describe('Toolbar group / ungroup', () => {
-  it('explains why グループ化 and グループ解除 are disabled', () => {
+  it('shows one short reason when nothing is selected, shared by both buttons', () => {
     show(0);
-    expect(reasonOf(screen.getByRole('button', { name: 'グループ化' }))).toBe('面かグループを選ぶと使えます');
-    expect(reasonOf(screen.getByRole('button', { name: 'グループ解除' }))).toBe('グループを選ぶと使えます');
+    expect(reasonOf(screen.getByRole('button', { name: 'グループ化' }))).toBe('面かグループを選択');
+    expect(reasonOf(screen.getByRole('button', { name: 'グループ解除' }))).toBe('面かグループを選択');
+    expect(screen.queryByText('グループを選ぶと使えます')).toBeNull();
+  });
+  it('asks for a group when only グループ解除 is disabled', () => {
+    show(1, { canGroup: true });
+    expect(reasonOf(screen.getByRole('button', { name: 'グループ解除' }))).toBe('グループを選択');
+    expect(screen.queryByText('面かグループを選択')).toBeNull();
+  });
+  it('shows no reason when both are enabled', () => {
+    show(1, { canGroup: true, canUngroup: true });
+    expect(screen.queryByText(/を選択$/, { selector: 'span[id=group-reason]' })).toBeNull();
   });
   it('disables グループ化 with nothing selected', () => {
     show(0, { canGroup: false });

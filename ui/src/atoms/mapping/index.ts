@@ -7,6 +7,7 @@ import type { EditorState } from '../../editor/state';
 import { groupProblem } from '../../editor/grouping';
 import { commandAtom } from '../command';
 import { instancesAtom } from '../instances';
+import { collapsedGroupsAtom } from '../layers';
 import { selectedSourceAtom } from '../session';
 import { streamAtom } from '../stream';
 import { reportErrorAtom } from '../toast';
@@ -69,7 +70,20 @@ export const reloadUnopenedMappingAtom = atom(null, (get, set): void => {
   if (!isLiveFor(get(syncStateAtom), get(selectedSourceAtom))) set(loadMappingAtom);
 });
 
-export const dispatchAtom = commandAtom((i, action: Action) => i.sync.dispatch(action));
+const prunedCollapsed = (collapsed: ReadonlySet<string>, mapping: Mapping): ReadonlySet<string> | null => {
+  const alive = new Set(mapping.groups.map((g) => g.id));
+  const kept = [...collapsed].filter((id) => alive.has(id));
+  return kept.length === collapsed.size ? null : new Set(kept);
+};
+
+/** Applies the action, then forgets collapsed ids of groups that no longer exist. */
+export const dispatchAtom = atom(null, (get, set, action: Action): void => {
+  const { sync } = get(instancesAtom);
+  sync.dispatch(action);
+  const mapping = sync.getState().editor?.mapping;
+  const pruned = mapping === undefined ? null : prunedCollapsed(get(collapsedGroupsAtom), mapping);
+  if (pruned !== null) set(collapsedGroupsAtom, pruned);
+});
 /** Shows why grouping is impossible as a toast; groups when it is possible; silent with nothing selected. */
 export const groupSelectionAtom = atom(null, (get, set): void => {
   const editor = get(syncStateAtom).editor;

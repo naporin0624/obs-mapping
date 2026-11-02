@@ -8,7 +8,6 @@ import { tagCls, groupCls, reasonCls } from './styles.css';
 const ALIGN_REASON_ID = 'align-reason';
 const DISTRIBUTE_REASON_ID = 'distribute-reason';
 const GROUP_REASON_ID = 'group-reason';
-const UNGROUP_REASON_ID = 'ungroup-reason';
 
 const ALIGNS: readonly { mode: AlignMode; label: string }[] = [
   { mode: 'left', label: 'Left' },
@@ -67,27 +66,30 @@ const DistributeGroup = ({ dispatch, blocked, reason }: GroupProps) => (
 
 type GroupingProps = { dispatch: Dispatch<Action>; canGroup: boolean; canUngroup: boolean; onGroup: () => void };
 
-const GroupingGroup = ({ dispatch, canGroup, canUngroup, onGroup }: GroupingProps) => (
-  <div className={groupCls}>
-    <span className={tagCls}>Group</span>
-    {!canGroup && (
-      <span id={GROUP_REASON_ID} className={reasonCls}>
-        面かグループを選ぶと使えます
-      </span>
-    )}
-    {!canUngroup && (
-      <span id={UNGROUP_REASON_ID} className={reasonCls}>
-        グループを選ぶと使えます
-      </span>
-    )}
-    <button type="button" className={buttonCls} disabled={!canGroup} aria-describedby={canGroup ? undefined : GROUP_REASON_ID} onClick={onGroup}>
-      グループ化
-    </button>
-    <button type="button" className={buttonCls} disabled={!canUngroup} aria-describedby={canUngroup ? undefined : UNGROUP_REASON_ID} onClick={() => dispatch({ type: 'ungroup' })}>
-      グループ解除
-    </button>
-  </div>
-);
+const groupingReason = (canGroup: boolean, canUngroup: boolean): string | null => {
+  if (!canGroup) return '面かグループを選択';
+  return canUngroup ? null : 'グループを選択';
+};
+
+const GroupingGroup = ({ dispatch, canGroup, canUngroup, onGroup }: GroupingProps) => {
+  const reason = groupingReason(canGroup, canUngroup);
+  return (
+    <div className={groupCls}>
+      <span className={tagCls}>Group</span>
+      {reason !== null && (
+        <span id={GROUP_REASON_ID} className={reasonCls}>
+          {reason}
+        </span>
+      )}
+      <button type="button" className={buttonCls} disabled={!canGroup} aria-describedby={canGroup ? undefined : GROUP_REASON_ID} onClick={onGroup}>
+        グループ化
+      </button>
+      <button type="button" className={buttonCls} disabled={!canUngroup} aria-describedby={canUngroup ? undefined : GROUP_REASON_ID} onClick={() => dispatch({ type: 'ungroup' })}>
+        グループ解除
+      </button>
+    </div>
+  );
+};
 
 type Props = {
   dispatch: Dispatch<Action>;
