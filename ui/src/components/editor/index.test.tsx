@@ -64,11 +64,11 @@ describe('Editor first load', () => {
       return reply;
     });
     await renderEditor(obs);
-    expect(screen.getByText('Loading mapping…')).toBeTruthy();
+    expect(screen.getByText('Mapping を読み込み中…')).toBeTruthy();
     release.resolve();
     await act(() => vi.advanceTimersByTimeAsync(0));
-    expect(screen.queryByText('Loading mapping…')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(screen.queryByText('Mapping を読み込み中…')).toBeNull();
+    expect(screen.getByRole('button', { name: '元に戻す' })).toBeTruthy();
   });
 
   it('shows the error with Retry when the load fails and recovers on retry', async () => {
@@ -77,10 +77,10 @@ describe('Editor first load', () => {
     await renderEditor(obs);
     expect(screen.getByText(/読み込みに失敗しました: plugin down/)).toBeTruthy();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      fireEvent.click(screen.getByRole('button', { name: '再試行' }));
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '元に戻す' })).toBeTruthy();
   });
 });
 
@@ -90,13 +90,13 @@ describe('Editor later edits', () => {
   it('never shows the fallback again on later edits', async () => {
     const obs = fakeObs(mapping(10));
     const store = await renderEditor(obs);
-    const undo = (): HTMLButtonElement => screen.getByRole('button', { name: 'Undo' });
+    const undo = (): HTMLButtonElement => screen.getByRole('button', { name: '元に戻す' });
     expect(undo().disabled).toBe(true);
     await act(async () => {
       store.set(dispatchAtom, { type: 'setGrid', size: 20 });
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.queryByText('Loading mapping…')).toBeNull();
+    expect(screen.queryByText('Mapping を読み込み中…')).toBeNull();
     expect(undo().disabled).toBe(false);
   });
 });
@@ -108,15 +108,15 @@ describe('Editor reconnect and source switch', () => {
     const obs = fakeObs(mapping(10));
     obs.getMapping.mockResolvedValueOnce({ ok: false, error: 'socket closed' });
     await renderEditor(obs);
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '再試行' })).toBeTruthy();
     await act(async () => {
       obs.dropSocket();
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(screen.getByText(/OBS に接続すると/)).toBeTruthy();
     await act(() => vi.advanceTimersByTimeAsync(500));
-    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '再試行' })).toBeNull();
+    expect(screen.getByRole('button', { name: '元に戻す' })).toBeTruthy();
     expect(obs.getMapping).toHaveBeenCalledTimes(2);
   });
 
@@ -135,7 +135,7 @@ describe('Editor reconnect and source switch', () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(screen.queryByText(/B is broken/)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '元に戻す' })).toBeTruthy();
   });
 
   it('reports a load error to the toast exactly once', async () => {
@@ -152,7 +152,7 @@ describe('Editor under StrictMode', () => {
   it('opens the source once and loads it once', async () => {
     const obs = fakeObs(mapping(10));
     const store = await renderEditor(obs, true);
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '元に戻す' })).toBeTruthy();
     expect(obs.getMapping).toHaveBeenCalledTimes(1);
     expect(store.instances.sync.getState().source).toBe('Map');
   });

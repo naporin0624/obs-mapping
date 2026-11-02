@@ -17,7 +17,7 @@ const mapping: Mapping = {
 const mount = (selection: Partial<Selection>) => render(<Inspector mapping={mapping} selection={{ surfaceIds: [], groupIds: [], corner: null, ...selection }} inputs={['src']} dispatch={vi.fn()} />);
 
 const boundsField = (label: string): HTMLInputElement => {
-  const bounds = screen.getByText('Bounds').nextElementSibling;
+  const bounds = screen.getByText('位置とサイズ').nextElementSibling;
   if (bounds === null) throw new Error('no bounds');
   return within(bounds as HTMLElement).getAllByLabelText(label)[0] as HTMLInputElement;
 };
@@ -46,7 +46,7 @@ describe('Inspector', () => {
   });
   it('keeps the corner fields editable', () => {
     mount({ surfaceIds: ['a'], corner: { surfaceId: 'a', index: 0 } });
-    const corner = screen.getByText('Corner 1').nextElementSibling;
+    const corner = screen.getByText('角 1').nextElementSibling;
     if (corner === null) throw new Error('no corner grid');
     expect((within(corner as HTMLElement).getByLabelText('X') as HTMLInputElement).disabled).toBe(false);
   });

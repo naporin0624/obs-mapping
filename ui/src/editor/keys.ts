@@ -1,4 +1,4 @@
-import type { Action } from './reducer';
+import type { UiAction } from './reducer';
 
 export type KeyInput = { key: string; shiftKey: boolean; metaKey: boolean; ctrlKey: boolean; repeat?: boolean };
 
@@ -12,7 +12,7 @@ const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
   ArrowDown: [0, 1],
 };
 
-const commandAction = (key: string, shift: boolean): Action | null => {
+const commandAction = (key: string, shift: boolean): UiAction | null => {
   switch (key.toLowerCase()) {
     case 'z':
       return { type: shift ? 'redo' : 'undo' };
@@ -26,7 +26,7 @@ const commandAction = (key: string, shift: boolean): Action | null => {
 };
 
 /** Maps a keydown on the Stage to an editor action; null when the key is not a shortcut. */
-export const keyAction = (e: KeyInput): Action | null => {
+export const keyAction = (e: KeyInput): UiAction | null => {
   if (e.metaKey || e.ctrlKey) return e.repeat === true && e.key.toLowerCase() === 'g' ? null : commandAction(e.key, e.shiftKey);
   const arrow = ARROWS[e.key];
   if (arrow !== undefined) {

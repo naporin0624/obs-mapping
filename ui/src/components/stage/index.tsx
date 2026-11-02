@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type KeyboardEvent, type RefObject } from 'react';
 import { useSetAtom } from 'jotai';
+import { useT } from '../../i18n/use-t';
 import { groupSelectionAtom } from '../../atoms/mapping';
 import { keyAction } from '../../editor/keys';
-import type { Action } from '../../editor/reducer';
+import type { UiAction } from '../../editor/reducer';
 import type { EditorState } from '../../editor/state';
 import { useScreenshots } from '../../editor/use-screenshots';
 import { useStageDrag } from '../../editor/use-stage-drag';
@@ -15,7 +16,7 @@ import { outerCls, frameCls, layerCls } from './styles.css';
 
 // the focus ring lives on the outer element so the frame's overflow:hidden does not clip it
 
-type Props = { state: EditorState; dispatch: Dispatch<Action>; client: ObsClient; online: boolean };
+type Props = { state: EditorState; dispatch: Dispatch<UiAction>; client: ObsClient; online: boolean };
 
 const useWidth = (ref: RefObject<HTMLDivElement | null>): number => {
   const [width, setWidth] = useState(1);
@@ -30,7 +31,7 @@ const useWidth = (ref: RefObject<HTMLDivElement | null>): number => {
   return width;
 };
 
-const useStageKeys = (dispatch: Dispatch<Action>) => {
+const useStageKeys = (dispatch: Dispatch<UiAction>) => {
   const group = useSetAtom(groupSelectionAtom);
   return (e: KeyboardEvent<HTMLElement>): void => {
     const action = keyAction(e);
@@ -43,6 +44,7 @@ const useStageKeys = (dispatch: Dispatch<Action>) => {
 
 /** Live preview of every surface (screenshots warped in the browser) with draggable corner handles on top. */
 export const Stage = ({ state, dispatch, client, online }: Props) => {
+  const t = useT();
   const onKeyDown = useStageKeys(dispatch);
   const frameRef = useRef<HTMLDivElement>(null);
   const focusRef = useRef<HTMLDivElement>(null);
@@ -63,7 +65,7 @@ export const Stage = ({ state, dispatch, client, online }: Props) => {
   }, []);
 
   return (
-    <div className={outerCls} tabIndex={0} role="application" aria-label="Stage" ref={focusRef} onPointerDown={() => focusRef.current?.focus({ preventScroll: true })} onKeyDown={onKeyDown}>
+    <div className={outerCls} tabIndex={0} role="application" aria-label={t.stageLabel} ref={focusRef} onPointerDown={() => focusRef.current?.focus({ preventScroll: true })} onKeyDown={onKeyDown}>
       <div ref={frameRef} className={frameCls} style={{ aspectRatio: `${String(mapping.canvas.width)} / ${String(mapping.canvas.height)}` }}>
         <StageUnderlay />
         <div className={layerCls}>

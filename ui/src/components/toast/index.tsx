@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
+import { useT } from '../../i18n/use-t';
 import { dismissToastAtom, toastAtom } from '../../atoms/toast';
 import { toastCls, titleCls } from './styles.css';
 
@@ -7,6 +8,7 @@ const TOAST_MS = 5000;
 
 /** Error toast; dismisses itself after 5 s (a new message restarts the timer) or on click. */
 export const Toast = () => {
+  const t = useT();
   const toast = useAtomValue(toastAtom);
   const onDismiss = useSetAtom(dismissToastAtom);
   const id = toast?.id;
@@ -18,7 +20,7 @@ export const Toast = () => {
 
   return toast === null ? null : (
     <div role="alert" className={toastCls} onClick={onDismiss}>
-      <div className={titleCls}>Error</div>
+      <div className={titleCls}>{t.toastTitle}</div>
       <div>{toast.text}</div>
     </div>
   );

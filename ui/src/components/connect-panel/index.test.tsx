@@ -13,12 +13,12 @@ describe('ConnectPanel', () => {
 
   it('adopts restored settings and keeps the focused Connect button mounted', () => {
     const { rerender } = render(panel('ws://a:4455', ''));
-    const button = screen.getByRole('button', { name: 'Connect' });
+    const button = screen.getByRole('button', { name: '接続' });
     button.focus();
     rerender(panel('ws://b:4455', 'secret'));
     expect((screen.getByLabelText('URL') as HTMLInputElement).value).toBe('ws://b:4455');
-    expect((screen.getByLabelText('Password') as HTMLInputElement).value).toBe('secret');
-    expect(screen.getByRole('button', { name: 'Connect' })).toBe(button);
+    expect((screen.getByLabelText('パスワード') as HTMLInputElement).value).toBe('secret');
+    expect(screen.getByRole('button', { name: '接続' })).toBe(button);
     expect(document.activeElement).toBe(button);
   });
 });
@@ -27,7 +27,7 @@ describe('ConnectPanel password reveal', () => {
   afterEach(cleanup);
 
   const withState = (state: ConnState, onConnect: () => void = noop) => <ConnectPanel initial={{ url: 'ws://a:4455', password: 'hunter2' }} state={state} onConnect={onConnect} onDisconnect={noop} />;
-  const input = () => screen.getByLabelText('Password') as HTMLInputElement;
+  const input = () => screen.getByLabelText('パスワード') as HTMLInputElement;
   const toggle = () => screen.getByRole('button', { name: /^(表示|隠す)$/ });
   const showBtn = () => screen.getByRole('button', { name: '表示' });
   const hideBtn = () => screen.getByRole('button', { name: '隠す' });

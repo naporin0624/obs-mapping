@@ -2,9 +2,13 @@ import { atom, type Getter } from 'jotai';
 import { atomWithRefresh } from 'jotai/utils';
 import type { LoadResult, MappingSyncState } from '../../app/mapping-sync';
 import type { Mapping } from '../../model/mapping';
-import type { Action } from '../../editor/reducer';
+import type { Action, UiAction } from '../../editor/reducer';
 import type { EditorState } from '../../editor/state';
-import { groupProblem } from '../../editor/grouping';
+import { groupProblem, type GroupProblem } from '../../editor/grouping';
+import { namingOf, type Naming } from '../../editor/naming';
+import type { Messages } from '../../i18n/messages';
+import { messagesAtom } from '../../i18n/messages-atom';
+import { MAX_TREE_DEPTH } from '../../model/validate-tree';
 import { commandAtom } from '../command';
 import { instancesAtom } from '../instances';
 import { collapsedGroupsAtom } from '../layers';
@@ -76,21 +80,42 @@ const prunedCollapsed = (collapsed: ReadonlySet<string>, mapping: Mapping): Read
   return kept.length === collapsed.size ? null : new Set(kept);
 };
 
+/** Stamps the locale's default names on the actions that create items. */
+const withNaming = (action: UiAction, naming: Naming): Action => {
+  switch (action.type) {
+    case 'addSurface':
+    case 'duplicateSelected':
+    case 'group':
+      return { ...action, naming };
+    default:
+      return action;
+  }
+};
+
 /** Applies the action, then forgets collapsed ids of groups that no longer exist. */
-export const dispatchAtom = atom(null, (get, set, action: Action): void => {
+export const dispatchAtom = atom(null, (get, set, action: UiAction): void => {
   const { sync } = get(instancesAtom);
-  sync.dispatch(action);
+  sync.dispatch(withNaming(action, namingOf(get(messagesAtom))));
   const mapping = sync.getState().editor?.mapping;
   const pruned = mapping === undefined ? null : prunedCollapsed(get(collapsedGroupsAtom), mapping);
   if (pruned !== null) set(collapsedGroupsAtom, pruned);
 });
+const problemText = (t: Messages, problem: Exclude<GroupProblem, 'empty'>): string => {
+  switch (problem) {
+    case 'mixedParents':
+      return t.groupMixedParents;
+    case 'tooDeep':
+      return t.groupTooDeep(MAX_TREE_DEPTH);
+  }
+};
+
 /** Shows why grouping is impossible as a toast; groups when it is possible; silent with nothing selected. */
 export const groupSelectionAtom = atom(null, (get, set): void => {
   const editor = get(syncStateAtom).editor;
   if (editor === null || editor.dragging) return;
   const problem = groupProblem(editor.mapping, editor.selection);
   if (problem === null) set(dispatchAtom, { type: 'group' });
-  else if (problem !== '') set(reportErrorAtom, problem);
+  else if (problem !== 'empty') set(reportErrorAtom, problemText(get(messagesAtom), problem));
 });
 export const setOverlayAtom = commandAtom((i, enabled: boolean) => i.sync.setOverlay(enabled));
 

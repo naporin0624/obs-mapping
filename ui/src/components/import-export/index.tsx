@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useT } from '../../i18n/use-t';
 import { downloadMapping } from '../../io/export';
 import { parseImport, scaleMapping, type ImportResult } from '../../io/import';
 import type { Mapping } from '../../model/mapping';
@@ -16,6 +17,7 @@ type Props = {
 
 /** Import (file input) and Export (download) buttons for the toolbar. */
 export const ImportExport = ({ mapping, online, onApply, onError }: Props) => {
+  const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
   const [mismatch, setMismatch] = useState<Mismatch | null>(null);
 
@@ -35,14 +37,14 @@ export const ImportExport = ({ mapping, online, onApply, onError }: Props) => {
   return (
     <>
       <button type="button" className={buttonCls} disabled={!online} onClick={() => fileRef.current?.click()}>
-        Import
+        {t.importButton}
       </button>
       <input
         ref={fileRef}
         type="file"
         accept=".json"
         hidden
-        aria-label="Import JSON"
+        aria-label={t.importFileLabel}
         onChange={(e) => {
           const input = e.currentTarget;
           const file = input.files?.[0];
@@ -51,7 +53,7 @@ export const ImportExport = ({ mapping, online, onApply, onError }: Props) => {
         }}
       />
       <button type="button" className={buttonCls} onClick={() => downloadMapping(mapping)}>
-        Export
+        {t.exportButton}
       </button>
       {mismatch === null ? null : (
         <ImportDialog

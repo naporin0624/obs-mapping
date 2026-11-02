@@ -7,7 +7,7 @@ import { subtreeIds } from '../model/layers';
 import { unionBounds } from '../geometry/align';
 import type { Bounds } from '../geometry/rect';
 import { isLaidOut, isTopLevel, movableItems } from './items';
-import type { Action } from './reducer';
+import type { UiAction } from './reducer';
 import { clickTarget, deepTarget, drillTarget, pickPath, surfaceAt } from './stage-pick';
 import { emptySelection, type CornerIndex, type EditorState, type Selection } from './state';
 
@@ -33,7 +33,7 @@ export type StageDrag = {
   onUp: (e: Pointer) => void;
 };
 
-type Args = { state: EditorState; dispatch: Dispatch<Action>; svgRef: RefObject<SVGSVGElement | null>; scale: number };
+type Args = { state: EditorState; dispatch: Dispatch<UiAction>; svgRef: RefObject<SVGSVGElement | null>; scale: number };
 
 const nextIds = (current: readonly string[], id: string, additive: boolean): readonly string[] => {
   if (additive) return toggled(current, id);
@@ -87,7 +87,7 @@ const geometry = (mapping: Mapping, scale: number, svgRef: RefObject<SVGSVGEleme
 
 type Moved = { drag: Drag; guides: readonly GuideLine[] };
 
-const moveItems = (geo: Geometry, dispatch: Dispatch<Action>, e: Pointer, d: ItemsDrag, p: Point): Moved => {
+const moveItems = (geo: Geometry, dispatch: Dispatch<UiAction>, e: Pointer, d: ItemsDrag, p: Point): Moved => {
   const hit = roundedGroupOffsetHit(d.frame, [p[0] - d.start[0], p[1] - d.start[1]], geo.snapOptions(e, d.ownIds));
   const dx = hit.point[0] - d.applied[0];
   const dy = hit.point[1] - d.applied[1];
@@ -97,7 +97,7 @@ const moveItems = (geo: Geometry, dispatch: Dispatch<Action>, e: Pointer, d: Ite
 };
 
 /** Applies one pointer move and returns the updated drag state with the active snap guides. */
-const applyMove = (geo: Geometry, dispatch: Dispatch<Action>, e: Pointer, d: Drag): Moved => {
+const applyMove = (geo: Geometry, dispatch: Dispatch<UiAction>, e: Pointer, d: Drag): Moved => {
   const p = geo.toCanvas(e);
   if (d.kind === 'items') return moveItems(geo, dispatch, e, d, p);
   if (d.kind === 'corner') {
@@ -125,7 +125,7 @@ const dragFor = (m: Mapping, sel: Selection, target: string, start: Point): Drag
   return { kind: 'surface', ids: sel.surfaceIds.filter((id) => !isLaidOut(m, id)), primary, start, applied: [0, 0] };
 };
 
-type Ctx = { mapping: Mapping; selection: Selection; dispatch: Dispatch<Action> };
+type Ctx = { mapping: Mapping; selection: Selection; dispatch: Dispatch<UiAction> };
 
 /** Selects what the press picked and returns the drag it starts, if any. */
 const pressSurface = ({ mapping, selection, dispatch }: Ctx, e: Pointer, surfaceId: string, start: Point): Drag | null => {

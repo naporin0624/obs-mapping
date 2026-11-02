@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useT } from '../../i18n/use-t';
 import type { Canvas } from '../../io/import';
 import { buttonCls, buttonSolidCls } from '../styles.css';
 import { dialogCls, titleCls, resCls, textCls, actionsCls } from './styles.css';
@@ -15,6 +16,7 @@ const size = (c: Canvas): string => `${c.width}×${c.height}`;
 
 /** Modal for a resolution mismatch. Uses a native <dialog>: focus is trapped and Escape cancels. */
 export const ImportDialog = ({ json, current, onScale, onOverwrite, onCancel }: Props) => {
+  const t = useT();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -31,23 +33,21 @@ export const ImportDialog = ({ json, current, onScale, onOverwrite, onCancel }: 
       }}
     >
       <div id="import-dialog-title" className={titleCls}>
-        解像度が違います
+        {t.importTitle}
       </div>
-      <div className={resCls}>
-        JSON: {size(json)} / 現在: {size(current)}
-      </div>
-      <div className={textCls}>Scale: 点を比率で伸縮して現在の解像度に合わせます。</div>
-      <div className={textCls}>Overwrite: JSON の解像度のまま上書きします。</div>
-      <div className={textCls}>読み込みは元に戻せません（Undo の履歴も消えます）。</div>
+      <div className={resCls}>{t.importResolution(size(json), size(current))}</div>
+      <div className={textCls}>{t.importScaleHelp}</div>
+      <div className={textCls}>{t.importOverwriteHelp}</div>
+      <div className={textCls}>{t.importUndoHelp}</div>
       <div className={actionsCls}>
         <button type="button" className={buttonCls} onClick={onCancel}>
-          Cancel
+          {t.importCancel}
         </button>
         <button type="button" className={buttonCls} onClick={onOverwrite}>
-          Overwrite
+          {t.importOverwrite}
         </button>
         <button type="button" className={buttonSolidCls} onClick={onScale} autoFocus>
-          Scale
+          {t.importScale}
         </button>
       </div>
     </dialog>

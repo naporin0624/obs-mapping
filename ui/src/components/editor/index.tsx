@@ -3,6 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { activateMappingAtom, dispatchAtom, groupSelectionAtom, hasLiveEditorAtom, importAtom, mappingViewAtom, overlayEnabledAtom, setOverlayAtom } from '../../atoms/mapping';
 import { clientAtom, inputsAtom, onlineAtom, reloadInputsAtom } from '../../atoms/session';
 import { reportErrorAtom } from '../../atoms/toast';
+import { useT } from '../../i18n/use-t';
 import { movableItems } from '../../editor/items';
 import { ImportExport } from '../import-export';
 import { Inspector } from '../inspector';
@@ -12,8 +13,6 @@ import { Toolbar } from '../toolbar';
 import { UnderlayControls } from '../underlay-controls';
 import { LoadBoundary } from './load-boundary';
 import { bodyCls, stageColCls, sideCls, noteCls } from './styles.css';
-
-const IMMOVABLE_REASON = 'グループの中の要素は、グループが位置を決めています';
 
 const useEditorCommands = () => ({
   dispatch: useSetAtom(dispatchAtom),
@@ -25,6 +24,7 @@ const useEditorCommands = () => ({
 });
 
 const EditorBody = () => {
+  const t = useT();
   const view = useAtomValue(mappingViewAtom);
   const online = useAtomValue(onlineAtom);
   const overlayEnabled = useAtomValue(overlayEnabledAtom);
@@ -50,7 +50,7 @@ const EditorBody = () => {
         canUndo={editor.past.length > 0 && !editor.dragging}
         canRedo={editor.future.length > 0 && !editor.dragging}
         selectedCount={movableCount}
-        immovableReason={movableCount === 0 && selectedCount > 0 ? IMMOVABLE_REASON : null}
+        immovableReason={movableCount === 0 && selectedCount > 0 ? t.editorImmovable : null}
         canGroup={selectedCount > 0}
         canUngroup={editor.selection.groupIds.length > 0}
         onGroup={group}
@@ -76,9 +76,10 @@ const EditorBody = () => {
 
 /** The editing screen for the selected Mapping source. */
 export const Editor = () => {
+  const t = useT();
   const online = useAtomValue(onlineAtom);
   const live = useAtomValue(hasLiveEditorAtom);
-  if (!online && !live) return <div className={noteCls}>OBS に接続すると編集できます。</div>;
+  if (!online && !live) return <div className={noteCls}>{t.editorOffline}</div>;
   return (
     <LoadBoundary>
       <EditorBody />

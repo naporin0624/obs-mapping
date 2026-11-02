@@ -6,6 +6,7 @@ import { fakeObs, mapping, type FakeObs } from '../../test/fake-obs';
 import { collapsedGroupsAtom, toggleCollapsedAtom } from '../layers';
 import { lifecycleAtom } from '../lifecycle';
 import { selectedSourceAtom, selectSourceAtom } from '../session';
+import { localeAtom } from '../../i18n/locale';
 import { toastAtom } from '../toast';
 import { buildStore, settle } from '../../test/store-harness';
 import { activateMappingAtom, dispatchAtom, groupSelectionAtom, hasLiveEditorAtom, importAtom, mappingViewAtom, overlayEnabledAtom, retryLoadAtom } from '.';
@@ -238,6 +239,21 @@ describe('groupSelectionAtom', () => {
     return { store, json: () => JSON.stringify(instances.sync.getState().editor?.mapping) };
   };
   const pick = (ids: string[]): Action => ({ type: 'select', selection: { surfaceIds: ids, groupIds: [], corner: null } });
+
+  it('toasts the grouping problem in English when the locale is en', async () => {
+    const { store } = await opened();
+    store.set(localeAtom, 'en');
+    store.set(dispatchAtom, pick(['a', 'b']));
+    store.set(groupSelectionAtom);
+    expect(store.get(toastAtom)?.text).toBe('Select items from the same level');
+  });
+
+  it('names new items in the locale of the store', async () => {
+    const { store, json } = await opened();
+    store.set(localeAtom, 'en');
+    store.set(dispatchAtom, { type: 'addSurface', source: 'cam' });
+    expect(json()).toContain('"name":"Surface 1"');
+  });
 
   it('toasts once and leaves the mapping alone when parents differ', async () => {
     const { store, json } = await opened();

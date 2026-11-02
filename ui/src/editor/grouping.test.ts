@@ -1,3 +1,4 @@
+import { jaNaming } from '../test/naming';
 import { describe, expect, it } from 'vitest';
 import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
 import type { LayerNode, Mapping } from '../model/mapping';
@@ -16,29 +17,29 @@ const nested = (): Mapping => ({
 
 describe('groupItems', () => {
   it('puts the group where the first item was', () => {
-    const out = groupItems(three(), ['c', 'a'], 'g-1')!;
+    const out = groupItems(three(), ['c', 'a'], 'g-1', jaNaming.group)!;
     expect(out.layers).toEqual([gn('g-1', sn('a'), sn('c')), sn('b')]);
     expect(out.groups[0]).toMatchObject({ id: 'g-1', name: 'グループ 1', visible: true, origin: [0, 0] });
   });
   it('infers the layout from the arrangement', () => {
-    expect(groupItems(three(), ['a', 'b', 'c'], 'g-1')!.groups[0]?.layout).toEqual({ direction: 'row', gap: 10, align: 'start', padding: 0 });
+    expect(groupItems(three(), ['a', 'b', 'c'], 'g-1', jaNaming.group)!.groups[0]?.layout).toEqual({ direction: 'row', gap: 10, align: 'start', padding: 0 });
   });
   it('groups a single item', () => {
-    expect(groupItems(three(), ['b'], 'g-1')!.layers).toEqual([sn('a'), gn('g-1', sn('b')), sn('c')]);
+    expect(groupItems(three(), ['b'], 'g-1', jaNaming.group)!.layers).toEqual([sn('a'), gn('g-1', sn('b')), sn('c')]);
   });
   it('is null across parents and for an empty list', () => {
-    expect(groupItems(nested(), ['a', 'b'], 'g-2')).toBeNull();
-    expect(groupItems(three(), [], 'g-1')).toBeNull();
+    expect(groupItems(nested(), ['a', 'b'], 'g-2', jaNaming.group)).toBeNull();
+    expect(groupItems(three(), [], 'g-1', jaNaming.group)).toBeNull();
   });
   it('groups inside a group', () => {
-    const out = groupItems(nested(), ['b', 'c'], 'g-2')!;
+    const out = groupItems(nested(), ['b', 'c'], 'g-2', jaNaming.group)!;
     expect(out.layers).toEqual([sn('a'), gn('g-1', gn('g-2', sn('b'), sn('c')))]);
   });
 });
 
 describe('ungroupItems', () => {
   it('replaces the group by its children at the same index', () => {
-    const grouped = groupItems(three(), ['b', 'c'], 'g-1')!;
+    const grouped = groupItems(three(), ['b', 'c'], 'g-1', jaNaming.group)!;
     const { mapping, childIds } = ungroupItems(grouped, ['g-1']);
     expect(mapping.layers).toEqual([sn('a'), sn('b'), sn('c')]);
     expect(mapping.groups).toEqual([]);
@@ -55,10 +56,10 @@ describe('ungroupItems', () => {
 
 describe('groupProblem', () => {
   it('is empty when nothing is selected', () => {
-    expect(groupProblem(three(), select([]))).toBe('');
+    expect(groupProblem(three(), select([]))).toBe('empty');
   });
   it('asks for one level when parents differ', () => {
-    expect(groupProblem(nested(), select(['a', 'b']))).toBe('同じ階層のものを選んでください');
+    expect(groupProblem(nested(), select(['a', 'b']))).toBe('mixedParents');
   });
   it('accepts one surface or siblings', () => {
     expect(groupProblem(three(), select(['a']))).toBeNull();
@@ -69,7 +70,7 @@ describe('groupProblem', () => {
     const chain = Array.from({ length: MAX_TREE_DEPTH - 1 }, (_, i) => `g-${i + 1}`);
     const layers = chain.reduceRight<LayerNode>((inner, id) => gn(id, inner), sn('a'));
     const m: Mapping = { ...mapOf(surf('a', 0, 0)), groups: chain.map((id) => groupOf(id)), layers: [layers] };
-    expect(groupProblem(m, select(['a']))).toBe('これ以上深い階層にはできません（16 階層まで）');
+    expect(groupProblem(m, select(['a']))).toBe('tooDeep');
     const shallower: Mapping = { ...m, groups: m.groups.slice(1), layers: [chain.slice(1).reduceRight<LayerNode>((inner, id) => gn(id, inner), sn('a'))] };
     expect(groupProblem(shallower, select(['a']))).toBeNull();
   });
