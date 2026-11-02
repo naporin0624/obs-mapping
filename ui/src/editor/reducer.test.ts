@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
-import type { Mapping } from '../model/mapping';
+import type { LayerNode, Mapping } from '../model/mapping';
+import { validateTree } from '../model/validate-tree';
 import { reducer, type Action } from './reducer';
 import { canonicalJson, initialEditorState, type EditorState } from './state';
 
@@ -90,8 +91,8 @@ describe('edits', () => {
     expect(s.mapping.surfaces[1]?.corners[0]).toEqual([20, 20]);
     expect(s.selection.surfaceIds).toEqual(['s-3']);
   });
-  it('reorder, patchSurface and setGrid', () => {
-    const s = run(base(), { type: 'reorder', surfaceId: 'a', toIndex: 1 }, { type: 'patchSurface', surfaceId: 'a', patch: { visible: false } }, { type: 'setGrid', size: 20 });
+  it('moveNodes, patchSurface and setGrid', () => {
+    const s = run(base(), { type: 'moveNodes', ids: ['a'], target: { parentId: null, index: 2 } }, { type: 'patchSurface', surfaceId: 'a', patch: { visible: false } }, { type: 'setGrid', size: 20 });
     expect(s.mapping.surfaces.map((x) => x.id)).toEqual(['b', 'a']);
     expect(s.mapping.surfaces[1]?.visible).toBe(false);
     expect(s.mapping.grid.size).toBe(20);
@@ -152,18 +153,36 @@ describe('groups keep the tree valid', () => {
     expect(s.mapping.groups.map((g) => g.id)).toEqual(['g1', 'g-1']);
   });
 
-  it('reorder moves within the parent and ignores a target under another parent', () => {
-    const moved = run(initialEditorState(grouped()), { type: 'reorder', surfaceId: 'a', toIndex: 1 });
+  it('moveNodes reorders inside a parent and keeps surfaces in tree order', () => {
+    const moved = run(initialEditorState(grouped()), { type: 'moveNodes', ids: ['a'], target: { parentId: 'g1', index: 2 } });
     expect(moved.mapping.layers[0]).toEqual(gn('g1', sn('b'), sn('a')));
     expect(ids(moved.mapping)).toEqual(['b', 'a', 'c', 'd']);
-    const start = initialEditorState(grouped());
-    expect(run(start, { type: 'reorder', surfaceId: 'a', toIndex: 2 })).toBe(start);
-    expect(run(start, { type: 'reorder', surfaceId: 'c', toIndex: 0 })).toBe(start);
   });
 
-  it('reorder at the top level still moves a surface', () => {
-    const s = run(initialEditorState(grouped()), { type: 'reorder', surfaceId: 'c', toIndex: 3 });
-    expect(s.mapping.layers).toEqual([gn('g1', sn('a'), sn('b')), sn('d'), sn('c')]);
+  it('moveNodes moves a surface across parents and a no-op leaves the state identical', () => {
+    const s = run(initialEditorState(grouped()), { type: 'moveNodes', ids: ['c'], target: { parentId: 'g1', index: 0 } });
+    expect(s.mapping.layers).toEqual([gn('g1', sn('c'), sn('a'), sn('b')), sn('d')]);
+    expect(s.past).toHaveLength(1);
+    const start = initialEditorState(grouped());
+    expect(run(start, { type: 'moveNodes', ids: ['c'], target: { parentId: null, index: 1 } })).toBe(start);
+  });
+
+  it('moveNodes refuses a move deeper than the depth limit', () => {
+    const chain = Array.from({ length: 16 }, (_, i) => `g${String(i)}`);
+    const nested = chain.reduceRight<LayerNode[]>((inner, id) => [gn(id, ...inner)], []);
+    const m: Mapping = { ...mk(surf('x', 0, 0)), groups: [...chain.map((id) => groupOf(id)), groupOf('top')], layers: [...nested, gn('top')] };
+    const start = initialEditorState(m);
+    expect(run(start, { type: 'moveNodes', ids: ['top'], target: { parentId: 'g15', index: 0 } })).toBe(start);
+  });
+
+  it('patchGroup clamps spacing, ignores non-finite values and an empty name, and skips unknown groups', () => {
+    const start = initialEditorState(grouped());
+    const layout = { direction: 'column', gap: 5000, align: 'center', padding: Number.NaN } as const;
+    const s = run(start, { type: 'patchGroup', groupId: 'g1', patch: { name: 'Row', visible: false, layout } });
+    const g = s.mapping.groups[0];
+    expect([g?.name, g?.visible, g?.layout]).toEqual(['Row', false, { direction: 'column', gap: 4096, align: 'center', padding: 0 }]);
+    expect(run(start, { type: 'patchGroup', groupId: 'g1', patch: { name: '' } })).toBe(start);
+    expect(run(start, { type: 'patchGroup', groupId: 'nope', patch: { visible: false } })).toBe(start);
   });
 });
 
@@ -567,5 +586,19 @@ describe('group items', () => {
     const nested: Mapping = { ...m, groups: [...m.groups, groupOf('h', { origin: [220, 100] })], layers: [gn('g', sn('a'), gn('h', sn('b'))), sn('x')] };
     const w = run(initialEditorState(nested), pick([], ['h']));
     expect(reducer(w, { type: 'nudge', dx: 1, dy: 2 })).toBe(w);
+  });
+});
+
+describe('multi-select move across parents', () => {
+  it('moves nodes from two parents into a third group as one valid history entry', () => {
+    const m: Mapping = {
+      ...mk(surf('a', 0, 0), surf('b', 20, 0), surf('c', 40, 0)),
+      groups: [groupOf('g1'), groupOf('g2'), groupOf('g3')],
+      layers: [gn('g1', sn('a')), gn('g2', sn('b')), gn('g3', sn('c'))],
+    };
+    const s = run(initialEditorState(m), { type: 'moveNodes', ids: ['a', 'b'], target: { parentId: 'g3', index: 1 } });
+    expect(s.mapping.layers).toEqual([gn('g1'), gn('g2'), gn('g3', sn('c'), sn('a'), sn('b'))]);
+    expect(validateTree(s.mapping)).toBeNull();
+    expect(s.past).toHaveLength(1);
   });
 });

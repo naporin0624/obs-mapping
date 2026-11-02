@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gn, mapOf, sn, surf } from '../geometry/fixtures';
-import { depthOf, subtreeHeight, dfsSurfaceIds, findParent, flatLayers, insertAfterNode, isGroupNode, moveWithinParent, nodeId, removeNodes, sortSurfacesByLayers, subtreeIds } from './layers';
+import { depthOf, subtreeHeight, dfsSurfaceIds, findParent, flatLayers, insertAfterNode, isGroupNode, moveNodes, nodeId, removeNodes, sortSurfacesByLayers, subtreeIds } from './layers';
 
 const tree = () => [gn('g1', sn('s1'), gn('g2', sn('s2'))), sn('s3')];
 
@@ -32,11 +32,6 @@ describe('layers', () => {
     expect(insertAfterNode(tree(), 's1', sn('x'))).toEqual([gn('g1', sn('s1'), sn('x'), gn('g2', sn('s2'))), sn('s3')]);
   });
 
-  it('moveWithinParent reorders only inside the parent', () => {
-    expect(moveWithinParent([sn('s1'), sn('s2'), sn('s3')], 's1', 1)).toEqual([sn('s2'), sn('s1'), sn('s3')]);
-    expect(moveWithinParent(tree(), 's1', 1)).toEqual([gn('g1', gn('g2', sn('s2')), sn('s1')), sn('s3')]);
-  });
-
   it('findParent returns the parent id and index', () => {
     expect(findParent(tree(), 's2')).toEqual({ parentId: 'g2', index: 0 });
     expect(findParent(tree(), 's3')).toEqual({ parentId: null, index: 1 });
@@ -48,12 +43,31 @@ describe('layers', () => {
     expect(subtreeIds(tree(), 's3')).toEqual({ surfaceIds: ['s3'], groupIds: [] });
   });
 
+  it('moveNodes moves a child to the top level and keeps the tree order of ids', () => {
+    expect(moveNodes(tree(), ['s1'], { parentId: null, index: 0 })).toEqual([sn('s1'), gn('g1', gn('g2', sn('s2'))), sn('s3')]);
+    expect(moveNodes([sn('a'), sn('b'), sn('c')], ['c', 'a'], { parentId: null, index: 2 })).toEqual([sn('b'), sn('a'), sn('c')]);
+  });
+
+  it('moveNodes counts the index before removal and appends into a group', () => {
+    expect(moveNodes([sn('a'), sn('b'), sn('c')], ['a'], { parentId: null, index: 2 })).toEqual([sn('b'), sn('a'), sn('c')]);
+    expect(moveNodes(tree(), ['s3'], { parentId: 'g2', index: 1 })).toEqual([gn('g1', sn('s1'), gn('g2', sn('s2'), sn('s3')))]);
+  });
+
+  it('moveNodes returns the same array for a no-op, a missing parent, or a move into itself', () => {
+    const t = [sn('a'), sn('b')];
+    expect(moveNodes(t, ['a'], { parentId: null, index: 0 })).toBe(t);
+    expect(moveNodes(t, ['a'], { parentId: null, index: 1 })).toBe(t);
+    expect(moveNodes(t, ['a'], { parentId: 'nope', index: 0 })).toBe(t);
+    const g = tree();
+    expect(moveNodes(g, ['g1'], { parentId: 'g2', index: 0 })).toBe(g);
+    expect(moveNodes(g, ['s1'], { parentId: 's3', index: 0 })).toBe(g);
+  });
+
   it('never mutates its input', () => {
     const t = tree();
     const before = JSON.stringify(t);
     removeNodes(t, new Set(['g2']));
     insertAfterNode(t, 's1', sn('x'));
-    moveWithinParent(t, 's1', 1);
     expect(JSON.stringify(t)).toBe(before);
   });
 });

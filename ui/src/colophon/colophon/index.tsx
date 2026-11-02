@@ -1,8 +1,14 @@
 import { useState, type ReactNode } from 'react';
+import { Provider, createStore } from 'jotai';
 import { Link } from 'react-aria-components';
+import { EyeIcon, EyeOffIcon, PlusIcon, TrashIcon } from '../../components/icons';
+import { LayerTree } from '../../components/layer-tree';
 import { SourceSelect, type SourceOption } from '../../components/source-select';
 import { UnderlayImage } from '../../components/stage-underlay';
 import { UnderlayControlsView, type UnderlayView } from '../../components/underlay-controls';
+import { emptySelection } from '../../editor/state';
+import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
+import type { Mapping } from '../../model/mapping';
 import { pageCls, headingCls, caseCls, captionCls, linkCls, frameCls } from './styles.css';
 
 const options: readonly SourceOption[] = [
@@ -37,6 +43,21 @@ const InteractiveUnderlay = () => {
   );
 };
 
+const layerSample = (hideGroup: boolean): Mapping => ({
+  ...mapOf(surf('a', 0, 0), surf('b', 0, 0), surf('c', 0, 0)),
+  groups: [groupOf('g-1', { name: 'Stage', visible: !hideGroup }), groupOf('g-2', { name: 'Back row' })],
+  layers: [gn('g-1', sn('a'), gn('g-2', sn('b'))), sn('c')],
+});
+
+const LayerTreeCase = ({ hideGroup }: { hideGroup: boolean }) => {
+  const [store] = useState(createStore);
+  return (
+    <Provider store={store}>
+      <LayerTree mapping={layerSample(hideGroup)} selection={emptySelection()} dispatch={noop} />
+    </Provider>
+  );
+};
+
 export const Colophon = () => {
   const [picked, setPicked] = useState<string | null>('Mapping');
   return (
@@ -45,6 +66,20 @@ export const Colophon = () => {
       <Link href="https://react-spectrum.adobe.com/react-aria/Select.html" className={linkCls} onClick={(e) => e.preventDefault()}>
         SourceSelect is built on react-aria-components Select
       </Link>
+      <Link href="https://react-spectrum.adobe.com/react-aria/Tree.html" className={linkCls} onClick={(e) => e.preventDefault()}>
+        LayerTree is built on react-aria-components Tree
+      </Link>
+      <Case title="LayerTree / 入れ子と折りたたみ">
+        <LayerTreeCase hideGroup={false} />
+      </Case>
+      <Case title="LayerTree / 非表示のグループ">
+        <LayerTreeCase hideGroup />
+      </Case>
+      <Case title="Icons / Eye, EyeOff, Plus, Trash">
+        <div>
+          <EyeIcon /> <EyeOffIcon /> <PlusIcon /> <TrashIcon />
+        </div>
+      </Case>
       <Case title="SourceSelect / placeholder">
         <SourceSelect label="Source" placeholder="Select a source" items={options} value={null} onChange={noop} />
       </Case>

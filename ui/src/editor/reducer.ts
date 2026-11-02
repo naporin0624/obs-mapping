@@ -1,5 +1,6 @@
-import { findParent, moveWithinParent, sortSurfacesByLayers } from '../model/layers';
-import type { Mapping, Point, Surface } from '../model/mapping';
+import { fitsDepth, moveNodes, sortSurfacesByLayers, type NodeTarget } from '../model/layers';
+import type { Group, Mapping, Point, Surface } from '../model/mapping';
+import { MAX_SPACING } from '../model/validate-tree';
 import { alignDeltas, distributeDeltas, itemsReference, translateSurface, type AlignMode } from '../geometry/align';
 import { rectCorners, type Bounds } from '../geometry/rect';
 import { followCorner } from '../layout/follow-corner';
@@ -27,7 +28,8 @@ export type Action =
   | { type: 'duplicateSelected' }
   | { type: 'group' }
   | { type: 'ungroup' }
-  | { type: 'reorder'; surfaceId: string; toIndex: number }
+  | { type: 'moveNodes'; ids: string[]; target: NodeTarget }
+  | { type: 'patchGroup'; groupId: string; patch: Partial<Pick<Group, 'name' | 'visible' | 'layout'>> }
   | { type: 'patchSurface'; surfaceId: string; patch: Partial<Pick<Surface, 'name' | 'source' | 'crop' | 'visible'>> }
   | { type: 'setGrid'; size: number }
   | { type: 'undo' }
@@ -53,7 +55,8 @@ const DRAG_BLOCKED: ReadonlySet<Action['type']> = new Set([
   'duplicateSelected',
   'group',
   'ungroup',
-  'reorder',
+  'moveNodes',
+  'patchGroup',
   'patchSurface',
   'setGrid',
 ]);
@@ -111,14 +114,25 @@ const aligned = (s: EditorState, mode: AlignMode): Mapping => {
 
 const distributed = (s: EditorState, axis: 'x' | 'y'): Mapping => moveAll(s.mapping, distributeDeltas(movableItems(s.mapping, s.selection), axis));
 
-/** `toIndex` is a position in `surfaces`; it only applies when the surface there shares the parent. */
-const moved = (m: Mapping, id: string, toIndex: number): Mapping => {
-  const target = m.surfaces[Math.max(0, Math.min(m.surfaces.length - 1, toIndex))];
-  const from = findParent(m.layers, id);
-  const to = target === undefined ? null : findParent(m.layers, target.id);
-  if (from === null || to === null || from.parentId !== to.parentId) return m;
-  return sortSurfacesByLayers({ ...m, layers: moveWithinParent(m.layers, id, to.index) });
+const movedNodes = (m: Mapping, ids: readonly string[], target: NodeTarget): Mapping => {
+  if (!fitsDepth(m.layers, ids, target.parentId)) return m;
+  const layers = moveNodes(m.layers, ids, target);
+  return layers === m.layers ? m : sortSurfacesByLayers({ ...m, layers });
 };
+
+const clampSpacing = (value: number, current: number): number => (Number.isFinite(value) ? Math.max(0, Math.min(MAX_SPACING, value)) : current);
+
+const mergedGroup = (g: Group, patch: Partial<Pick<Group, 'name' | 'visible' | 'layout'>>): Group => ({
+  ...g,
+  name: patch.name === undefined || patch.name === '' ? g.name : patch.name,
+  visible: patch.visible ?? g.visible,
+  layout: patch.layout === undefined ? g.layout : { ...patch.layout, gap: clampSpacing(patch.layout.gap, g.layout.gap), padding: clampSpacing(patch.layout.padding, g.layout.padding) },
+});
+
+const patchedGroup = (m: Mapping, groupId: string, patch: Partial<Pick<Group, 'name' | 'visible' | 'layout'>>): Mapping => ({
+  ...m,
+  groups: m.groups.map((g) => (g.id === groupId ? mergedGroup(g, patch) : g)),
+});
 
 const withAppendedSurface = (m: Mapping, created: Surface): Mapping => ({ ...m, surfaces: [...m.surfaces, created], layers: [...m.layers, { surface: created.id }] });
 
@@ -228,7 +242,8 @@ const handlers: Handlers = {
   },
   group: grouped,
   ungroup: ungrouped,
-  reorder: (s, a) => commit(s, moved(s.mapping, a.surfaceId, a.toIndex)),
+  moveNodes: (s, a) => commit(s, movedNodes(s.mapping, a.ids, a.target)),
+  patchGroup: (s, a) => commit(s, patchedGroup(s.mapping, a.groupId, a.patch)),
   patchSurface: (s, a) =>
     commit(
       s,

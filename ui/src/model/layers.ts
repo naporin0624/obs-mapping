@@ -1,3 +1,4 @@
+import { MAX_TREE_DEPTH } from './validate-tree';
 import type { GroupNode, LayerNode, Mapping, Surface, SurfaceNode } from './mapping';
 
 export const isGroupNode = (n: LayerNode): n is GroupNode => 'group' in n;
@@ -35,20 +36,6 @@ export const insertAfterNode = (layers: readonly LayerNode[], anchorId: string, 
   return mapChildren(layers, (children) => insertAfterNode(children, anchorId, node));
 };
 
-const moveInList = (list: readonly LayerNode[], from: number, toIndex: number): LayerNode[] => {
-  const item = list[from];
-  if (item === undefined) return [...list];
-  const rest = list.filter((_, i) => i !== from);
-  const at = Math.max(0, Math.min(rest.length, toIndex));
-  return [...rest.slice(0, at), item, ...rest.slice(at)];
-};
-
-export const moveWithinParent = (layers: readonly LayerNode[], id: string, toIndex: number): LayerNode[] => {
-  const from = layers.findIndex((n) => nodeId(n) === id);
-  if (from >= 0) return moveInList(layers, from, toIndex);
-  return mapChildren(layers, (children) => moveWithinParent(children, id, toIndex));
-};
-
 export const findNode = (layers: readonly LayerNode[], id: string): LayerNode | null => {
   const hit = layers.find((n) => nodeId(n) === id);
   if (hit !== undefined) return hit;
@@ -80,4 +67,43 @@ const collectIds = (n: LayerNode): { surfaceIds: string[]; groupIds: string[] } 
 export const subtreeIds = (layers: readonly LayerNode[], id: string): { surfaceIds: string[]; groupIds: string[] } => {
   const node = findNode(layers, id);
   return node === null ? { surfaceIds: [], groupIds: [] } : collectIds(node);
+};
+
+export type NodeTarget = { parentId: string | null; index: number };
+
+const childrenOf = (layers: readonly LayerNode[], parentId: string | null): readonly LayerNode[] | null => {
+  if (parentId === null) return layers;
+  const parent = findNode(layers, parentId);
+  return parent !== null && isGroupNode(parent) ? parent.children : null;
+};
+
+const insertInto = (layers: readonly LayerNode[], parentId: string | null, index: number, nodes: readonly LayerNode[]): LayerNode[] => {
+  if (parentId === null) return [...layers.slice(0, index), ...nodes, ...layers.slice(index)];
+  return layers.map((n) => (isGroupNode(n) ? { ...n, children: insertInto(n.children, n.group === parentId ? null : parentId, index, nodes) } : n));
+};
+
+/** The listed nodes in tree order, skipping any whose ancestor is listed too. */
+const topmostInOrder = (layers: readonly LayerNode[], ids: ReadonlySet<string>): LayerNode[] =>
+  layers.flatMap((n) => (ids.has(nodeId(n)) ? [n] : isGroupNode(n) ? topmostInOrder(n.children, ids) : []));
+
+/** True when every moved subtree still fits under MAX_TREE_DEPTH below the target parent. */
+export const fitsDepth = (layers: readonly LayerNode[], ids: readonly string[], parentId: string | null): boolean => {
+  const parentDepth = parentId === null ? 0 : depthOf(layers, parentId);
+  return parentDepth !== null && ids.every((id) => parentDepth + subtreeHeight(layers, id) <= MAX_TREE_DEPTH);
+};
+
+const sameOrder = (a: readonly LayerNode[], b: readonly LayerNode[]): boolean => a.length === b.length && a.every((n, i) => nodeId(n) === nodeId(b[i] ?? n));
+
+/** `target.index` counts the parent's children before the moved nodes are removed. */
+export const moveNodes = (layers: readonly LayerNode[], ids: readonly string[], target: NodeTarget): readonly LayerNode[] => {
+  const moved = topmostInOrder(layers, new Set(ids));
+  const before = childrenOf(layers, target.parentId);
+  const inMoved = target.parentId !== null && moved.some((n) => subtreeIds(layers, nodeId(n)).groupIds.includes(target.parentId ?? ''));
+  if (moved.length === 0 || before === null || inMoved) return layers;
+  const movedIds = new Set(moved.map(nodeId));
+  const at = Math.max(0, Math.min(before.length, target.index));
+  const index = at - before.slice(0, at).filter((n) => movedIds.has(nodeId(n))).length;
+  const next = insertInto(removeNodes(layers, movedIds), target.parentId, index, moved);
+  const after = childrenOf(next, target.parentId) ?? [];
+  return sameOrder(before, after) ? layers : next;
 };
