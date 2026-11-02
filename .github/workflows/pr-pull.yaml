@@ -5,6 +5,9 @@ on:
   pull_request:
     paths-ignore:
       - '**.md'
+      # release-please PRs touch only these, and their runs expire waiting for approval
+      - '.release-please-manifest.json'
+      - 'buildspec.json'
     branches: [master, main]
     types: [ opened, synchronize, reopened ]
 permissions:
