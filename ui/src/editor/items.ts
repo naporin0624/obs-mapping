@@ -32,7 +32,7 @@ export const leadingRoot = (m: Mapping, surfaceId: string): string | null => {
   return leading ? nodeId(root) : null;
 };
 
-const isTopLevel = (m: Mapping, id: string): boolean => findParent(m.layers, id)?.parentId === null;
+export const isTopLevel = (m: Mapping, id: string): boolean => findParent(m.layers, id)?.parentId === null;
 
 const itemOf = (m: Mapping, id: string): Item | null => {
   const s = m.surfaces.find((x) => x.id === id);

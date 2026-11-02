@@ -1,5 +1,6 @@
 import type { Point, Surface } from '../model/mapping';
-import { snapPoint, type GuideLine, type SnapHit } from '../geometry/snap';
+import { rectCorners, type Bounds } from '../geometry/rect';
+import { snapPoint, snapToGrid, type GuideLine, type SnapHit } from '../geometry/snap';
 
 export type SnapOptions = {
   grid: number | null;
@@ -64,6 +65,16 @@ export const roundedCornerHit = (p: Point, o: SnapOptions): Snapped => {
 export const roundedOffsetHit = (corners: Surface['corners'], raw: Point, o: SnapOptions): Snapped => {
   const s = snapSurfaceHit(corners, raw, o);
   return { ...s, point: roundPoint(s.point) };
+};
+
+const isFree = (hit: Snapped, raw: Point): boolean => hit.guides.length === 0 && hit.point[0] === raw[0] && hit.point[1] === raw[1];
+
+/** Frame corners snap like a surface; otherwise only the frame origin lands on the grid. */
+export const roundedGroupOffsetHit = (frame: Bounds, raw: Point, o: SnapOptions): Snapped => {
+  const hit = snapSurfaceHit(rectCorners(frame), raw, { ...o, grid: null });
+  if (!o.enabled || o.grid === null || !isFree(hit, raw)) return { ...hit, point: roundPoint(hit.point) };
+  const target = snapToGrid([frame.x + raw[0], frame.y + raw[1]], o.grid);
+  return { point: roundPoint([target[0] - frame.x, target[1] - frame.y]), guides: [] };
 };
 
 export const roundedCorner = (p: Point, o: SnapOptions): Point => roundedCornerHit(p, o).point;

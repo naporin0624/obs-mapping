@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { gn, mapOf, sn, surf } from '../geometry/fixtures';
-import { depthOf, subtreeHeight, dfsSurfaceIds, findParent, flatLayers, insertAfterNode, isGroupNode, moveNodes, nodeId, removeNodes, sortSurfacesByLayers, subtreeIds } from './layers';
+import {
+  depthOf,
+  subtreeHeight,
+  dfsSurfaceIds,
+  findParent,
+  flatLayers,
+  insertAfterNode,
+  isGroupNode,
+  moveNodes,
+  nodeId,
+  removeNodes,
+  selectedSurfaceIdsDeep,
+  sortSurfacesByLayers,
+  subtreeIds,
+} from './layers';
 
 const tree = () => [gn('g1', sn('s1'), gn('g2', sn('s2'))), sn('s3')];
 
@@ -83,5 +97,22 @@ describe('depth helpers', () => {
     expect(subtreeHeight(layers, 'c')).toBe(1);
     expect(subtreeHeight(layers, 'g1')).toBe(3);
     expect(subtreeHeight(layers, 'nope')).toBe(0);
+  });
+
+  describe('selectedSurfaceIdsDeep', () => {
+    const m = () => ({ ...mapOf(surf('s1', 0, 0), surf('s2', 0, 0), surf('s3', 0, 0)), layers: tree() });
+    const sel = (surfaceIds: string[], groupIds: string[]) => ({ surfaceIds, groupIds, corner: null });
+
+    it('adds descendant surfaces of selected groups in tree order', () => {
+      expect(selectedSurfaceIdsDeep(m(), sel([], ['g1']))).toEqual(['s1', 's2']);
+    });
+
+    it('lists a surface selected directly and via its group once', () => {
+      expect(selectedSurfaceIdsDeep(m(), sel(['s3', 's2'], ['g2']))).toEqual(['s2', 's3']);
+    });
+
+    it('ignores unknown ids', () => {
+      expect(selectedSurfaceIdsDeep(m(), sel(['nope'], ['gx']))).toEqual([]);
+    });
   });
 });

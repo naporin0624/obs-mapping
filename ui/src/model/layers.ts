@@ -1,4 +1,5 @@
 import { MAX_TREE_DEPTH } from './validate-tree';
+import type { Selection } from '../editor/state';
 import type { GroupNode, LayerNode, Mapping, Surface, SurfaceNode } from './mapping';
 
 export const isGroupNode = (n: LayerNode): n is GroupNode => 'group' in n;
@@ -67,6 +68,12 @@ const collectIds = (n: LayerNode): { surfaceIds: string[]; groupIds: string[] } 
 export const subtreeIds = (layers: readonly LayerNode[], id: string): { surfaceIds: string[]; groupIds: string[] } => {
   const node = findNode(layers, id);
   return node === null ? { surfaceIds: [], groupIds: [] } : collectIds(node);
+};
+
+/** Selected surfaces plus those under selected groups, deduplicated in tree order. */
+export const selectedSurfaceIdsDeep = (m: Mapping, sel: Selection): string[] => {
+  const wanted = new Set([...sel.surfaceIds, ...sel.groupIds.flatMap((id) => subtreeIds(m.layers, id).surfaceIds)]);
+  return dfsSurfaceIds(m.layers).filter((id) => wanted.has(id));
 };
 
 export type NodeTarget = { parentId: string | null; index: number };

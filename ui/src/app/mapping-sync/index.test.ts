@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mapOf } from '../../geometry/fixtures';
+import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
 import type { Mapping } from '../../model/mapping';
 import type { MappingChangedHandler, ObsClient, VendorResult } from '../../obs/client';
 import { createMappingSync, type MappingSync, type MappingSyncEvent } from '.';
@@ -277,6 +277,14 @@ describe('createMappingSync', () => {
       sync.goOffline();
       expect(events).toContainEqual({ type: 'onlineChanged', online: false });
       expect(sync.getState().online).toBe(false);
+    });
+
+    it('sends descendant surfaces of a selected group', async () => {
+      const grouped: Mapping = { ...mapOf(surf('s1', 0, 0), surf('s2', 0, 0)), groups: [groupOf('g1'), groupOf('g2')], layers: [gn('g1', sn('s1'), gn('g2', sn('s2')))] };
+      const f = fake(grouped);
+      const { sync } = await mount(f);
+      sync.dispatch({ type: 'select', selection: { surfaceIds: [], groupIds: ['g1'], corner: null } });
+      expect(f.setOverlay.mock.calls.at(-1)?.[1]).toMatchObject({ selectedSurfaceIds: ['s1', 's2'] });
     });
 
     it('never sends enabled on selection changes or reconnect', async () => {

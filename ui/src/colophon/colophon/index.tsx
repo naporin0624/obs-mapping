@@ -2,8 +2,11 @@ import { useState, type ReactNode } from 'react';
 import { Provider, createStore } from 'jotai';
 import { Link } from 'react-aria-components';
 import { EyeIcon, EyeOffIcon, PlusIcon, TrashIcon } from '../../components/icons';
+import { GroupInspector } from '../../components/group-inspector';
+import { Inspector } from '../../components/inspector';
 import { LayerTree } from '../../components/layer-tree';
 import { SourceSelect, type SourceOption } from '../../components/source-select';
+import { StageGroupFrame } from '../../components/stage-group-frame';
 import { UnderlayImage } from '../../components/stage-underlay';
 import { UnderlayControlsView, type UnderlayView } from '../../components/underlay-controls';
 import { emptySelection } from '../../editor/state';
@@ -49,6 +52,23 @@ const layerSample = (hideGroup: boolean): Mapping => ({
   layers: [gn('g-1', sn('a'), gn('g-2', sn('b'))), sn('c')],
 });
 
+const FrameCase = ({ frame }: { frame: { x: number; y: number; width: number; height: number } }) => (
+  <svg viewBox="0 0 400 160" width="100%" role="img" aria-label="StageGroupFrame sample">
+    <StageGroupFrame frame={frame} movable scale={1} onPointerDown={noop} />
+  </svg>
+);
+
+const FrameCases = () => (
+  <>
+    <Case title="StageGroupFrame / 選択中">
+      <FrameCase frame={{ x: 40, y: 30, width: 320, height: 100 }} />
+    </Case>
+    <Case title="StageGroupFrame / 空のグループ">
+      <FrameCase frame={{ x: 180, y: 70, width: 40, height: 20 }} />
+    </Case>
+  </>
+);
+
 const LayerTreeCase = ({ hideGroup }: { hideGroup: boolean }) => {
   const [store] = useState(createStore);
   return (
@@ -57,6 +77,23 @@ const LayerTreeCase = ({ hideGroup }: { hideGroup: boolean }) => {
     </Provider>
   );
 };
+
+const inspectorSample: Mapping = {
+  ...mapOf(surf('a', 0, 0), surf('b', 50, 0)),
+  groups: [groupOf('g-1', { name: 'パネル列', layout: { direction: 'row', gap: 20, align: 'start', padding: 0 } })],
+  layers: [gn('g-1', sn('a')), sn('b')],
+};
+
+const sampleGroup = inspectorSample.groups[0];
+
+const InspectorCases = () => (
+  <>
+    <Case title="GroupInspector / row">{sampleGroup === undefined ? null : <GroupInspector group={sampleGroup} dispatch={noop} />}</Case>
+    <Case title="Inspector / グループが位置を決めています">
+      <Inspector mapping={inspectorSample} selection={{ surfaceIds: ['a'], groupIds: [], corner: null }} inputs={['src']} dispatch={noop} />
+    </Case>
+  </>
+);
 
 export const Colophon = () => {
   const [picked, setPicked] = useState<string | null>('Mapping');
@@ -75,6 +112,8 @@ export const Colophon = () => {
       <Case title="LayerTree / 非表示のグループ">
         <LayerTreeCase hideGroup />
       </Case>
+      <FrameCases />
+      <InspectorCases />
       <Case title="Icons / Eye, EyeOff, Plus, Trash">
         <div>
           <EyeIcon /> <EyeOffIcon /> <PlusIcon /> <TrashIcon />

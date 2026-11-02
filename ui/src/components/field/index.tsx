@@ -30,12 +30,12 @@ export const TextField = ({ label, value, onCommit, disabled = false }: TextProp
   );
 };
 
-type NumProps = { label: string; value: number; onCommit: (v: number) => void; step?: number; disabled?: boolean };
+type NumProps = { label: string; value: number; onCommit: (v: number) => void; step?: number; disabled?: boolean; describedBy?: string };
 
 const shown = (v: number): string => String(Math.round(v * 1000) / 1000);
 
 /** Number input that commits on blur / Enter; ignores non-numeric text. */
-export const NumField = ({ label, value, onCommit, step = 1, disabled = false }: NumProps) => {
+export const NumField = ({ label, value, onCommit, step = 1, disabled = false, describedBy }: NumProps) => {
   const [draft, setDraft] = useState<string | null>(null);
   const commit = (): void => {
     const n = Number(draft);
@@ -48,6 +48,7 @@ export const NumField = ({ label, value, onCommit, step = 1, disabled = false }:
       <input
         className={`${inputCls} ${numberCls}`}
         type="number"
+        aria-describedby={describedBy}
         step={step}
         value={draft ?? shown(value)}
         disabled={disabled}
