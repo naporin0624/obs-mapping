@@ -57,9 +57,9 @@ const EditorBody = () => {
         gridSize={editor.mapping.grid.size}
         overlayEnabled={overlayEnabled}
         onToggleOverlay={() => setOverlay(!overlayEnabled)}
+        fileActions={<ImportExport mapping={editor.mapping} online={online} onApply={applyImport} onError={reportError} />}
       >
         <UnderlayControls />
-        <ImportExport mapping={editor.mapping} online={online} onApply={applyImport} onError={reportError} />
       </Toolbar>
       <div className={bodyCls}>
         <div className={stageColCls}>

@@ -4,7 +4,8 @@ import { downloadMapping } from '../../io/export';
 import { parseImport, scaleMapping, type ImportResult } from '../../io/import';
 import type { Mapping } from '../../model/mapping';
 import { ImportDialog } from '../import-dialog';
-import { buttonCls } from '../styles.css';
+import { IconButton } from '../icon-button';
+import { ExportIcon, ImportIcon } from '../icons';
 
 type Mismatch = Extract<ImportResult, { kind: 'mismatch' }>;
 
@@ -36,9 +37,7 @@ export const ImportExport = ({ mapping, online, onApply, onError }: Props) => {
 
   return (
     <>
-      <button type="button" className={buttonCls} disabled={!online} onClick={() => fileRef.current?.click()}>
-        {t.importButton}
-      </button>
+      <IconButton label={t.importButton} icon={<ImportIcon />} unavailable={online ? undefined : {}} onClick={() => fileRef.current?.click()} />
       <input
         ref={fileRef}
         type="file"
@@ -52,9 +51,7 @@ export const ImportExport = ({ mapping, online, onApply, onError }: Props) => {
           void onFile(file);
         }}
       />
-      <button type="button" className={buttonCls} onClick={() => downloadMapping(mapping)}>
-        {t.exportButton}
-      </button>
+      <IconButton label={t.exportButton} icon={<ExportIcon />} onClick={() => downloadMapping(mapping)} />
       {mismatch === null ? null : (
         <ImportDialog
           json={mismatch.mapping.canvas}

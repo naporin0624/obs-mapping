@@ -61,13 +61,13 @@ describe('English locale', () => {
     inEnglish(toolbar());
     expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Left' })).toBeTruthy();
-    expect(screen.getByText('Select a surface')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Left', description: 'Select a surface' })).toBeTruthy();
     expect(screen.queryByText('元に戻す')).toBeNull();
   });
 
   it('keeps the group action distinct from the toolbar section label', () => {
     inEnglish(toolbar());
-    expect(screen.getByText('Group')).toBeTruthy();
+    expect(screen.queryByText('Group')).toBeNull();
     expect(screen.getByRole('button', { name: 'Group selection' })).toBeTruthy();
   });
 
