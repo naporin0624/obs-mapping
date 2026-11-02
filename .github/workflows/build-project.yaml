@@ -1,6 +1,11 @@
 name: Build Project
 on:
   workflow_call:
+    inputs:
+      release:
+        description: Build release packages (Release config, packaged) regardless of the event
+        type: boolean
+        default: false
     outputs:
       pluginName:
         description: Project name detected by parsing build spec file
@@ -55,6 +60,10 @@ jobs:
               ;;
             *) ;;
           esac
+
+          if [[ '${{ inputs.release }}' == 'true' ]]; then
+            config_data=('codesign:true' 'notarize:true' 'package:true' 'config:Release')
+          fi
 
           for config in "${config_data[@]}"; do
             IFS=':' read -r key value <<< "${config}"
@@ -134,6 +143,12 @@ jobs:
           notarizationUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
           notarizationPassword: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
 
+      - name: Set Up UI 🧩
+        uses: ./.github/actions/setup-ui
+
+      - name: Build UI 🎨
+        run: pnpm -C ui build
+
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
         with:
@@ -141,6 +156,15 @@ jobs:
           config: ${{ needs.check-event.outputs.config }}
           codesign: ${{ fromJSON(needs.check-event.outputs.codesign) }}
           codesignIdent: ${{ steps.codesign.outputs.codesignIdent }}
+
+      - name: Check UI In Bundle 🔍
+        run: |
+          : Check UI In Bundle 🔍
+          local index=release/${{ needs.check-event.outputs.config }}/${{ steps.setup.outputs.pluginName }}.plugin/Contents/Resources/ui/index.html
+          if [[ ! -f ${index} ]] {
+            print "::error::UI missing from the plugin bundle: ${index}"
+            exit 1
+          }
 
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
@@ -155,6 +179,17 @@ jobs:
           notarize: ${{ fromJSON(needs.check-event.outputs.notarize) && fromJSON(steps.codesign.outputs.haveNotarizationUser) }}
           codesignUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
           codesignPass: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
+
+      # package-macos emits either .pkg or .tar.xz; ship the bare bundle next to the .pkg as well
+      - name: Archive Plugin Bundle 🗜️
+        if: fromJSON(needs.check-event.outputs.package)
+        run: |
+          : Archive Plugin Bundle 🗜️
+          local name=${{ steps.setup.outputs.pluginName }}
+          local output=${PWD}/release/${name}-${{ steps.setup.outputs.pluginVersion }}-macos-universal.tar.xz
+          pushd release/${{ needs.check-event.outputs.config }}
+          XZ_OPT=-T0 tar -cJf ${output} ${name}.plugin
+          popd
 
       - name: Upload Artifacts 📡
         uses: actions/upload-artifact@v4
@@ -211,11 +246,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.os }}-ccache-x86_64-
 
+      - name: Set Up UI 🧩
+        uses: ./.github/actions/setup-ui
+
+      - name: Build UI 🎨
+        run: pnpm -C ui build
+
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
         with:
           target: x86_64
           config: ${{ needs.check-event.outputs.config }}
+
+      - name: Check UI In Install Tree 🔍
+        run: |
+          : Check UI In Install Tree 🔍
+          index="$(find "release/${{ needs.check-event.outputs.config }}" -path '*/obs-plugins/${{ steps.setup.outputs.pluginName }}/ui/index.html' -print -quit)"
+          if [[ -z "${index}" ]]; then
+            echo "::error::UI missing from the install tree under release/${{ needs.check-event.outputs.config }}"
+            exit 1
+          fi
 
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
@@ -277,11 +327,26 @@ jobs:
           "pluginName=${ProductName}" >> $env:GITHUB_OUTPUT
           "pluginVersion=${ProductVersion}" >> $env:GITHUB_OUTPUT
 
+      - name: Set Up UI 🧩
+        uses: ./.github/actions/setup-ui
+
+      - name: Build UI 🎨
+        run: pnpm -C ui build
+
       - name: Build Plugin 🧱
         uses: ./.github/actions/build-plugin
         with:
           target: x64
           config: ${{ needs.check-event.outputs.config }}
+
+      - name: Check UI In Install Tree 🔍
+        run: |
+          # Check UI In Install Tree 🔍
+          $Index = "release/${{ needs.check-event.outputs.config }}/${{ steps.setup.outputs.pluginName }}/data/ui/index.html"
+          if ( -not (Test-Path -Path $Index -PathType Leaf) ) {
+            Write-Output "::error::UI missing from the install tree: ${Index}"
+            exit 1
+          }
 
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
@@ -289,6 +354,20 @@ jobs:
           target: x64
           config: ${{ needs.check-event.outputs.config }}
           package: ${{ fromJSON(needs.check-event.outputs.package) }}
+
+      - name: Check UI In Package 🔍
+        run: |
+          # Check UI In Package 🔍
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $Name = "${{ steps.setup.outputs.pluginName }}"
+          $Zip = "release/${Name}-${{ steps.setup.outputs.pluginVersion }}-windows-x64.zip"
+          $Archive = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -Path $Zip).Path)
+          $Found = $Archive.Entries | Where-Object { ($_.FullName -replace '\\', '/') -eq "${Name}/data/ui/index.html" }
+          $Archive.Dispose()
+          if ( -not $Found ) {
+            Write-Output "::error::UI missing from the package: ${Zip}"
+            exit 1
+          }
 
       - name: Upload Artifacts 📡
         uses: actions/upload-artifact@v4

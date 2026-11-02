@@ -1,0 +1,42 @@
+name: Check Project 🧪
+on:
+  workflow_call:
+jobs:
+  ui-checks:
+    name: UI Checks 🧩
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Up UI 🧩
+        uses: ./.github/actions/setup-ui
+
+      - name: Lint 🔍
+        run: pnpm -C ui lint
+
+      - name: Typecheck 🔎
+        run: pnpm -C ui typecheck
+
+      - name: Test 🧪
+        run: pnpm -C ui test
+
+  core-tests:
+    name: Core Tests 🧮
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure 🔧
+        run: cmake -S core -B build_core -DOBS_MAPPING_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build 🧱
+        run: cmake --build build_core --parallel
+
+      - name: Test 🧪
+        run: ctest --test-dir build_core --output-on-failure
