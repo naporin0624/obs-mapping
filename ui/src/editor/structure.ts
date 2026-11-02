@@ -4,7 +4,6 @@ import type { Group, LayerNode, Mapping, Surface } from '../model/mapping';
 import { freshId } from './ids';
 
 export const COPY_OFFSET = 20;
-const COPY_SUFFIX = ' のコピー';
 
 /** Drops ids that sit under another listed id, so only the ancestor is acted on. */
 const topmostIds = (m: Mapping, ids: readonly string[]): string[] => {
@@ -48,10 +47,10 @@ const renamed = (m: Mapping, id: string, taken: ReadonlySet<string>): { ids: Map
 const remapNode = (n: LayerNode, ids: ReadonlyMap<string, string>): LayerNode =>
   isGroupNode(n) ? { group: ids.get(n.group) ?? n.group, children: n.children.map((c) => remapNode(c, ids)) } : { surface: ids.get(n.surface) ?? n.surface };
 
-const copyOf = (m: Mapping, id: string, taken: ReadonlySet<string>): Copy => {
+const copyOf = (m: Mapping, id: string, taken: ReadonlySet<string>, copyName: (name: string) => string): Copy => {
   const { ids, taken: grown } = renamed(m, id, taken);
   const offset = findParent(m.layers, id)?.parentId === null ? COPY_OFFSET : 0;
-  const rename = (name: string, old: string): string => (old === id ? `${name}${COPY_SUFFIX}` : name);
+  const rename = (name: string, old: string): string => (old === id ? copyName(name) : name);
   const surfaces = m.surfaces.filter((s) => ids.has(s.id)).map((s) => ({ ...translateSurface(s, offset, offset), id: ids.get(s.id) ?? s.id, name: rename(s.name, s.id) }));
   const groups = m.groups
     .filter((g) => ids.has(g.id))
@@ -59,12 +58,12 @@ const copyOf = (m: Mapping, id: string, taken: ReadonlySet<string>): Copy => {
   return { node: remapNode(findNode(m.layers, id) ?? { surface: id }, ids), surfaces, groups, topId: ids.get(id) ?? id, taken: grown };
 };
 
-export const duplicateItems = (m: Mapping, ids: readonly string[]): { mapping: Mapping; newSurfaceIds: string[]; newGroupIds: string[] } => {
+export const duplicateItems = (m: Mapping, ids: readonly string[], copyName: (name: string) => string): { mapping: Mapping; newSurfaceIds: string[]; newGroupIds: string[] } => {
   const tops = topmostIds(m, ids);
   if (tops.length === 0) return { mapping: m, newSurfaceIds: [], newGroupIds: [] };
   const copies = tops.reduce<(Copy & { source: string })[]>((acc, id) => {
     const taken = acc.at(-1)?.taken ?? new Set<string>();
-    return [...acc, { ...copyOf(m, id, taken), source: id }];
+    return [...acc, { ...copyOf(m, id, taken, copyName), source: id }];
   }, []);
   const mapping = sortSurfacesByLayers({
     ...m,

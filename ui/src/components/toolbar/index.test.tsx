@@ -29,24 +29,24 @@ const reasonOf = (button: HTMLElement): string | undefined => document.getElemen
 describe('Toolbar align / distribute', () => {
   it('enables Align with one selected surface', () => {
     show(1);
-    expect(screen.getByRole('button', { name: 'Left' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: '左揃え' }).hasAttribute('disabled')).toBe(false);
     expect(screen.queryByText('面を選択')).toBeNull();
   });
   it('disables Align with none selected and explains why', () => {
     show(0);
-    const left = screen.getByRole('button', { name: 'Left' });
+    const left = screen.getByRole('button', { name: '左揃え' });
     expect(left.hasAttribute('disabled')).toBe(true);
     expect(reasonOf(left)).toBe('面を選択');
   });
   it('explains that Distribute needs 3 or more surfaces', () => {
     show(2);
-    const h = screen.getByRole('button', { name: 'Horizontal' });
+    const h = screen.getByRole('button', { name: '横方向' });
     expect(h.hasAttribute('disabled')).toBe(true);
     expect(reasonOf(h)).toBe('3面以上を選択');
   });
   it('enables Distribute with three and drops the reason', () => {
     show(3);
-    expect(screen.getByRole('button', { name: 'Vertical' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: '縦方向' }).hasAttribute('disabled')).toBe(false);
     expect(screen.queryByText('3面以上を選択')).toBeNull();
   });
 });
@@ -55,8 +55,8 @@ describe('Toolbar immovable selection', () => {
   it('replaces the generic reason when the selection has nothing movable', () => {
     const note = 'グループの中の要素は、グループが位置を決めています';
     show(0, { immovableReason: note });
-    expect(reasonOf(screen.getByRole('button', { name: 'Left' }))).toBe(note);
-    expect(reasonOf(screen.getByRole('button', { name: 'Horizontal' }))).toBe(note);
+    expect(reasonOf(screen.getByRole('button', { name: '左揃え' }))).toBe(note);
+    expect(reasonOf(screen.getByRole('button', { name: '横方向' }))).toBe(note);
   });
 });
 

@@ -2,39 +2,44 @@ import { useRef, type Dispatch } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { Button, DropIndicator, Tree, TreeItem, TreeItemContent, useDragAndDrop, type Key } from 'react-aria-components';
 import { collapsedGroupsAtom, toggleCollapsedAtom } from '../../atoms/layers';
-import type { Action } from '../../editor/reducer';
+import type { Action, UiAction } from '../../editor/reducer';
 import type { Selection } from '../../editor/state';
 import { isGroupNode } from '../../model/layers';
 import type { Group, LayerNode, Mapping, Surface } from '../../model/mapping';
+import type { Messages } from '../../i18n/messages';
+import { useT } from '../../i18n/use-t';
 import { hiddenByAncestor } from '../../model/visibility';
 import { EyeIcon, EyeOffIcon } from '../icons';
 import { chevronCls, eyeButtonCls, dragHandleCls, chevronSpacerCls, dropLineCls, metaCls, nameCls, rowCls, treeCls } from './styles.css';
 import { selectionOfKeys } from './selection';
 import { dropActionFor, dropOperationFor, toIdSet } from './tree-dnd';
 
-type Props = { mapping: Mapping; selection: Selection; dispatch: Dispatch<Action> };
+type Props = { mapping: Mapping; selection: Selection; dispatch: Dispatch<UiAction> };
 
 type Entry = { name: string; visible: boolean; meta: string; toggle: Action };
 
-const surfaceEntry = (s: Surface): Entry => ({
+const surfaceEntry = (t: Messages, s: Surface): Entry => ({
   name: s.name,
   visible: s.visible,
-  meta: s.source === '' ? '未割当' : s.source,
+  meta: s.source === '' ? t.unassigned : s.source,
   toggle: { type: 'patchSurface', surfaceId: s.id, patch: { visible: !s.visible } },
 });
 
-const groupEntry = (g: Group, count: number): Entry => ({
+const groupEntry = (t: Messages, g: Group, count: number): Entry => ({
   name: g.name,
   visible: g.visible,
-  meta: `${String(count)} 個`,
+  meta: t.layerGroupCount(count),
   toggle: { type: 'patchGroup', groupId: g.id, patch: { visible: !g.visible } },
 });
 
-const VisibilityToggle = ({ entry, dispatch }: { entry: Entry; dispatch: Dispatch<Action> }) => (
-  <Button className={eyeButtonCls} aria-pressed={entry.visible} aria-label={entry.visible ? `${entry.name} を非表示にする` : `${entry.name} を表示する`} onPress={() => dispatch(entry.toggle)}>
-    {entry.visible ? <EyeIcon /> : <EyeOffIcon />}
-  </Button>
-);
+const VisibilityToggle = ({ entry, dispatch }: { entry: Entry; dispatch: Dispatch<UiAction> }) => {
+  const t = useT();
+  return (
+    <Button className={eyeButtonCls} aria-pressed={entry.visible} aria-label={entry.visible ? t.layerHide(entry.name) : t.layerShow(entry.name)} onPress={() => dispatch(entry.toggle)}>
+      {entry.visible ? <EyeIcon /> : <EyeOffIcon />}
+    </Button>
+  );
+};
 
 const Chevron = ({ expandable, isExpanded }: { expandable: boolean; isExpanded: boolean }) =>
   expandable ? (
@@ -45,37 +50,40 @@ const Chevron = ({ expandable, isExpanded }: { expandable: boolean; isExpanded: 
     <span className={chevronSpacerCls} />
   );
 
-type RowProps = { entry: Entry; hasChildren: boolean; dimmed: boolean; dispatch: Dispatch<Action> };
+type RowProps = { entry: Entry; hasChildren: boolean; dimmed: boolean; dispatch: Dispatch<UiAction> };
 
-const Row = ({ entry, hasChildren, dimmed, dispatch }: RowProps) => (
-  <TreeItemContent>
-    {({ isExpanded }) => (
-      <>
-        <Button slot="drag" aria-label={`${entry.name} を並べ替える`} className={dragHandleCls}>
-          ⠿
-        </Button>
-        <Chevron expandable={hasChildren} isExpanded={isExpanded} />
-        <VisibilityToggle entry={entry} dispatch={dispatch} />
-        <span className={nameCls}>{entry.name}</span>
-        <span className={metaCls}>{dimmed ? 'グループで非表示' : entry.meta}</span>
-      </>
-    )}
-  </TreeItemContent>
-);
+const Row = ({ entry, hasChildren, dimmed, dispatch }: RowProps) => {
+  const t = useT();
+  return (
+    <TreeItemContent>
+      {({ isExpanded }) => (
+        <>
+          <Button slot="drag" aria-label={t.layerReorder(entry.name)} className={dragHandleCls}>
+            ⠿
+          </Button>
+          <Chevron expandable={hasChildren} isExpanded={isExpanded} />
+          <VisibilityToggle entry={entry} dispatch={dispatch} />
+          <span className={nameCls}>{entry.name}</span>
+          <span className={metaCls}>{dimmed ? t.layerHiddenByGroup : entry.meta}</span>
+        </>
+      )}
+    </TreeItemContent>
+  );
+};
 
-type View = { mapping: Mapping; hidden: ReadonlySet<string>; dispatch: Dispatch<Action> };
+type View = { t: Messages; mapping: Mapping; hidden: ReadonlySet<string>; dispatch: Dispatch<UiAction> };
 
-const entryOf = (node: LayerNode, mapping: Mapping): { id: string; entry: Entry } | null => {
+const entryOf = (t: Messages, node: LayerNode, mapping: Mapping): { id: string; entry: Entry } | null => {
   if (isGroupNode(node)) {
     const g = mapping.groups.find((x) => x.id === node.group);
-    return g === undefined ? null : { id: g.id, entry: groupEntry(g, node.children.length) };
+    return g === undefined ? null : { id: g.id, entry: groupEntry(t, g, node.children.length) };
   }
   const s = mapping.surfaces.find((x) => x.id === node.surface);
-  return s === undefined ? null : { id: s.id, entry: surfaceEntry(s) };
+  return s === undefined ? null : { id: s.id, entry: surfaceEntry(t, s) };
 };
 
 const NodeItem = ({ node, view }: { node: LayerNode; view: View }) => {
-  const found = entryOf(node, view.mapping);
+  const found = entryOf(view.t, node, view.mapping);
   if (found === null) return null;
   const { id, entry } = found;
   return (
@@ -88,7 +96,7 @@ const NodeItem = ({ node, view }: { node: LayerNode; view: View }) => {
 
 const nodeKey = (n: LayerNode): string => (isGroupNode(n) ? n.group : n.surface);
 
-const useLayerDnd = (mapping: Mapping, dispatch: Dispatch<Action>) => {
+const useLayerDnd = (mapping: Mapping, dispatch: Dispatch<UiAction>) => {
   const dragged = useRef<ReadonlySet<string>>(new Set());
   return useDragAndDrop({
     getItems: (keys) => [...keys].map((k) => ({ 'text/plain': String(k) })),
@@ -113,15 +121,16 @@ const selectedOf = (selection: Selection): Set<Key> => new Set([...selection.sur
 
 /** Surfaces and groups as a nested tree: select, collapse, toggle visibility, drag to move. */
 export const LayerTree = ({ mapping, selection, dispatch }: Props) => {
+  const t = useT();
   const collapsed = useAtomValue(collapsedGroupsAtom);
   const toggleCollapsed = useSetAtom(toggleCollapsedAtom);
   const { dragAndDropHooks } = useLayerDnd(mapping, dispatch);
-  const view: View = { mapping, hidden: hiddenByAncestor(mapping), dispatch };
+  const view: View = { t, mapping, hidden: hiddenByAncestor(mapping), dispatch };
   const expanded = expandedOf(mapping, collapsed);
 
   return (
     <Tree
-      aria-label="レイヤー"
+      aria-label={t.layersHeading}
       className={treeCls}
       selectionMode="multiple"
       selectionBehavior="replace"

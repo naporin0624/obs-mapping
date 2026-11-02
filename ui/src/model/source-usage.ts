@@ -7,8 +7,3 @@ export const countSurfacesBySource = (mapping: Mapping): ReadonlyMap<string, num
   }
   return counts;
 };
-
-export const surfaceCountLabel = (count: number): string => {
-  if (count === 0) return '—';
-  return count === 1 ? '1 surface' : `${String(count)} surfaces`;
-};

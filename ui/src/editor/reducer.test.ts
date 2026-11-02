@@ -1,3 +1,4 @@
+import { jaNaming } from '../test/naming';
 import { describe, expect, it } from 'vitest';
 import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
 import type { LayerNode, Mapping } from '../model/mapping';
@@ -78,14 +79,14 @@ describe('edits', () => {
     expect(s.selection).toEqual({ surfaceIds: [], groupIds: [], corner: null });
   });
   it('addSurface numbers ids s-1, s-2 and selects the new one, centred at 1/4 size', () => {
-    const s = run(initialEditorState(mk()), { type: 'addSurface', source: 'cam' }, { type: 'addSurface', source: 'cam' });
+    const s = run(initialEditorState(mk()), { type: 'addSurface', source: 'cam', naming: jaNaming }, { type: 'addSurface', source: 'cam', naming: jaNaming });
     expect(s.mapping.surfaces.map((x) => x.id)).toEqual(['s-1', 's-2']);
     expect(s.selection.surfaceIds).toEqual(['s-2']);
     expect(s.mapping.surfaces[0]?.corners[0]).toEqual([720, 405]);
     expect(s.mapping.surfaces[0]?.corners[2]).toEqual([1200, 675]);
   });
   it('duplicateSelected offsets, renames, inserts after, and selects copies', () => {
-    const s = run(initialEditorState(mk(surf('s-1', 0, 0), surf('s-2', 50, 0))), sel(['s-1']), { type: 'duplicateSelected' });
+    const s = run(initialEditorState(mk(surf('s-1', 0, 0), surf('s-2', 50, 0))), sel(['s-1']), { type: 'duplicateSelected', naming: jaNaming });
     expect(s.mapping.surfaces.map((x) => x.id)).toEqual(['s-1', 's-3', 's-2']);
     expect(s.mapping.surfaces[1]?.name).toBe('s-1 のコピー');
     expect(s.mapping.surfaces[1]?.corners[0]).toEqual([20, 20]);
@@ -113,14 +114,14 @@ describe('groups keep the tree valid', () => {
   const ids = (m: Mapping): string[] => m.surfaces.map((x) => x.id);
 
   it('addSurface appends a root layer node', () => {
-    const s = run(initialEditorState(grouped()), { type: 'addSurface', source: 'cam' });
+    const s = run(initialEditorState(grouped()), { type: 'addSurface', source: 'cam', naming: jaNaming });
     expect(s.mapping.layers.at(-1)).toEqual(sn('s-1'));
     expect(ids(s.mapping)).toEqual(['a', 'b', 'c', 'd', 's-1']);
   });
 
   it('addSurface avoids an id already taken by a group', () => {
     const m = { ...mk(), groups: [groupOf('s-1')], layers: [gn('s-1')] };
-    expect(run(initialEditorState(m), { type: 'addSurface', source: 'cam' }).mapping.surfaces[0]?.id).toBe('s-2');
+    expect(run(initialEditorState(m), { type: 'addSurface', source: 'cam', naming: jaNaming }).mapping.surfaces[0]?.id).toBe('s-2');
   });
 
   it('removeSelected keeps the tree valid', () => {
@@ -135,7 +136,7 @@ describe('groups keep the tree valid', () => {
   });
 
   it('duplicateSelected inserts the copy right after the original in the same parent', () => {
-    const s = run(initialEditorState(grouped()), sel(['a']), { type: 'duplicateSelected' });
+    const s = run(initialEditorState(grouped()), sel(['a']), { type: 'duplicateSelected', naming: jaNaming });
     expect(s.mapping.layers).toEqual([gn('g1', sn('a'), sn('s-1'), sn('b')), sn('c'), sn('d')]);
     expect(ids(s.mapping)).toEqual(['a', 's-1', 'b', 'c', 'd']);
   });
@@ -148,7 +149,7 @@ describe('groups keep the tree valid', () => {
   });
 
   it('duplicateSelected copies a group and selects the new group', () => {
-    const s = run(initialEditorState(grouped()), { type: 'select', selection: { surfaceIds: [], groupIds: ['g1'], corner: null } }, { type: 'duplicateSelected' });
+    const s = run(initialEditorState(grouped()), { type: 'select', selection: { surfaceIds: [], groupIds: ['g1'], corner: null } }, { type: 'duplicateSelected', naming: jaNaming });
     expect(s.selection).toEqual({ surfaceIds: [], groupIds: ['g-1'], corner: null });
     expect(s.mapping.groups.map((g) => g.id)).toEqual(['g1', 'g-1']);
   });
@@ -447,7 +448,7 @@ describe('group layout', () => {
     const s = initialEditorState(grouped().mapping);
     const skewed: EditorState = { ...s, mapping: { ...s.mapping, surfaces: s.mapping.surfaces.map((x) => (x.id === 'b' ? surf('b', 900, 900, 100, 80) : x)) } };
     expect(reducer(skewed, { type: 'removeSelected' })).toBe(skewed);
-    expect(reducer(skewed, { type: 'duplicateSelected' })).toBe(skewed);
+    expect(reducer(skewed, { type: 'duplicateSelected', naming: jaNaming })).toBe(skewed);
   });
 
   it('dragSurface on a grouped surface does nothing', () => {
@@ -478,29 +479,29 @@ describe('group / ungroup', () => {
   const trio = () => initialEditorState(mk(surf('a', 0, 0, 100, 50), surf('b', 130, 0, 100, 50), surf('c', 250, 0, 100, 50)));
 
   it('groups the selection, selects the group and packs it with the inferred gap', () => {
-    const s = run(trio(), sel(['a', 'b', 'c']), { type: 'group' });
+    const s = run(trio(), sel(['a', 'b', 'c']), { type: 'group', naming: jaNaming });
     expect(s.mapping.layers).toEqual([gn('g-1', sn('a'), sn('b'), sn('c'))]);
     expect(s.selection).toEqual({ surfaceIds: [], groupIds: ['g-1'], corner: null });
     expect(s.mapping.surfaces.map((x) => x.corners[0][0])).toEqual([0, 125, 250]);
   });
   it('keeps visible items in place when a hidden one sits between them', () => {
     const m = mk(surf('a', 0, 0, 100, 50), { ...surf('b', 130, 0, 100, 50), visible: false }, surf('c', 250, 0, 100, 50));
-    const s = run(initialEditorState(m), sel(['a', 'b', 'c']), { type: 'group' });
+    const s = run(initialEditorState(m), sel(['a', 'b', 'c']), { type: 'group', naming: jaNaming });
     expect(s.mapping.surfaces.find((x) => x.id === 'c')?.corners[0][0]).toBe(250);
   });
   it('undoes in one step', () => {
-    const s = run(trio(), sel(['a', 'b']), { type: 'group' }, { type: 'undo' });
+    const s = run(trio(), sel(['a', 'b']), { type: 'group', naming: jaNaming }, { type: 'undo' });
     expect(canonicalJson(s.mapping)).toBe(canonicalJson(trio().mapping));
   });
   it('refuses quietly across parents and with no selection', () => {
-    const grouped = run(trio(), sel(['b', 'c']), { type: 'group' });
+    const grouped = run(trio(), sel(['b', 'c']), { type: 'group', naming: jaNaming });
     const mixed = run(grouped, sel(['a', 'b']));
     const trio0 = trio();
-    expect(reducer(mixed, { type: 'group' })).toBe(mixed);
-    expect(reducer(trio0, { type: 'group' })).toBe(trio0);
+    expect(reducer(mixed, { type: 'group', naming: jaNaming })).toBe(mixed);
+    expect(reducer(trio0, { type: 'group', naming: jaNaming })).toBe(trio0);
   });
   it('ungroup returns the children, selected by kind, without moving them', () => {
-    const grouped = run(trio(), sel(['b', 'c']), { type: 'group' });
+    const grouped = run(trio(), sel(['b', 'c']), { type: 'group', naming: jaNaming });
     const s = run(grouped, { type: 'select', selection: { surfaceIds: [], groupIds: ['g-1'], corner: null } }, { type: 'ungroup' });
     expect(s.mapping.groups).toEqual([]);
     expect(s.mapping.layers).toEqual([sn('a'), sn('b'), sn('c')]);
@@ -509,12 +510,12 @@ describe('group / ungroup', () => {
   });
   it('ignores group and ungroup while dragging', () => {
     const d = run(trio(), sel(['a']), { type: 'dragStart' });
-    expect(reducer(d, { type: 'group' })).toBe(d);
+    expect(reducer(d, { type: 'group', naming: jaNaming })).toBe(d);
     expect(reducer(d, { type: 'ungroup' })).toBe(d);
   });
   it('addSurface avoids a group id that looks like a surface id', () => {
     const m = { ...mk(surf('s-1', 0, 0)), groups: [groupOf('s-3')], layers: [sn('s-1'), gn('s-3')] };
-    const s = run(initialEditorState(m), { type: 'addSurface', source: 'x' });
+    const s = run(initialEditorState(m), { type: 'addSurface', source: 'x', naming: jaNaming });
     expect(s.selection.surfaceIds).toEqual(['s-4']);
   });
 });

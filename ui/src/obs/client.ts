@@ -1,5 +1,6 @@
 import OBSWebSocket from 'obs-websocket-js';
 import type { Mapping } from '../model/mapping';
+import { EMPTY_RESPONSE, UNKNOWN_ERROR } from '../i18n/localize-error';
 import { readMapping } from '../model/read';
 
 /** transport: the request never reached the plugin (socket down), so it is safe to resend later. */
@@ -113,13 +114,13 @@ export const createClient = (obs: ObsSocket): ObsClient => {
     try {
       const res = await obs.call('CallVendorRequest', { vendorName: VENDOR, requestType, requestData: requestData as never });
       const data = res.responseData as unknown as Reply | undefined;
-      return data ?? { ok: false, error: 'empty response' };
+      return data ?? { ok: false, error: EMPTY_RESPONSE };
     } catch (e) {
       return { ok: false, error: errorMessage(e), transport: true };
     }
   };
 
-  const fail = (r: Reply): VendorFailure => (r.transport === true ? { ok: false, error: r.error ?? 'unknown error', transport: true } : { ok: false, error: r.error ?? 'unknown error' });
+  const fail = (r: Reply): VendorFailure => (r.transport === true ? { ok: false, error: r.error ?? UNKNOWN_ERROR, transport: true } : { ok: false, error: r.error ?? UNKNOWN_ERROR });
 
   return {
     async listMappingSources() {

@@ -8,8 +8,14 @@ import { layoutTree } from '../layout/layout-tree';
 import { groupItems, groupProblem, selectedItemIds, ungroupItems } from './grouping';
 import { freshId, idNumber } from './ids';
 import { isLaidOut, movableItems, moveItem } from './items';
+import type { Naming } from './naming';
 import { duplicateItems, removeItems } from './structure';
 import { canonicalJson, emptySelection, initialEditorState, type CornerIndex, type EditorState, type InFlightEntry, type Selection } from './state';
+
+type NamedType = 'addSurface' | 'duplicateSelected' | 'group';
+
+/** What the UI dispatches: the actions that create items do not carry their naming yet. */
+export type UiAction = Action extends infer A ? (A extends { type: NamedType } ? Omit<A, 'naming'> : A) : never;
 
 export type Action =
   | { type: 'load'; mapping: Mapping }
@@ -24,10 +30,10 @@ export type Action =
   | { type: 'setBounds'; surfaceId: string; bounds: Bounds }
   | { type: 'align'; mode: AlignMode }
   | { type: 'distribute'; axis: 'x' | 'y' }
-  | { type: 'addSurface'; source: string }
+  | { type: 'addSurface'; source: string; naming: Naming }
   | { type: 'removeSelected' }
-  | { type: 'duplicateSelected' }
-  | { type: 'group' }
+  | { type: 'duplicateSelected'; naming: Naming }
+  | { type: 'group'; naming: Naming }
   | { type: 'ungroup' }
   | { type: 'moveNodes'; ids: string[]; target: NodeTarget }
   | { type: 'patchGroup'; groupId: string; patch: Partial<Pick<Group, 'name' | 'visible' | 'layout'>> }
@@ -137,13 +143,13 @@ const patchedGroup = (m: Mapping, groupId: string, patch: Partial<Pick<Group, 'n
 
 const withAppendedSurface = (m: Mapping, created: Surface): Mapping => ({ ...m, surfaces: [...m.surfaces, created], layers: [...m.layers, { surface: created.id }] });
 
-const newSurface = (m: Mapping, source: string): Surface => {
+const newSurface = (m: Mapping, source: string, naming: Naming): Surface => {
   const id = freshId(m, 's');
   const width = m.canvas.width / 4;
   const height = m.canvas.height / 4;
   return {
     id,
-    name: `面 ${idNumber(id) ?? id}`,
+    name: naming.surface(String(idNumber(id) ?? id)),
     type: 'quad',
     source,
     crop: { x: 0, y: 0, width: 1, height: 1 },
@@ -152,10 +158,10 @@ const newSurface = (m: Mapping, source: string): Surface => {
   };
 };
 
-const grouped = (s: EditorState): EditorState => {
+const grouped = (s: EditorState, naming: Naming): EditorState => {
   if (groupProblem(s.mapping, s.selection) !== null) return s;
   const id = freshId(s.mapping, 'g');
-  const next = groupItems(s.mapping, selectedItemIds(s.selection), id);
+  const next = groupItems(s.mapping, selectedItemIds(s.selection), id, naming.group);
   if (next === null) return s;
   const committed = commit(s, next);
   return committed === s ? s : { ...committed, selection: { surfaceIds: [], groupIds: [id], corner: null } };
@@ -229,7 +235,7 @@ const handlers: Handlers = {
   align: (s, a) => (movableItems(s.mapping, s.selection).length < 1 ? s : commit(s, aligned(s, a.mode))),
   distribute: (s, a) => (movableItems(s.mapping, s.selection).length < 3 ? s : commit(s, distributed(s, a.axis))),
   addSurface: (s, a) => {
-    const created = newSurface(s.mapping, a.source);
+    const created = newSurface(s.mapping, a.source, a.naming);
     const next = commit(s, withAppendedSurface(s.mapping, created));
     return { ...next, selection: { surfaceIds: [created.id], groupIds: [], corner: null } };
   },
@@ -237,12 +243,12 @@ const handlers: Handlers = {
     const next = commit(s, removeItems(s.mapping, selectedItemIds(s.selection)));
     return next === s ? s : { ...next, selection: emptySelection() };
   },
-  duplicateSelected: (s) => {
-    const { mapping, newSurfaceIds, newGroupIds } = duplicateItems(s.mapping, selectedItemIds(s.selection));
+  duplicateSelected: (s, a) => {
+    const { mapping, newSurfaceIds, newGroupIds } = duplicateItems(s.mapping, selectedItemIds(s.selection), a.naming.copy);
     const next = commit(s, mapping);
     return next === s ? s : { ...next, selection: { surfaceIds: newSurfaceIds, groupIds: newGroupIds, corner: null } };
   },
-  group: grouped,
+  group: (s, a) => grouped(s, a.naming),
   ungroup: ungrouped,
   moveNodes: (s, a) => commit(s, movedNodes(s.mapping, a.ids, a.target)),
   patchGroup: (s, a) => commit(s, patchedGroup(s.mapping, a.groupId, a.patch)),

@@ -1,3 +1,5 @@
+import type { Messages } from '../../i18n/messages';
+import { useT } from '../../i18n/use-t';
 import type { StageDrag } from '../../editor/use-stage-drag';
 import type { CornerIndex, Selection } from '../../editor/state';
 import { isLaidOut, isTopLevel } from '../../editor/items';
@@ -11,7 +13,7 @@ import { outlineCls, selectedCls, movableCls, lockedCls, hiddenCls, warnCls, han
 const HANDLE_PX = 10;
 const MIN_GRID_STAGE_PX = 4;
 
-const WARNING_TEXT: Record<Exclude<QuadWarning, null>, string> = { not_convex: 'NOT CONVEX', degenerate: 'DEGENERATE' };
+const warningText = (t: Messages, warning: Exclude<QuadWarning, null>): string => (warning === 'not_convex' ? t.warnNotConvex : t.warnDegenerate);
 
 const points = (s: Surface): string => s.corners.map((p) => `${String(p[0])},${String(p[1])}`).join(' ');
 
@@ -26,6 +28,7 @@ type SurfaceProps = { surface: Surface; scale: number; drag: StageDrag };
 type OutlineProps = SurfaceProps & { selected: boolean; locked: boolean; visible: boolean };
 
 const SurfaceOutline = ({ surface, selected, locked, visible, scale, drag }: OutlineProps) => {
+  const t = useT();
   const warning = quadWarning(surface.corners);
   const [cx, cy] = center(surface);
   return (
@@ -33,7 +36,7 @@ const SurfaceOutline = ({ surface, selected, locked, visible, scale, drag }: Out
       <polygon points={points(surface)} className={classOf({ selected, locked, visible, warning })} vectorEffect="non-scaling-stroke" onPointerDown={(e) => drag.onSurfaceDown(e, surface.id)} />
       {warning === null ? null : (
         <text x={cx} y={cy} textAnchor="middle" fontSize={12 / scale} className={warnTextCls}>
-          {WARNING_TEXT[warning]}
+          {warningText(t, warning)}
         </text>
       )}
     </g>

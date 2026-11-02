@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { flatLayers } from './layers';
 import type { Mapping, Surface } from './mapping';
-import { countSurfacesBySource, surfaceCountLabel } from './source-usage';
+import { countSurfacesBySource } from './source-usage';
 
 const surface = (id: string, source: string): Surface => ({
   id,
@@ -36,17 +36,5 @@ describe('countSurfacesBySource', () => {
 
   it('ignores unassigned surfaces', () => {
     expect(countSurfacesBySource(mappingOf('', 'cam')).has('')).toBe(false);
-  });
-});
-
-describe('surfaceCountLabel', () => {
-  it('uses a dash for zero', () => {
-    expect(surfaceCountLabel(0)).toBe('—');
-  });
-  it('is singular for one', () => {
-    expect(surfaceCountLabel(1)).toBe('1 surface');
-  });
-  it('is plural for many', () => {
-    expect(surfaceCountLabel(3)).toBe('3 surfaces');
   });
 });

@@ -1,5 +1,6 @@
 import { atom, type Getter, type Setter } from 'jotai';
 import { atomWithLazy } from 'jotai/utils';
+import { messagesAtom } from '../../i18n/messages-atom';
 import { createIdbUnderlayStore, type UnderlaySettings, type UnderlayStore } from '../../underlay/store';
 import { selectedSourceAtom } from '../session';
 import { reportErrorAtom } from '../toast';
@@ -47,7 +48,7 @@ const showImage = (get: Getter, set: Setter, source: string, blob: Blob, setting
     return true;
   } catch {
     replaceState(get, set, { kind: 'none', source });
-    set(reportErrorAtom, '下地画像を表示できませんでした。');
+    set(reportErrorAtom, get(messagesAtom).underlayShowFailed);
     return false;
   }
 };
@@ -68,7 +69,7 @@ export const loadUnderlayAtom = atom(null, async (get, set, source: string | nul
   const generation = nextGeneration(get, set);
   replaceState(get, set, { kind: 'none', source });
   if (source === null) return;
-  const stored = await attempt(set, '下地画像を読み込めませんでした。', () => get(underlayDepsAtom).store.load(source));
+  const stored = await attempt(set, get(messagesAtom).underlayLoadFailed, () => get(underlayDepsAtom).store.load(source));
   if (stored === undefined || stored === null || generation !== get(generationAtom)) return;
   showImage(get, set, source, stored.blob, stored);
 });
@@ -76,7 +77,7 @@ export const loadUnderlayAtom = atom(null, async (get, set, source: string | nul
 export const chooseUnderlayAtom = atom(null, async (get, set, source: string, file: File): Promise<void> => {
   nextGeneration(get, set);
   if (!showImage(get, set, source, file, DEFAULT_SETTINGS)) return;
-  await attempt(set, '下地画像を保存できませんでした。このセッションでは表示されます。', () => get(underlayDepsAtom).store.saveImage(source, { blob: file, ...DEFAULT_SETTINGS }));
+  await attempt(set, get(messagesAtom).underlaySaveFailed, () => get(underlayDepsAtom).store.saveImage(source, { blob: file, ...DEFAULT_SETTINGS }));
 });
 
 export const removeUnderlayAtom = atom(null, async (get, set): Promise<void> => {
@@ -84,14 +85,14 @@ export const removeUnderlayAtom = atom(null, async (get, set): Promise<void> => 
   nextGeneration(get, set);
   replaceState(get, set, { kind: 'none', source });
   if (source === null) return;
-  await attempt(set, '下地画像の保存データを削除できませんでした。', () => get(underlayDepsAtom).store.remove(source));
+  await attempt(set, get(messagesAtom).underlayRemoveFailed, () => get(underlayDepsAtom).store.remove(source));
 });
 
 const saveSettings = async (get: Getter, set: Setter): Promise<void> => {
   const state = get(stateAtom);
   if (state.kind !== 'image') return;
   const { visible, opacity } = state;
-  await attempt(set, '下地画像の設定を保存できませんでした。', () => get(underlayDepsAtom).store.saveSettings(state.source, { visible, opacity }));
+  await attempt(set, get(messagesAtom).underlaySettingsFailed, () => get(underlayDepsAtom).store.saveSettings(state.source, { visible, opacity }));
 };
 
 /** Live preview while dragging; nothing is written until commitUnderlayOpacityAtom. */

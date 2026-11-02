@@ -5,8 +5,7 @@ import { idNumber } from './ids';
 import { MAX_TREE_DEPTH } from '../model/validate-tree';
 import type { Selection } from './state';
 
-const MIXED_PARENTS = '同じ階層のものを選んでください';
-const TOO_DEEP = `これ以上深い階層にはできません（${MAX_TREE_DEPTH} 階層まで）`;
+export type GroupProblem = 'empty' | 'mixedParents' | 'tooDeep';
 
 export const selectedItemIds = (sel: Selection): string[] => [...sel.surfaceIds, ...sel.groupIds];
 
@@ -33,19 +32,19 @@ const tooDeep = (m: Mapping, ids: readonly string[]): boolean => {
   return depth + Math.max(0, ...ids.map((id) => subtreeHeight(m.layers, id))) > MAX_TREE_DEPTH;
 };
 
-export const groupProblem = (m: Mapping, sel: Selection): string | null => {
+export const groupProblem = (m: Mapping, sel: Selection): GroupProblem | null => {
   const ids = selectedItemIds(sel);
   const siblings = siblingsOf(m, ids);
-  if (siblings === 'none') return '';
-  if (siblings === 'mixed') return MIXED_PARENTS;
-  return tooDeep(m, ids) ? TOO_DEEP : null;
+  if (siblings === 'none') return 'empty';
+  if (siblings === 'mixed') return 'mixedParents';
+  return tooDeep(m, ids) ? 'tooDeep' : null;
 };
 
 const nodesOf = (m: Mapping, ids: readonly string[]): LayerNode[] => ids.flatMap((id) => findNode(m.layers, id) ?? []);
 
-const newGroup = (groupId: string, inferred: ReturnType<typeof inferGroup>): Group => ({
+const newGroup = (groupId: string, inferred: ReturnType<typeof inferGroup>, name: (number: string) => string): Group => ({
   id: groupId,
-  name: `グループ ${idNumber(groupId) ?? groupId}`,
+  name: name(String(idNumber(groupId) ?? groupId)),
   visible: true,
   origin: inferred.origin,
   layout: inferred.layout,
@@ -57,14 +56,14 @@ const wrapped = (list: readonly LayerNode[], ids: readonly string[], node: Layer
   return [...rest.slice(0, first), node, ...rest.slice(first)];
 };
 
-export const groupItems = (m: Mapping, itemIds: readonly string[], groupId: string): Mapping | null => {
+export const groupItems = (m: Mapping, itemIds: readonly string[], groupId: string, name: (number: string) => string): Mapping | null => {
   if (siblingsOf(m, itemIds) !== 'same') return null;
   const inferred = inferGroup(m, itemIds);
   const node: LayerNode = { group: groupId, children: nodesOf(m, inferred.order) };
   const parentId = findParent(m.layers, itemIds[0] ?? '')?.parentId ?? null;
   return sortSurfacesByLayers({
     ...m,
-    groups: [...m.groups, newGroup(groupId, inferred)],
+    groups: [...m.groups, newGroup(groupId, inferred, name)],
     layers: editSiblings(m.layers, parentId, (list) => wrapped(list, itemIds, node)),
   });
 };

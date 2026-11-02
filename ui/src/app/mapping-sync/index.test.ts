@@ -1,3 +1,4 @@
+import { jaNaming } from '../../test/naming';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
 import type { Mapping } from '../../model/mapping';
@@ -833,7 +834,7 @@ describe('createMappingSync', () => {
       sync.open('Other', await sync.load('Other'));
       sync.open('Map', cachedA);
       expect(gridOf(sync)).toBe(20);
-      sync.dispatch({ type: 'addSurface', source: 's' });
+      sync.dispatch({ type: 'addSurface', source: 's', naming: jaNaming });
       expect(f.setMapping).not.toHaveBeenCalled();
       void sync.reconnect();
       await settle(200);
