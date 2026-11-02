@@ -2,7 +2,7 @@
 
 OBS Studio 用のプロジェクションマッピング・プラグインです。「Mapping ソース」を追加し、OBS 内の別ソース（カメラ、メディア、シーンなど）を四角形の面にワープして貼り付けます。面の配置は、OBS のカスタムブラウザドックで動く専用 UI から、obs-websocket 経由で操作します。
 
-- 現在の対応は macOS（Apple Silicon / Intel のユニバーサルビルド）のみです。
+- 動作を確認しているのは macOS（Apple Silicon / Intel のユニバーサルビルド）です。Windows（x64）版もリリースに含めていますが、実機での確認はまだです。
 - ドックの UI の見た目は、自作のデザインシステム Cannelloni（Panda CSS）で組んでいます。
 
 仕様と実装計画は [docs/superpowers/](docs/superpowers/) にあります（[spec](docs/superpowers/specs/2026-11-01-obs-mapping-design.md) / [plan](docs/superpowers/plans/2026-11-01-obs-mapping.md)）。OBS の実機でしか確認できない項目は [docs/manual-checks.md](docs/manual-checks.md) のチェックリストにまとめています。
@@ -41,7 +41,36 @@ pnpm -C ui typecheck
 
 ## インストール
 
-OBS を終了してから実行します。
+どの方法でも、OBS を終了してから行います。パッケージは [Releases](https://github.com/naporin0624/obs-mapping/releases) から入手します。ファイル名の `<version>` はリリースのバージョンです。
+
+### macOS（リリースから）
+
+プラグインには Apple の署名と公証がありません。そのため、初回は Gatekeeper に止められます。
+
+- `obs-mapping-<version>-macos-universal.pkg`: インストーラーです。開けない場合は「システム設定 > プライバシーとセキュリティ」で「このまま開く」を押すか、次のコマンドで隔離属性を外してから開きます。インストール先は `~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` です。
+
+  ```sh
+  xattr -dr com.apple.quarantine ~/Downloads/obs-mapping-<version>-macos-universal.pkg
+  ```
+
+- `obs-mapping-<version>-macos-universal.tar.xz`: プラグイン本体の圧縮ファイルです。展開した `obs-mapping.plugin` を `~/Library/Application Support/obs-studio/plugins/` に置き、隔離属性を外します。
+
+  ```sh
+  xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/obs-mapping.plugin
+  ```
+
+OBS がプラグインを読み込まない場合は、置いた `obs-mapping.plugin` に対して上の `xattr` を実行してから、OBS を起動し直してください。
+
+### Windows（リリースから）
+
+`obs-mapping-<version>-windows-x64.zip` を展開し、中の `obs-mapping` フォルダーを `C:\ProgramData\obs-studio\plugins\` に置きます（フォルダーがなければ作ります）。次の配置になれば正しく置けています。
+
+```
+C:\ProgramData\obs-studio\plugins\obs-mapping\bin\64bit\obs-mapping.dll
+C:\ProgramData\obs-studio\plugins\obs-mapping\data\ui\index.html
+```
+
+### macOS（ソースから）
 
 ```sh
 bash scripts/install-macos.sh
@@ -64,6 +93,12 @@ UI は obs-websocket のベンダーリクエストでプラグインと通信�
 
 ```
 file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html
+```
+
+Windows では次の URL です。
+
+```
+file:///C:/ProgramData/obs-studio/plugins/obs-mapping/data/ui/index.html
 ```
 
 3. ドックに URL（既定 `ws://127.0.0.1:4455`）とパスワードを入れて「接続」（English では Connect）を押す。ドックの表示言語は OBS の言語に従い、日本語以外は英語になる。URL とパスワードは保存され、次回以降は自動で再接続します。
@@ -199,8 +234,8 @@ pnpm -C ui preview   # http://localhost:4173
 
 ## 今後の予定（未実装）
 
-- 1 つのバンドルにまとめた配布。署名なしのため、初回は「システム設定 > プライバシーとセキュリティ」で「このまま開く」が必要です。
-- Windows 対応。
+- macOS 版の署名と公証。CI は、リポジトリのシークレットに `MACOS_SIGNING_*`（公証には `MACOS_NOTARIZATION_*` も）を登録すると、自動で署名するようになっています。
+- Windows 版の実機での動作確認。
 
 ## 開発
 
@@ -218,6 +253,17 @@ brew install obsproject/tools/gersemi
 ```
 
 UI のコードは `pnpm -C ui fmt`（oxlint と oxfmt --write）で整形できます。
+
+## リリース
+
+リリースは [release-please](https://github.com/googleapis/release-please) で作ります。
+
+1. `main` に [Conventional Commits](https://www.conventionalcommits.org/ja/v1.0.0/) 形式のコミット（`feat:`、`fix:` など）が入ると、release-please がリリース用の PR を作成・更新します。PR には次のバージョン番号、`CHANGELOG.md`、`buildspec.json` の `version` の更新が入ります。
+2. その PR をマージすると、タグ（`v` なしの `0.1.0` 形式）と GitHub Release が作られます。続けて同じワークフローが Release 構成でビルドし、macOS（`.pkg` と `.tar.xz`）と Windows（`.zip`）のパッケージ、`SHA256SUMS.txt` をリリースに添付します。Ubuntu 版は CI で確認のためにビルドしますが、リリースには含めません。
+
+1.0.0 になるまでは、`feat:` でマイナー、`fix:` でパッチが上がります。破壊的変更（`feat!:`）もマイナーです。
+
+リポジトリの「Settings > Actions > General」で「Allow GitHub Actions to create and approve pull requests」を有効にしておく必要があります。無効だと release-please が PR を作れません。
 
 ## ライセンス
 
