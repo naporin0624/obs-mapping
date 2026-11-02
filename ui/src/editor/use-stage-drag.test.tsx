@@ -10,9 +10,12 @@ import { useStageDrag } from './use-stage-drag';
 
 type Pointer = ReactPointerEvent<SVGElement>;
 
-const svg = (): SVGSVGElement =>
+// The svg spans the 1920x1080 canvas plus a 240px pasteboard; this rect makes client px equal canvas px.
+const PASTEBOARD_RECT = { left: -240, top: -240, width: 2400, height: 1560 };
+
+const svg = (rect = PASTEBOARD_RECT): SVGSVGElement =>
   ({
-    getBoundingClientRect: () => ({ left: 0, top: 0, width: 1920, height: 1080 }),
+    getBoundingClientRect: () => rect,
     setPointerCapture: vi.fn(),
     hasPointerCapture: () => false,
     releasePointerCapture: vi.fn(),
@@ -70,6 +73,25 @@ const withSelection = (selection: Selection) => {
 const selected = (dispatch: ReturnType<typeof vi.fn>): unknown => dispatch.mock.calls.map((c) => c[0] as { type: string }).find((a) => a.type === 'select');
 const types = (dispatch: ReturnType<typeof vi.fn>): string[] => dispatch.mock.calls.map((c) => (c[0] as { type: string }).type);
 const only = (surfaceIds: string[], groupIds: string[] = []): unknown => ({ type: 'select', selection: { surfaceIds, groupIds, corner: null } });
+
+describe('useStageDrag pasteboard mapping', () => {
+  it('maps the top-left of the svg to the outer corner of the pasteboard', () => {
+    const dispatch = vi.fn();
+    const ref: RefObject<SVGSVGElement | null> = { current: svg({ left: 10, top: 20, width: 600, height: 390 }) };
+    const { result } = renderHook(() => useStageDrag({ state: initialEditorState(mapOf(surf('a', 0, 0, 100, 100))), dispatch, svgRef: ref, scale: 0.25 }));
+    act(() => result.current.onCornerDown(pointer(10, 20), 'a', 0));
+    act(() => result.current.onMove(pointer(10, 20, true)));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'dragCorner', surfaceId: 'a', index: 0, to: [-240, -240] });
+  });
+  it('maps the bottom-right of the svg to the far pasteboard corner', () => {
+    const dispatch = vi.fn();
+    const ref: RefObject<SVGSVGElement | null> = { current: svg({ left: 10, top: 20, width: 600, height: 390 }) };
+    const { result } = renderHook(() => useStageDrag({ state: initialEditorState(mapOf(surf('a', 0, 0, 100, 100))), dispatch, svgRef: ref, scale: 0.25 }));
+    act(() => result.current.onCornerDown(pointer(10, 20), 'a', 2));
+    act(() => result.current.onMove(pointer(610, 410, true)));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'dragCorner', surfaceId: 'a', index: 2, to: [2160, 1320] });
+  });
+});
 
 describe('useStageDrag selection', () => {
   it('selects the outermost group and starts a drag when an unselected grouped surface is pressed', () => {

@@ -20,6 +20,7 @@ export default defineConfig({
       tokens: {
         colors: {
           dark: {
+            pasteboard: { value: 'oklch(0.140 0 0)' },
             canvas: { value: 'oklch(0.180 0 0)' },
             subtle: { value: 'oklch(0.225 0 0)' },
             muted: { value: 'oklch(0.270 0 0)' },
@@ -55,6 +56,7 @@ export default defineConfig({
       semanticTokens: {
         colors: {
           bg: {
+            pasteboard: { value: '{colors.dark.pasteboard}' },
             canvas: { value: '{colors.dark.canvas}' },
             subtle: { value: '{colors.dark.subtle}' },
             muted: { value: '{colors.dark.muted}' },

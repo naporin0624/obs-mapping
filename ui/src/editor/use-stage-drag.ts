@@ -5,6 +5,7 @@ import type { GuideLine } from '../geometry/snap';
 import { roundedCornerHit, roundedGroupOffsetHit, roundedOffsetHit, snapTargets, type SnapOptions } from './drag';
 import { subtreeIds } from '../model/layers';
 import { unionBounds } from '../geometry/align';
+import { pasteboardBounds } from '../geometry/pasteboard';
 import type { Bounds } from '../geometry/rect';
 import { isLaidOut, isTopLevel, movableItems } from './items';
 import type { UiAction } from './reducer';
@@ -70,11 +71,12 @@ const ownSurfaceIds = (m: Mapping, id: string): readonly string[] => (m.groups.s
 
 const geometry = (mapping: Mapping, scale: number, svgRef: RefObject<SVGSVGElement | null>): Geometry => {
   const visibleIds = effectiveVisibleIds(mapping);
+  const board = pasteboardBounds(mapping.canvas);
   return {
     toCanvas: (e) => {
       const rect = svgRef.current?.getBoundingClientRect();
       if (rect === undefined || rect.width === 0) return [0, 0];
-      return [((e.clientX - rect.left) / rect.width) * mapping.canvas.width, ((e.clientY - rect.top) / rect.height) * mapping.canvas.height];
+      return [board.x + ((e.clientX - rect.left) / rect.width) * board.width, board.y + ((e.clientY - rect.top) / rect.height) * board.height];
     },
     snapOptions: (e, moving) => ({
       grid: mapping.grid.size,
