@@ -20,7 +20,7 @@ describe('validateTree', () => {
     expect(validateTree(withLayout({ gap: 4096, padding: 0 }))).toBeNull();
   });
 
-  it('ignores unknown fields and defaults visible to true', () => {
+  it('accepts a group without visible and with unknown fields', () => {
     const { visible: _v, ...noVisible } = groupOf('g-1');
     expect(validateTree({ ...valid(), groups: [{ ...noVisible, extra: 1 }] })).toBeNull();
   });
@@ -32,6 +32,10 @@ describe('validateTree', () => {
     expect(validateTree(noLayers)).toBe('layers: missing');
     expect(validateTree({ ...valid(), groups: {} })).toBe('groups: expected array');
     expect(validateTree({ ...valid(), layers: {} })).toBe('layers: expected array');
+  });
+
+  it('reports a repeated surface id as a duplicate', () => {
+    expect(validateTree({ ...valid(), surfaces: [surf('a', 0, 0), surf('a', 0, 0)], groups: [], layers: [sn('a')] })).toBe('surfaces[1].id: duplicate id "a"');
   });
 
   it('rejects duplicate ids across groups and surfaces', () => {

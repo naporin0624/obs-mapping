@@ -1,6 +1,6 @@
 // Error wording matches core/src/layers_json.cpp so both ends report the same text.
 export const MAX_TREE_DEPTH = 16;
-const MAX_SPACING = 4096;
+export const MAX_SPACING = 4096;
 
 /** The tree-related fields of a mapping as they arrive from JSON (nothing is trusted yet). */
 export type RawTree = { surfaces: readonly unknown[]; groups?: unknown; layers?: unknown };
@@ -116,7 +116,18 @@ const checkAllInTree = (surfaceIds: readonly string[], groupIds: readonly string
 
 const surfaceIdsOf = (surfaces: readonly unknown[]): string[] => surfaces.flatMap((s) => (isRecord(s) && typeof s['id'] === 'string' ? [s['id']] : []));
 
+const checkSurfaceIds = (surfaces: readonly unknown[]): void => {
+  const seen = new Set<string>();
+  surfaces.forEach((s, i) => {
+    const id = isRecord(s) && typeof s['id'] === 'string' ? s['id'] : null;
+    if (id === null) return;
+    if (seen.has(id)) fail(indexPath('', 'surfaces', i) + '.id', `duplicate id "${id}"`);
+    seen.add(id);
+  });
+};
+
 const run = (m: RawTree): void => {
+  checkSurfaceIds(m.surfaces);
   const surfaceIds = surfaceIdsOf(m.surfaces);
   const ids = new Set(surfaceIds);
   const groupIds = asArray(requireKey(m, 'groups', ''), 'groups').map((g, i) => checkGroup(g, i, ids));

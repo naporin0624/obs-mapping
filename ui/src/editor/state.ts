@@ -4,6 +4,7 @@ export type CornerIndex = 0 | 1 | 2 | 3;
 
 export type Selection = {
   surfaceIds: string[];
+  groupIds: string[];
   corner: { surfaceId: string; index: CornerIndex } | null;
 };
 
@@ -23,7 +24,7 @@ export type EditorState = {
   needsResync: boolean;
 };
 
-export const emptySelection = (): Selection => ({ surfaceIds: [], corner: null });
+export const emptySelection = (): Selection => ({ surfaceIds: [], groupIds: [], corner: null });
 
 const canonicalize = (v: unknown): unknown => {
   if (typeof v === 'number') return Object.is(Number(v), -0) ? 0 : Number(v);

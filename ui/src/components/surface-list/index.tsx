@@ -17,6 +17,7 @@ type Props = {
 
 const nextSelection = (current: Selection, id: string, additive: boolean): Selection => ({
   surfaceIds: additive ? (current.surfaceIds.includes(id) ? current.surfaceIds.filter((x) => x !== id) : [...current.surfaceIds, id]) : [id],
+  groupIds: [],
   corner: null,
 });
 

@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { activateMappingAtom, dispatchAtom, hasLiveEditorAtom, importAtom, mappingViewAtom, overlayEnabledAtom, setOverlayAtom } from '../../atoms/mapping';
+import { activateMappingAtom, dispatchAtom, groupSelectionAtom, hasLiveEditorAtom, importAtom, mappingViewAtom, overlayEnabledAtom, setOverlayAtom } from '../../atoms/mapping';
 import { clientAtom, inputsAtom, onlineAtom, reloadInputsAtom } from '../../atoms/session';
 import { reportErrorAtom } from '../../atoms/toast';
+import { movableItems } from '../../editor/items';
 import { ImportExport } from '../import-export';
 import { Inspector } from '../inspector';
 import { Stage } from '../stage';
@@ -12,10 +13,13 @@ import { UnderlayControls } from '../underlay-controls';
 import { LoadBoundary } from './load-boundary';
 import { bodyCls, stageColCls, sideCls, noteCls } from './styles.css';
 
+const IMMOVABLE_REASON = 'グループの中の要素は、グループが位置を決めています';
+
 const useEditorCommands = () => ({
   dispatch: useSetAtom(dispatchAtom),
   setOverlay: useSetAtom(setOverlayAtom),
   applyImport: useSetAtom(importAtom),
+  group: useSetAtom(groupSelectionAtom),
   reloadInputs: useSetAtom(reloadInputsAtom),
   reportError: useSetAtom(reportErrorAtom),
 });
@@ -27,7 +31,7 @@ const EditorBody = () => {
   const inputs = useAtomValue(inputsAtom);
   const client = useAtomValue(clientAtom);
   const activate = useSetAtom(activateMappingAtom);
-  const { dispatch, setOverlay, applyImport, reloadInputs, reportError } = useEditorCommands();
+  const { dispatch, group, setOverlay, applyImport, reloadInputs, reportError } = useEditorCommands();
   const source = view?.source;
 
   useEffect(() => {
@@ -37,13 +41,19 @@ const EditorBody = () => {
 
   if (view === null) return null;
   const { editor } = view;
+  const movableCount = movableItems(editor.mapping, editor.selection).length;
+  const selectedCount = editor.selection.surfaceIds.length + editor.selection.groupIds.length;
   return (
     <>
       <Toolbar
         dispatch={dispatch}
         canUndo={editor.past.length > 0 && !editor.dragging}
         canRedo={editor.future.length > 0 && !editor.dragging}
-        selectedCount={editor.selection.surfaceIds.length}
+        selectedCount={movableCount}
+        immovableReason={movableCount === 0 && selectedCount > 0 ? IMMOVABLE_REASON : null}
+        canGroup={selectedCount > 0}
+        canUngroup={editor.selection.groupIds.length > 0}
+        onGroup={group}
         gridSize={editor.mapping.grid.size}
         overlayEnabled={overlayEnabled}
         onToggleOverlay={() => setOverlay(!overlayEnabled)}

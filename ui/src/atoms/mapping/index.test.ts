@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LayerNode } from '../../model/mapping';
+import type { Action } from '../../editor/reducer';
+import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
 import { fakeObs, mapping, type FakeObs } from '../../test/fake-obs';
 import { lifecycleAtom } from '../lifecycle';
 import { selectedSourceAtom, selectSourceAtom } from '../session';
 import { toastAtom } from '../toast';
 import { buildStore, settle } from '../../test/store-harness';
-import { activateMappingAtom, dispatchAtom, hasLiveEditorAtom, importAtom, mappingViewAtom, overlayEnabledAtom, retryLoadAtom } from '.';
+import { activateMappingAtom, dispatchAtom, groupSelectionAtom, hasLiveEditorAtom, importAtom, mappingViewAtom, overlayEnabledAtom, retryLoadAtom } from '.';
 
 const noop = (): void => undefined;
 
@@ -214,5 +217,75 @@ describe('importAtom', () => {
     obs.setMapping.mockResolvedValueOnce({ ok: false, error: 'nope' });
     await expect(store.set(importAtom, mapping(40))).resolves.toBe(false);
     expect(obs.getMapping.mock.calls.length).toBe(loads);
+  });
+});
+
+describe('groupSelectionAtom', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const opened = async () => {
+    const nestedMap = { ...mapOf(surf('a', 0, 0), surf('b', 20, 0), surf('c', 40, 0)), groups: [groupOf('g-1')], layers: [sn('a'), gn('g-1', sn('b'), sn('c'))] };
+    const { store, instances } = await mounted(fakeObs(nestedMap));
+    store.sub(mappingViewAtom, noop);
+    await store.get(mappingViewAtom);
+    await store.set(activateMappingAtom);
+    return { store, json: () => JSON.stringify(instances.sync.getState().editor?.mapping) };
+  };
+  const pick = (ids: string[]): Action => ({ type: 'select', selection: { surfaceIds: ids, groupIds: [], corner: null } });
+
+  it('toasts once and leaves the mapping alone when parents differ', async () => {
+    const { store, json } = await opened();
+    store.set(dispatchAtom, pick(['a', 'b']));
+    const before = json();
+    store.set(groupSelectionAtom);
+    expect(store.get(toastAtom)?.text).toBe('同じ階層のものを選んでください');
+    expect(store.get(toastAtom)?.id).toBe(1);
+    expect(json()).toBe(before);
+  });
+  it('does nothing, silently, with an empty selection', async () => {
+    const { store, json } = await opened();
+    const before = json();
+    store.set(groupSelectionAtom);
+    expect(store.get(toastAtom)).toBeNull();
+    expect(json()).toBe(before);
+  });
+  it('groups a valid selection', async () => {
+    const { store, json } = await opened();
+    store.set(dispatchAtom, pick(['b', 'c']));
+    store.set(groupSelectionAtom);
+    const after = JSON.parse(json()) as { groups: { id: string }[]; layers: unknown[] };
+    expect(after.groups.map((g) => g.id)).toEqual(['g-1', 'g-2']);
+    expect(after.layers).toEqual([sn('a'), gn('g-1', gn('g-2', sn('b'), sn('c')))]);
+  });
+  it('does nothing while dragging', async () => {
+    const { store, json } = await opened();
+    store.set(dispatchAtom, pick(['a', 'b']));
+    store.set(dispatchAtom, { type: 'dragStart' });
+    const before = json();
+    store.set(groupSelectionAtom);
+    expect(store.get(toastAtom)).toBeNull();
+    expect(json()).toBe(before);
+  });
+  it('does not group past the depth limit and leaves the mapping alone', async () => {
+    const chain = Array.from({ length: 15 }, (_, i) => `g-${i + 1}`);
+    const deep = {
+      ...mapOf(surf('a', 0, 0)),
+      groups: chain.map((id) => groupOf(id)),
+      layers: [chain.reduceRight<LayerNode>((inner, id) => gn(id, inner), sn('a'))],
+    };
+    const { store, instances } = await mounted(fakeObs(deep));
+    store.sub(mappingViewAtom, noop);
+    await store.get(mappingViewAtom);
+    await store.set(activateMappingAtom);
+    store.set(dispatchAtom, pick(['a']));
+    const before = JSON.stringify(instances.sync.getState().editor?.mapping);
+    store.set(groupSelectionAtom);
+    expect(store.get(toastAtom)?.text).toBe('これ以上深い階層にはできません（16 階層まで）');
+    expect(JSON.stringify(instances.sync.getState().editor?.mapping)).toBe(before);
   });
 });

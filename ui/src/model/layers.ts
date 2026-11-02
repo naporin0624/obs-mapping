@@ -49,10 +49,25 @@ export const moveWithinParent = (layers: readonly LayerNode[], id: string, toInd
   return mapChildren(layers, (children) => moveWithinParent(children, id, toIndex));
 };
 
-const findNode = (layers: readonly LayerNode[], id: string): LayerNode | null => {
+export const findNode = (layers: readonly LayerNode[], id: string): LayerNode | null => {
   const hit = layers.find((n) => nodeId(n) === id);
   if (hit !== undefined) return hit;
   return layers.filter(isGroupNode).reduce<LayerNode | null>((found, g) => found ?? findNode(g.children, id), null);
+};
+
+/** 1 for a top-level node, parent depth + 1 below; null when the id is absent. */
+export const depthOf = (layers: readonly LayerNode[], id: string): number | null => {
+  const hit = findParent(layers, id);
+  if (hit === null) return null;
+  return hit.parentId === null ? 1 : (depthOf(layers, hit.parentId) ?? 0) + 1;
+};
+
+const heightOf = (n: LayerNode): number => (isGroupNode(n) ? 1 + Math.max(0, ...n.children.map(heightOf)) : 1);
+
+/** Levels in the subtree counting the node itself (a leaf is 1); 0 when the id is absent. */
+export const subtreeHeight = (layers: readonly LayerNode[], id: string): number => {
+  const node = findNode(layers, id);
+  return node === null ? 0 : heightOf(node);
 };
 
 const collectIds = (n: LayerNode): { surfaceIds: string[]; groupIds: string[] } => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gn, mapOf, sn, surf } from '../geometry/fixtures';
-import { dfsSurfaceIds, findParent, flatLayers, insertAfterNode, isGroupNode, moveWithinParent, nodeId, removeNodes, sortSurfacesByLayers, subtreeIds } from './layers';
+import { depthOf, subtreeHeight, dfsSurfaceIds, findParent, flatLayers, insertAfterNode, isGroupNode, moveWithinParent, nodeId, removeNodes, sortSurfacesByLayers, subtreeIds } from './layers';
 
 const tree = () => [gn('g1', sn('s1'), gn('g2', sn('s2'))), sn('s3')];
 
@@ -55,5 +55,19 @@ describe('layers', () => {
     insertAfterNode(t, 's1', sn('x'));
     moveWithinParent(t, 's1', 1);
     expect(JSON.stringify(t)).toBe(before);
+  });
+});
+
+describe('depth helpers', () => {
+  const layers = [gn('g1', gn('g2', sn('a')), sn('b')), sn('c')];
+  it('depthOf counts the top level as 1', () => {
+    expect(depthOf(layers, 'c')).toBe(1);
+    expect(depthOf(layers, 'a')).toBe(3);
+    expect(depthOf(layers, 'nope')).toBeNull();
+  });
+  it('subtreeHeight counts the node itself', () => {
+    expect(subtreeHeight(layers, 'c')).toBe(1);
+    expect(subtreeHeight(layers, 'g1')).toBe(3);
+    expect(subtreeHeight(layers, 'nope')).toBe(0);
   });
 });

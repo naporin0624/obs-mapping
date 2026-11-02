@@ -3,6 +3,8 @@ import { boundsOf, type Bounds } from './rect';
 
 export type AlignMode = 'left' | 'right' | 'top' | 'bottom' | 'centerX' | 'centerY';
 
+export type Item = { id: string; bounds: Bounds };
+
 export const translateSurface = (s: Surface, dx: number, dy: number): Surface => {
   const corners = s.corners.map((p): Point => [p[0] + dx, p[1] + dy]) as unknown as Surface['corners'];
   return { ...s, corners };
@@ -10,77 +12,78 @@ export const translateSurface = (s: Surface, dx: number, dy: number): Surface =>
 
 const selected = (ss: readonly Surface[], ids: readonly string[]): readonly Surface[] => ss.filter((s) => ids.includes(s.id));
 
-export const alignReference = (ss: readonly Surface[], ids: readonly string[], canvas: { width: number; height: number }): Bounds | undefined =>
-  selected(ss, ids).length === 1 ? { x: 0, y: 0, width: canvas.width, height: canvas.height } : undefined;
+const asItems = (ss: readonly Surface[]): Item[] => ss.map((s) => ({ id: s.id, bounds: boundsOf(s) }));
 
-const unionBounds = (sel: readonly Surface[]): Bounds => {
-  const bs = sel.map(boundsOf);
+const canvasBounds = (canvas: { width: number; height: number }): Bounds => ({ x: 0, y: 0, width: canvas.width, height: canvas.height });
+
+export const itemsReference = (items: readonly Item[], canvas: { width: number; height: number }): Bounds | undefined => (items.length === 1 ? canvasBounds(canvas) : undefined);
+
+export const alignReference = (ss: readonly Surface[], ids: readonly string[], canvas: { width: number; height: number }): Bounds | undefined => itemsReference(asItems(selected(ss, ids)), canvas);
+
+const unionBounds = (bs: readonly Bounds[]): Bounds => {
   const x = Math.min(...bs.map((b) => b.x));
   const y = Math.min(...bs.map((b) => b.y));
   return { x, y, width: Math.max(...bs.map((b) => b.x + b.width)) - x, height: Math.max(...bs.map((b) => b.y + b.height)) - y };
 };
 
-export const alignSurfaces = (ss: readonly Surface[], ids: readonly string[], mode: AlignMode, reference?: Bounds): Surface[] => {
-  const sel = selected(ss, ids);
-  if (sel.length === 0) return [...ss];
-  const target = reference ?? unionBounds(sel);
-  const minX = target.x;
-  const maxX = target.x + target.width;
-  const minY = target.y;
-  const maxY = target.y + target.height;
-
-  const delta = (s: Surface): readonly [number, number] => {
-    const b = boundsOf(s);
-    switch (mode) {
-      case 'left':
-        return [minX - b.x, 0];
-      case 'right':
-        return [maxX - (b.x + b.width), 0];
-      case 'top':
-        return [0, minY - b.y];
-      case 'bottom':
-        return [0, maxY - (b.y + b.height)];
-      case 'centerX':
-        return [(minX + maxX) / 2 - (b.x + b.width / 2), 0];
-      case 'centerY':
-        return [0, (minY + maxY) / 2 - (b.y + b.height / 2)];
-    }
-  };
-
-  return ss.map((s) => {
-    if (!ids.includes(s.id)) return s;
-    const [dx, dy] = delta(s);
-    return translateSurface(s, dx, dy);
-  });
+const alignDelta = (b: Bounds, target: Bounds, mode: AlignMode): Point => {
+  switch (mode) {
+    case 'left':
+      return [target.x - b.x, 0];
+    case 'right':
+      return [target.x + target.width - (b.x + b.width), 0];
+    case 'top':
+      return [0, target.y - b.y];
+    case 'bottom':
+      return [0, target.y + target.height - (b.y + b.height)];
+    case 'centerX':
+      return [target.x + target.width / 2 - (b.x + b.width / 2), 0];
+    case 'centerY':
+      return [0, target.y + target.height / 2 - (b.y + b.height / 2)];
+  }
 };
 
-export const distributeSurfaces = (ss: readonly Surface[], ids: readonly string[], axis: 'x' | 'y'): Surface[] => {
-  const sel = selected(ss, ids);
-  if (sel.length < 3) return [...ss];
+export const alignDeltas = (items: readonly Item[], mode: AlignMode, reference?: Bounds): ReadonlyMap<string, Point> => {
+  if (items.length === 0) return new Map();
+  const target = reference ?? unionBounds(items.map((i) => i.bounds));
+  return new Map(items.map((i) => [i.id, alignDelta(i.bounds, target, mode)]));
+};
 
-  const start = (s: Surface): number => (axis === 'x' ? boundsOf(s).x : boundsOf(s).y);
-  const size = (s: Surface): number => (axis === 'x' ? boundsOf(s).width : boundsOf(s).height);
-  const sorted = [...sel].sort((a, b) => start(a) + size(a) / 2 - (start(b) + size(b) / 2));
-  const first = sorted[0] as Surface;
-  const last = sorted[sorted.length - 1] as Surface;
+const startOf = (b: Bounds, axis: 'x' | 'y'): number => (axis === 'x' ? b.x : b.y);
 
-  const span = start(last) + size(last) - start(first);
-  const gap = (span - sorted.reduce((acc, s) => acc + size(s), 0)) / (sorted.length - 1);
+const sizeOf = (b: Bounds, axis: 'x' | 'y'): number => (axis === 'x' ? b.width : b.height);
 
-  // Target start position of each selected surface, keyed by id.
-  const targets = new Map(
-    sorted.reduce<readonly (readonly [string, number])[]>((acc, s, i) => {
-      const prev = i === 0 ? null : (sorted[i - 1] as Surface);
-      const prevTarget = acc.length === 0 ? 0 : (acc[acc.length - 1] as readonly [string, number])[1];
-      const pos = prev === null ? start(s) : prevTarget + size(prev) + gap;
-      return [...acc, [s.id, pos] as const];
-    }, []),
+const centerOf = (b: Bounds, axis: 'x' | 'y'): number => startOf(b, axis) + sizeOf(b, axis) / 2;
+
+export const distributeDeltas = (items: readonly Item[], axis: 'x' | 'y'): ReadonlyMap<string, Point> => {
+  if (items.length < 3) return new Map();
+  const sorted = [...items].sort((a, b) => centerOf(a.bounds, axis) - centerOf(b.bounds, axis));
+  const first = sorted[0] as Item;
+  const last = sorted[sorted.length - 1] as Item;
+  const span = startOf(last.bounds, axis) + sizeOf(last.bounds, axis) - startOf(first.bounds, axis);
+  const gap = (span - sorted.reduce((acc, i) => acc + sizeOf(i.bounds, axis), 0)) / (sorted.length - 1);
+
+  const starts = sorted.reduce<readonly number[]>((acc, item, i) => {
+    const prev = sorted[i - 1];
+    const prevStart = acc[i - 1];
+    return prev === undefined || prevStart === undefined ? [startOf(item.bounds, axis)] : [...acc, prevStart + sizeOf(prev.bounds, axis) + gap];
+  }, []);
+
+  return new Map(
+    sorted.map((item, i): [string, Point] => {
+      const d = (starts[i] ?? 0) - startOf(item.bounds, axis);
+      return [item.id, axis === 'x' ? [d, 0] : [0, d]];
+    }),
   );
-
-  return ss.map((s) => {
-    const target = targets.get(s.id);
-    if (target === undefined) return s;
-    const d = target - start(s);
-    return axis === 'x' ? translateSurface(s, d, 0) : translateSurface(s, 0, d);
-  });
 };
+
+const applyDeltas = (ss: readonly Surface[], deltas: ReadonlyMap<string, Point>): Surface[] =>
+  ss.map((s) => {
+    const d = deltas.get(s.id);
+    return d === undefined ? s : translateSurface(s, d[0], d[1]);
+  });
+
+export const alignSurfaces = (ss: readonly Surface[], ids: readonly string[], mode: AlignMode, reference?: Bounds): Surface[] =>
+  applyDeltas(ss, alignDeltas(asItems(selected(ss, ids)), mode, reference));
+
+export const distributeSurfaces = (ss: readonly Surface[], ids: readonly string[], axis: 'x' | 'y'): Surface[] => applyDeltas(ss, distributeDeltas(asItems(selected(ss, ids)), axis));

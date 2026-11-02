@@ -4,10 +4,12 @@ import type { LoadResult, MappingSyncState } from '../../app/mapping-sync';
 import type { Mapping } from '../../model/mapping';
 import type { Action } from '../../editor/reducer';
 import type { EditorState } from '../../editor/state';
+import { groupProblem } from '../../editor/grouping';
 import { commandAtom } from '../command';
 import { instancesAtom } from '../instances';
 import { selectedSourceAtom } from '../session';
 import { streamAtom } from '../stream';
+import { reportErrorAtom } from '../toast';
 
 export type MappingView = { source: string; editor: EditorState; overlayEnabled: boolean };
 type LoadedMapping = MappingView & { loaded: LoadResult };
@@ -68,6 +70,14 @@ export const reloadUnopenedMappingAtom = atom(null, (get, set): void => {
 });
 
 export const dispatchAtom = commandAtom((i, action: Action) => i.sync.dispatch(action));
+/** Shows why grouping is impossible as a toast; groups when it is possible; silent with nothing selected. */
+export const groupSelectionAtom = atom(null, (get, set): void => {
+  const editor = get(syncStateAtom).editor;
+  if (editor === null || editor.dragging) return;
+  const problem = groupProblem(editor.mapping, editor.selection);
+  if (problem === null) set(dispatchAtom, { type: 'group' });
+  else if (problem !== '') set(reportErrorAtom, problem);
+});
 export const setOverlayAtom = commandAtom((i, enabled: boolean) => i.sync.setOverlay(enabled));
 
 /** Sends the import to the plugin and, only when accepted, reloads the view from it. */

@@ -7,6 +7,8 @@ import { tagCls, groupCls, reasonCls } from './styles.css';
 
 const ALIGN_REASON_ID = 'align-reason';
 const DISTRIBUTE_REASON_ID = 'distribute-reason';
+const GROUP_REASON_ID = 'group-reason';
+const UNGROUP_REASON_ID = 'ungroup-reason';
 
 const ALIGNS: readonly { mode: AlignMode; label: string }[] = [
   { mode: 'left', label: 'Left' },
@@ -22,14 +24,14 @@ const DISTRIBUTES: readonly { axis: 'x' | 'y'; label: string }[] = [
   { axis: 'y', label: 'Vertical' },
 ];
 
-type GroupProps = { dispatch: Dispatch<Action>; blocked: boolean };
+type GroupProps = { dispatch: Dispatch<Action>; blocked: boolean; reason: string };
 
-const AlignGroup = ({ dispatch, blocked }: GroupProps) => (
+const AlignGroup = ({ dispatch, blocked, reason }: GroupProps) => (
   <div className={groupCls}>
     <span className={tagCls}>Align</span>
     {blocked && (
       <span id={ALIGN_REASON_ID} className={reasonCls}>
-        面を選択
+        {reason}
       </span>
     )}
     {ALIGNS.map((a) => (
@@ -40,12 +42,12 @@ const AlignGroup = ({ dispatch, blocked }: GroupProps) => (
   </div>
 );
 
-const DistributeGroup = ({ dispatch, blocked }: GroupProps) => (
+const DistributeGroup = ({ dispatch, blocked, reason }: GroupProps) => (
   <div className={groupCls}>
     <span className={tagCls}>Distribute</span>
     {blocked && (
       <span id={DISTRIBUTE_REASON_ID} className={reasonCls}>
-        3面以上を選択
+        {reason}
       </span>
     )}
     {DISTRIBUTES.map((d) => (
@@ -63,11 +65,40 @@ const DistributeGroup = ({ dispatch, blocked }: GroupProps) => (
   </div>
 );
 
+type GroupingProps = { dispatch: Dispatch<Action>; canGroup: boolean; canUngroup: boolean; onGroup: () => void };
+
+const GroupingGroup = ({ dispatch, canGroup, canUngroup, onGroup }: GroupingProps) => (
+  <div className={groupCls}>
+    <span className={tagCls}>Group</span>
+    {!canGroup && (
+      <span id={GROUP_REASON_ID} className={reasonCls}>
+        面かグループを選ぶと使えます
+      </span>
+    )}
+    {!canUngroup && (
+      <span id={UNGROUP_REASON_ID} className={reasonCls}>
+        グループを選ぶと使えます
+      </span>
+    )}
+    <button type="button" className={buttonCls} disabled={!canGroup} aria-describedby={canGroup ? undefined : GROUP_REASON_ID} onClick={onGroup}>
+      グループ化
+    </button>
+    <button type="button" className={buttonCls} disabled={!canUngroup} aria-describedby={canUngroup ? undefined : UNGROUP_REASON_ID} onClick={() => dispatch({ type: 'ungroup' })}>
+      グループ解除
+    </button>
+  </div>
+);
+
 type Props = {
   dispatch: Dispatch<Action>;
   canUndo: boolean;
   canRedo: boolean;
   selectedCount: number;
+  /** Why a non-empty selection cannot be aligned; null when it is empty or movable. */
+  immovableReason: string | null;
+  canGroup: boolean;
+  canUngroup: boolean;
+  onGroup: () => void;
   gridSize: number;
   overlayEnabled: boolean;
   onToggleOverlay: () => void;
@@ -75,7 +106,7 @@ type Props = {
   children?: ReactNode;
 };
 
-export const Toolbar = ({ dispatch, canUndo, canRedo, selectedCount, gridSize, overlayEnabled, onToggleOverlay, children }: Props) => (
+export const Toolbar = ({ dispatch, canUndo, canRedo, selectedCount, immovableReason, canGroup, canUngroup, onGroup, gridSize, overlayEnabled, onToggleOverlay, children }: Props) => (
   <div className={`${rowCls} ${barCls}`}>
     <div className={groupCls}>
       <button type="button" className={buttonCls} disabled={!canUndo} onClick={() => dispatch({ type: 'undo' })}>
@@ -85,8 +116,9 @@ export const Toolbar = ({ dispatch, canUndo, canRedo, selectedCount, gridSize, o
         Redo
       </button>
     </div>
-    <AlignGroup dispatch={dispatch} blocked={selectedCount < 1} />
-    <DistributeGroup dispatch={dispatch} blocked={selectedCount < 3} />
+    <AlignGroup dispatch={dispatch} blocked={selectedCount < 1} reason={immovableReason ?? '面を選択'} />
+    <DistributeGroup dispatch={dispatch} blocked={selectedCount < 3} reason={immovableReason ?? '3面以上を選択'} />
+    <GroupingGroup dispatch={dispatch} canGroup={canGroup} canUngroup={canUngroup} onGroup={onGroup} />
     <div className={groupCls}>
       <NumField label="Grid" value={gridSize} onCommit={(size) => dispatch({ type: 'setGrid', size })} />
       <button type="button" className={overlayEnabled ? buttonSolidCls : buttonCls} aria-pressed={overlayEnabled} onClick={onToggleOverlay}>

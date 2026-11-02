@@ -282,7 +282,7 @@ describe('createMappingSync', () => {
     it('never sends enabled on selection changes or reconnect', async () => {
       const f = fake(mapping(10));
       const { sync } = await mount(f);
-      sync.dispatch({ type: 'select', selection: { surfaceIds: ['x'], corner: null } });
+      sync.dispatch({ type: 'select', selection: { surfaceIds: ['x'], groupIds: [], corner: null } });
       sync.goOffline();
       void sync.reconnect();
       await settle();
