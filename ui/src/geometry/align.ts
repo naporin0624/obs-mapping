@@ -20,7 +20,7 @@ export const itemsReference = (items: readonly Item[], canvas: { width: number; 
 
 export const alignReference = (ss: readonly Surface[], ids: readonly string[], canvas: { width: number; height: number }): Bounds | undefined => itemsReference(asItems(selected(ss, ids)), canvas);
 
-const unionBounds = (bs: readonly Bounds[]): Bounds => {
+export const unionBounds = (bs: readonly Bounds[]): Bounds => {
   const x = Math.min(...bs.map((b) => b.x));
   const y = Math.min(...bs.map((b) => b.y));
   return { x, y, width: Math.max(...bs.map((b) => b.x + b.width)) - x, height: Math.max(...bs.map((b) => b.y + b.height)) - y };

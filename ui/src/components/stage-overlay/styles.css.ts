@@ -1,7 +1,9 @@
 import { css } from '../../../styled-system/css';
 
-export const outlineCls = css({ fill: 'transparent', stroke: 'accent.solid', strokeWidth: '1px', cursor: 'move' });
+export const outlineCls = css({ fill: 'transparent', stroke: 'accent.solid', strokeWidth: '1px' });
 export const selectedCls = css({ strokeWidth: '2px' });
+export const movableCls = css({ cursor: 'move' });
+export const lockedCls = css({ cursor: 'not-allowed' });
 export const hiddenCls = css({ stroke: 'border.default', strokeDasharray: '4 4' });
 export const warnCls = css({ stroke: 'danger.text', strokeDasharray: '6 4', strokeWidth: '2px' });
 export const handleCls = css({ fill: 'bg.canvas', stroke: 'accent.solid', strokeWidth: '1px', cursor: 'crosshair' });

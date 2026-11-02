@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Surface } from '../model/mapping';
-import { roundedCorner, roundedOffset, snapCornerHit, snapCorner, snapSurfaceHit, snapSurfaceOffset, snapTargets, type SnapOptions } from './drag';
+import { roundedCorner, roundedGroupOffsetHit, roundedOffset, snapCornerHit, snapCorner, snapSurfaceHit, snapSurfaceOffset, snapTargets, type SnapOptions } from './drag';
 
 const surface = (id: string, corners: Surface['corners']): Surface => ({ id, name: id, type: 'quad', source: '', crop: { x: 0, y: 0, width: 1, height: 1 }, corners, visible: true });
 const other = surface('b', [
@@ -117,5 +117,19 @@ describe('snap guides', () => {
     expect(r.point).toEqual([1000, 500]);
     expect(r.guides).toContainEqual(top);
     expect(snapSurfaceHit(wide, [1000, 497], opts({ enabled: false })).guides).toEqual([]);
+  });
+});
+
+describe('roundedGroupOffsetHit', () => {
+  const frame = { x: 103, y: 0, width: 100, height: 100 };
+  it('lands the frame origin on the grid when nothing else is near', () => {
+    expect(roundedGroupOffsetHit(frame, [0, 0], opts({ grid: 20, others: [] })).point).toEqual([-3, 0]);
+  });
+  it('prefers a corner of another surface over the grid', () => {
+    const r = roundedGroupOffsetHit({ x: 397, y: 505, width: 106, height: 100 }, [0, 0], opts({ grid: 20 }));
+    expect(r.point).toEqual([-3, -5]);
+  });
+  it('does not snap while disabled', () => {
+    expect(roundedGroupOffsetHit(frame, [0.123, 0], opts({ grid: 20, enabled: false })).point).toEqual([0.12, 0]);
   });
 });

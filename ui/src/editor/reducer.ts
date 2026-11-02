@@ -17,6 +17,7 @@ export type Action =
   | { type: 'dragStart' }
   | { type: 'dragCorner'; surfaceId: string; index: CornerIndex; to: Point }
   | { type: 'dragSurface'; surfaceId: string; dx: number; dy: number }
+  | { type: 'dragItems'; ids: readonly string[]; dx: number; dy: number }
   | { type: 'dragEnd' }
   | { type: 'nudge'; dx: number; dy: number }
   | { type: 'setCorner'; surfaceId: string; index: CornerIndex; to: Point }
@@ -210,6 +211,7 @@ const handlers: Handlers = {
           s,
           mapSurface(s.mapping, a.surfaceId, (x) => translateSurface(x, a.dx, a.dy)),
         ),
+  dragItems: (s, a) => replaceLive(s, moveAll(s.mapping, new Map(a.ids.map((id): [string, Point] => [id, [a.dx, a.dy]])))),
   dragEnd: (s) => {
     if (!s.dragging) return s;
     const last = s.past.at(-1);

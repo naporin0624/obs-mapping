@@ -602,3 +602,43 @@ describe('multi-select move across parents', () => {
     expect(s.past).toHaveLength(1);
   });
 });
+
+describe('dragItems', () => {
+  const nested = (): EditorState =>
+    initialEditorState({
+      ...mk(surf('a', 0, 0, 100, 100), surf('b', 100, 0, 100, 100)),
+      groups: [groupOf('g1'), groupOf('g2', { origin: [100, 0] })],
+      layers: [gn('g1', sn('a'), gn('g2', sn('b')))],
+    });
+  const mixed = (): EditorState =>
+    initialEditorState({
+      ...mk(surf('a', 0, 0, 100, 100), surf('b', 100, 0, 100, 100), surf('c', 300, 300, 100, 100), surf('d', 500, 500, 100, 100)),
+      groups: [groupOf('g1'), groupOf('g2', { origin: [300, 300] })],
+      layers: [gn('g1', sn('a'), sn('b')), gn('g2', sn('c')), sn('d')],
+    });
+  const origins = (s: EditorState): unknown[] => [...s.mapping.groups.map((g) => g.origin), s.mapping.surfaces.find((x) => x.id === 'd')?.corners[0]];
+
+  it('moves a top-level group and its children together, undone in one step', () => {
+    const s = run(mixed(), { type: 'dragStart' }, { type: 'dragItems', ids: ['g1'], dx: 5, dy: 3 }, { type: 'dragItems', ids: ['g1'], dx: 5, dy: 0 }, { type: 'dragEnd' });
+    expect(s.mapping.groups[0]?.origin).toEqual([10, 3]);
+    expect(s.mapping.surfaces.map((x) => x.corners[0]).slice(0, 2)).toEqual([
+      [10, 3],
+      [110, 3],
+    ]);
+    expect(run(s, { type: 'undo' }).mapping).toEqual(mixed().mapping);
+  });
+  it('moves two groups and a top-level surface by the same delta in one undo step', () => {
+    const s = run(mixed(), { type: 'dragStart' }, { type: 'dragItems', ids: ['g1', 'g2', 'd'], dx: 7, dy: -2 }, { type: 'dragEnd' });
+    expect(origins(s)).toEqual([
+      [7, -2],
+      [307, 298],
+      [507, 498],
+    ]);
+    expect(s.past).toHaveLength(1);
+    expect(run(s, { type: 'undo' }).mapping).toEqual(mixed().mapping);
+  });
+  it('ignores a nested group', () => {
+    const s = run(nested(), { type: 'dragStart' });
+    expect(reducer(s, { type: 'dragItems', ids: ['g2'], dx: 5, dy: 5 }).mapping).toEqual(s.mapping);
+  });
+});

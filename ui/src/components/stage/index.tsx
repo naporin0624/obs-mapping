@@ -80,6 +80,7 @@ export const Stage = ({ state, dispatch, client, online }: Props) => {
           onPointerMove={drag.onMove}
           onPointerUp={drag.onUp}
           onPointerCancel={drag.onUp}
+          onDoubleClick={drag.onDoubleClick}
         >
           <StageOverlay mapping={mapping} selection={selection} visibleIds={visibleIds} scale={scale} drag={drag} />
         </svg>

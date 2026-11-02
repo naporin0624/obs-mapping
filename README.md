@@ -91,7 +91,10 @@ pnpm -C ui preview   # http://localhost:4173
 | 矢印キー | 1px 移動（Shift で 10px）。Stage をクリックしてフォーカスしておく |
 | Delete / Backspace | 選択中の面を削除 |
 | Cmd+D | 面を複製 |
-| Shift+クリック / Cmd+クリック | 複数選択。Align / Distribute で整列・等間隔配置 |
+| クリック | 一番外側のグループを選ぶ（グループに入っていない面は面そのもの）。グループの中の階層を選んだ後は、同じ階層のまま選び直す |
+| ダブルクリック | 選択を 1 段ずつ中に入れる（グループ → 入れ子のグループ → 面） |
+| Cmd+クリック | 一番深い面を直接選ぶ（選択には足さない） |
+| Shift+クリック | 選択に足す、または外す。Align / Distribute で整列・等間隔配置 |
 | Undo / Redo | ツールバーのボタン、または Cmd+Z / Cmd+Shift+Z。OBS 本体が Cmd+Z を取る場合があるので、ボタンを使うのが確実 |
 | Export / Import | JSON の書き出し・読み込み（後述） |
 | Overlay | OBS の出力に輪郭とハンドルを描く編集用オーバーレイのオン・オフ |

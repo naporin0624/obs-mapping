@@ -1,4 +1,5 @@
 import type { ObsClient, OverlayState } from '../../obs/client';
+import { selectedSurfaceIdsDeep } from '../../model/layers';
 import type { SessionState } from './session-state';
 
 export type OverlayDeps = {
@@ -25,15 +26,18 @@ export const createOverlayControl = (d: OverlayDeps) => {
     d.emit(value);
   };
 
+  const selectionState = (): Pick<OverlayState, 'selectedSurfaceIds' | 'selectedCorner'> => {
+    const { mapping, selection } = d.state.editor();
+    return { selectedSurfaceIds: selectedSurfaceIdsDeep(mapping, selection), selectedCorner: selection.corner };
+  };
+
   const sendSelection = (): void => {
     if (!live()) return;
-    const { surfaceIds, corner } = d.state.editor().selection;
-    void d.client.setOverlay(d.source, { selectedSurfaceIds: surfaceIds, selectedCorner: corner });
+    void d.client.setOverlay(d.source, selectionState());
   };
 
   const sendToggle = async (value: boolean): Promise<void> => {
-    const { surfaceIds, corner } = d.state.editor().selection;
-    const r = await d.client.setOverlay(d.source, { enabled: value, selectedSurfaceIds: surfaceIds, selectedCorner: corner });
+    const r = await d.client.setOverlay(d.source, { enabled: value, ...selectionState() });
     if (r.ok) return;
     owned = false;
     setFlag(!value);

@@ -1,9 +1,12 @@
 import type { StageDrag } from '../../editor/use-stage-drag';
 import type { CornerIndex, Selection } from '../../editor/state';
+import { isLaidOut, isTopLevel } from '../../editor/items';
 import { clipLine } from '../../geometry/clip';
+import { groupFrame } from '../../layout/frame';
 import { quadWarning, type QuadWarning } from '../../geometry/quad';
 import type { Mapping, Surface } from '../../model/mapping';
-import { outlineCls, selectedCls, hiddenCls, warnCls, handleCls, handleOnCls, gridLineCls, guideLineCls, warnTextCls } from './styles.css';
+import { StageGroupFrame } from '../stage-group-frame';
+import { outlineCls, selectedCls, movableCls, lockedCls, hiddenCls, warnCls, handleCls, handleOnCls, gridLineCls, guideLineCls, warnTextCls } from './styles.css';
 
 const HANDLE_PX = 10;
 const MIN_GRID_STAGE_PX = 4;
@@ -14,17 +17,20 @@ const points = (s: Surface): string => s.corners.map((p) => `${String(p[0])},${S
 
 const center = (s: Surface): readonly [number, number] => [s.corners.reduce((a, p) => a + p[0], 0) / 4, s.corners.reduce((a, p) => a + p[1], 0) / 4];
 
-const classOf = (selected: boolean, visible: boolean, warning: QuadWarning): string => [outlineCls, selected ? selectedCls : '', visible ? '' : hiddenCls, warning === null ? '' : warnCls].join(' ');
+type Look = { selected: boolean; locked: boolean; visible: boolean; warning: QuadWarning };
+
+const classOf = ({ selected, locked, visible, warning }: Look): string =>
+  [outlineCls, selected ? selectedCls : '', locked ? lockedCls : movableCls, visible ? '' : hiddenCls, warning === null ? '' : warnCls].join(' ');
 
 type SurfaceProps = { surface: Surface; scale: number; drag: StageDrag };
-type OutlineProps = SurfaceProps & { selected: boolean; visible: boolean };
+type OutlineProps = SurfaceProps & { selected: boolean; locked: boolean; visible: boolean };
 
-const SurfaceOutline = ({ surface, selected, visible, scale, drag }: OutlineProps) => {
+const SurfaceOutline = ({ surface, selected, locked, visible, scale, drag }: OutlineProps) => {
   const warning = quadWarning(surface.corners);
   const [cx, cy] = center(surface);
   return (
     <g>
-      <polygon points={points(surface)} className={classOf(selected, visible, warning)} vectorEffect="non-scaling-stroke" onPointerDown={(e) => drag.onSurfaceDown(e, surface.id)} />
+      <polygon points={points(surface)} className={classOf({ selected, locked, visible, warning })} vectorEffect="non-scaling-stroke" onPointerDown={(e) => drag.onSurfaceDown(e, surface.id)} />
       {warning === null ? null : (
         <text x={cx} y={cy} textAnchor="middle" fontSize={12 / scale} className={warnTextCls}>
           {WARNING_TEXT[warning]}
@@ -75,6 +81,14 @@ const Grid = ({ mapping, scale }: { mapping: Mapping; scale: number }) => {
   );
 };
 
+const GroupFrames = ({ mapping, selection, scale, drag }: { mapping: Mapping; selection: Selection; scale: number; drag: StageDrag }) => (
+  <>
+    {selection.groupIds.map((id) => (
+      <StageGroupFrame key={id} frame={groupFrame(mapping, id)} movable={isTopLevel(mapping, id)} scale={scale} onPointerDown={(e) => drag.onGroupDown(e, id)} />
+    ))}
+  </>
+);
+
 const Guides = ({ drag, mapping }: { drag: StageDrag; mapping: Mapping }) => (
   <g pointerEvents="none" aria-hidden="true">
     {drag.guides.map((g, i) => {
@@ -88,14 +102,23 @@ const Guides = ({ drag, mapping }: { drag: StageDrag; mapping: Mapping }) => (
 
 type Props = { mapping: Mapping; selection: Selection; visibleIds: ReadonlySet<string>; scale: number; drag: StageDrag };
 
-/** SVG layer in canvas px: grid, surface outlines (danger dashed + text for bad quads), then corner handles. */
+/** SVG layer in canvas px: grid, surface outlines (danger dashed + text for bad quads), group frames, then corner handles. */
 export const StageOverlay = ({ mapping, selection, visibleIds, scale, drag }: Props) => (
   <>
     <rect x={0} y={0} width={mapping.canvas.width} height={mapping.canvas.height} fill="transparent" onPointerDown={() => drag.onBackgroundDown()} />
     <Grid mapping={mapping} scale={scale} />
     {mapping.surfaces.map((s) => (
-      <SurfaceOutline key={s.id} surface={s} selected={selection.surfaceIds.includes(s.id)} visible={visibleIds.has(s.id)} scale={scale} drag={drag} />
+      <SurfaceOutline
+        key={s.id}
+        surface={s}
+        selected={selection.surfaceIds.includes(s.id)}
+        locked={selection.surfaceIds.includes(s.id) && isLaidOut(mapping, s.id)}
+        visible={visibleIds.has(s.id)}
+        scale={scale}
+        drag={drag}
+      />
     ))}
+    <GroupFrames mapping={mapping} selection={selection} scale={scale} drag={drag} />
     <Guides drag={drag} mapping={mapping} />
     {mapping.surfaces
       .filter((s) => selection.surfaceIds.includes(s.id))
