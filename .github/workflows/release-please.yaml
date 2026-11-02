@@ -1,0 +1,81 @@
+name: Release Please
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  release-please:
+    name: Release Please 🏷️
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      releaseCreated: ${{ steps.release.outputs.release_created }}
+      tagName: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Run release-please 🏷️
+        id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Tags pushed with GITHUB_TOKEN start no workflows, so the release build runs here
+  build-project:
+    name: Build Project 🧱
+    needs: release-please
+    if: needs.release-please.outputs.releaseCreated == 'true'
+    uses: ./.github/workflows/build-project.yaml
+    with:
+      release: true
+    secrets: inherit
+    permissions:
+      contents: read
+
+  upload-assets:
+    name: Upload Release Assets 🛫
+    needs: [release-please, build-project]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download Build Artifacts 📥
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Collect Packages 📦
+        run: |
+          : Collect Packages 📦
+          if [[ "${RUNNER_DEBUG}" ]]; then set -x; fi
+          shopt -s nullglob
+
+          mkdir -p assets
+          files=(
+            artifacts/*-macos-universal.pkg
+            artifacts/*-macos-universal.tar.xz
+            artifacts/*-windows-x64.zip
+            artifacts/*-windows-x64.exe
+          )
+          if (( ${#files[@]} == 0 )); then
+            echo '::error::No macOS or Windows packages found in the build artifacts'
+            exit 1
+          fi
+          mv "${files[@]}" assets/
+
+          cd assets
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload To Release 🛫
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.release-please.outputs.tagName }}
+        run: gh release upload "${TAG_NAME}" assets/* --clobber --repo "${GITHUB_REPOSITORY}"

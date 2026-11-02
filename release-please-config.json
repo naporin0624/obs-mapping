@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-v-in-tag": false,
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "initial-version": "0.1.0",
+  "packages": {
+    ".": {
+      "package-name": "obs-mapping",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "buildspec.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}
