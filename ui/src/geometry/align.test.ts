@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alignReference, alignSurfaces, distributeSurfaces, translateSurface } from './align';
+import { alignDeltas, alignReference, alignSurfaces, distributeDeltas, distributeSurfaces, translateSurface } from './align';
 import { boundsOf } from './rect';
 import { surf } from './fixtures';
 
@@ -88,5 +88,32 @@ describe('align to canvas', () => {
   it('multi-select still aligns to the selection bounds', () => {
     const ss = [surf('a', 20, 0), surf('b', 5, 30)];
     expect(alignSurfaces(ss, ['a', 'b'], 'left', alignReference(ss, ['a', 'b'], canvas)).map((s) => boundsOf(s).x)).toEqual([5, 5]);
+  });
+});
+
+describe('deltas', () => {
+  const items = [
+    { id: 'a', bounds: { x: 20, y: 0, width: 10, height: 10 } },
+    { id: 'b', bounds: { x: 5, y: 30, width: 20, height: 10 } },
+  ];
+  it('alignDeltas returns the shift per id', () => {
+    expect(alignDeltas(items, 'left')).toEqual(
+      new Map([
+        ['a', [-15, 0]],
+        ['b', [0, 0]],
+      ]),
+    );
+  });
+  it('alignDeltas uses the reference when given', () => {
+    expect(alignDeltas(items.slice(0, 1), 'right', { x: 0, y: 0, width: 100, height: 100 }).get('a')).toEqual([70, 0]);
+  });
+  it('distributeDeltas needs three items', () => {
+    expect(distributeDeltas(items, 'x').size).toBe(0);
+    const three = [
+      { id: 'a', bounds: { x: 0, y: 0, width: 10, height: 10 } },
+      { id: 'b', bounds: { x: 30, y: 0, width: 10, height: 10 } },
+      { id: 'c', bounds: { x: 100, y: 0, width: 10, height: 10 } },
+    ];
+    expect(distributeDeltas(three, 'x').get('b')).toEqual([20, 0]);
   });
 });

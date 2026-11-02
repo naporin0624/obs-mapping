@@ -42,4 +42,41 @@ describe('readMapping', () => {
     expect(readMapping(noLayers)).toEqual({ kind: 'error', message: 'layers: missing' });
     expect(readMapping({ ...mapOf(surf('a', 0, 0)), layers: [] })).toEqual({ kind: 'error', message: 'layers: surface "a" is missing from the tree' });
   });
+
+  it('defaults visible to true for surfaces and groups', () => {
+    const m = { ...mapOf(surf('a', 0, 0)), groups: [groupOf('g')], layers: [gn('g', sn('a'))] };
+    const { visible: _gv, ...group } = m.groups[0] ?? groupOf('g');
+    const { visible: _sv, ...surface } = m.surfaces[0] ?? surf('a', 0, 0);
+    const r = readMapping({ ...m, groups: [group], surfaces: [surface] });
+    expect(r.kind === 'ok' && r.mapping.groups[0]?.visible).toBe(true);
+    expect(r.kind === 'ok' && r.mapping.surfaces[0]?.visible).toBe(true);
+  });
+
+  it('drops unknown keys at the root, surface, group and layer node', () => {
+    const m = { ...mapOf(surf('a', 0, 0)), groups: [groupOf('g')], layers: [gn('g', sn('a'))] };
+    const noisy = {
+      ...m,
+      extra: 1,
+      grid: { ...m.grid, extra: 1 },
+      surfaces: m.surfaces.map((s) => ({ ...s, extra: 1 })),
+      groups: m.groups.map((g) => ({ ...g, extra: 1, layout: { ...g.layout, extra: 1 } })),
+      layers: [{ group: 'g', extra: 1, children: [{ surface: 'a', extra: 1 }] }],
+    };
+    expect(readMapping(noisy)).toEqual({ kind: 'ok', mapping: m });
+  });
+
+  it('reports malformed fields as an error instead of throwing', () => {
+    const { crop: _c, ...noCrop } = surf('a', 0, 0);
+    expect(readMapping({ ...v1(), surfaces: [noCrop] }).kind).toBe('error');
+    expect(readMapping({ ...v1(), surfaces: [null] }).kind).toBe('error');
+    expect(readMapping({ ...v1(), grid: null }).kind).toBe('error');
+    const v2 = mapOf(surf('a', 0, 0));
+    expect(readMapping({ ...v2, grid: null }).kind).toBe('error');
+    expect(readMapping({ ...v2, surfaces: [null] }).kind).toBe('error');
+  });
+
+  it('lets the plugin report a wrong corner count', () => {
+    const bad = { ...surf('a', 0, 0), corners: [[0, 0]] };
+    expect(readMapping({ ...mapOf(surf('a', 0, 0)), surfaces: [bad] }).kind).toBe('ok');
+  });
 });

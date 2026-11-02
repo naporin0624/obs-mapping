@@ -6,7 +6,7 @@ import { canonicalJson, initialEditorState, type EditorState } from './state';
 
 const mk = mapOf;
 const run = (s: EditorState, ...as: Action[]): EditorState => as.reduce(reducer, s);
-const sel = (ids: string[], corner: EditorState['selection']['corner'] = null) => ({ type: 'select', selection: { surfaceIds: ids, corner } }) as const;
+const sel = (ids: string[], corner: EditorState['selection']['corner'] = null) => ({ type: 'select', selection: { surfaceIds: ids, groupIds: [] as string[], corner } }) as const;
 const base = () => initialEditorState(mk(surf('a', 0, 0), surf('b', 100, 0)));
 
 describe('drag history', () => {
@@ -74,7 +74,7 @@ describe('edits', () => {
   it('removeSelected clears the selection', () => {
     const s = run(base(), sel(['a']), { type: 'removeSelected' });
     expect(s.mapping.surfaces.map((x) => x.id)).toEqual(['b']);
-    expect(s.selection).toEqual({ surfaceIds: [], corner: null });
+    expect(s.selection).toEqual({ surfaceIds: [], groupIds: [], corner: null });
   });
   it('addSurface numbers ids s-1, s-2 and selects the new one, centred at 1/4 size', () => {
     const s = run(initialEditorState(mk()), { type: 'addSurface', source: 'cam' }, { type: 'addSurface', source: 'cam' });
@@ -105,7 +105,7 @@ describe('edits', () => {
 
 describe('groups keep the tree valid', () => {
   const grouped = (): Mapping => ({
-    ...mk(surf('a', 0, 0), surf('b', 20, 0), surf('c', 40, 0), surf('d', 60, 0)),
+    ...mk(surf('a', 0, 0), surf('b', 10, 0), surf('c', 40, 0), surf('d', 60, 0)),
     groups: [groupOf('g1')],
     layers: [gn('g1', sn('a'), sn('b')), sn('c'), sn('d')],
   });
@@ -137,6 +137,19 @@ describe('groups keep the tree valid', () => {
     const s = run(initialEditorState(grouped()), sel(['a']), { type: 'duplicateSelected' });
     expect(s.mapping.layers).toEqual([gn('g1', sn('a'), sn('s-1'), sn('b')), sn('c'), sn('d')]);
     expect(ids(s.mapping)).toEqual(['a', 's-1', 'b', 'c', 'd']);
+  });
+
+  it('removeSelected deletes a selected group with its children', () => {
+    const s = run(initialEditorState(grouped()), { type: 'select', selection: { surfaceIds: [], groupIds: ['g1'], corner: null } }, { type: 'removeSelected' });
+    expect(ids(s.mapping)).toEqual(['c', 'd']);
+    expect(s.mapping.groups).toEqual([]);
+    expect(s.selection).toEqual({ surfaceIds: [], groupIds: [], corner: null });
+  });
+
+  it('duplicateSelected copies a group and selects the new group', () => {
+    const s = run(initialEditorState(grouped()), { type: 'select', selection: { surfaceIds: [], groupIds: ['g1'], corner: null } }, { type: 'duplicateSelected' });
+    expect(s.selection).toEqual({ surfaceIds: [], groupIds: ['g-1'], corner: null });
+    expect(s.mapping.groups.map((g) => g.id)).toEqual(['g1', 'g-1']);
   });
 
   it('reorder moves within the parent and ignores a target under another parent', () => {
@@ -393,5 +406,166 @@ describe('resync snapshots and late echoes (#4 review)', () => {
     const s = reducer(idle, { type: 'staleEcho' });
     expect(s.mapping).toBe(idle.mapping);
     expect(s.needsResync).toBe(true);
+  });
+});
+
+describe('group layout', () => {
+  const grouped = () => {
+    const m: Mapping = {
+      ...mk(surf('a', 100, 100, 100, 50), surf('b', 220, 100, 100, 80)),
+      groups: [groupOf('g', { origin: [100, 100], layout: { direction: 'row', gap: 20, align: 'start', padding: 0 } })],
+      layers: [gn('g', sn('a'), sn('b'))],
+    };
+    return initialEditorState(m);
+  };
+
+  it('no-op commit on a laid-out mapping returns the same state', () => {
+    const s = grouped();
+    expect(reducer(s, { type: 'patchSurface', surfaceId: 'a', patch: { name: 'a' } })).toBe(s);
+  });
+
+  it('removeSelected and duplicateSelected with an empty selection leave an unlaid mapping alone', () => {
+    const s = initialEditorState(grouped().mapping);
+    const skewed: EditorState = { ...s, mapping: { ...s.mapping, surfaces: s.mapping.surfaces.map((x) => (x.id === 'b' ? surf('b', 900, 900, 100, 80) : x)) } };
+    expect(reducer(skewed, { type: 'removeSelected' })).toBe(skewed);
+    expect(reducer(skewed, { type: 'duplicateSelected' })).toBe(skewed);
+  });
+
+  it('dragSurface on a grouped surface does nothing', () => {
+    const s = run(grouped(), { type: 'dragStart' });
+    expect(reducer(s, { type: 'dragSurface', surfaceId: 'a', dx: 5, dy: 5 })).toBe(s);
+  });
+
+  it('remote does not run layoutTree', () => {
+    const skewed = grouped().mapping;
+    const off: Mapping = { ...skewed, surfaces: skewed.surfaces.map((x) => (x.id === 'b' ? surf('b', 900, 900, 100, 80) : x)) };
+    expect(reducer(grouped(), { type: 'remote', mapping: off, requestId: null }).mapping).toBe(off);
+  });
+
+  it('dragCorner previews the layout live', () => {
+    const s = run(grouped(), { type: 'dragStart' }, { type: 'dragCorner', surfaceId: 'a', index: 2, to: [230, 160] });
+    expect(s.mapping.surfaces.find((x) => x.id === 'b')?.corners[0]).toEqual([250, 100]);
+  });
+
+  it('pruneSelection drops missing group ids', () => {
+    const s = run(grouped(), { type: 'select', selection: { surfaceIds: [], groupIds: ['g', 'gone'], corner: null } });
+    const loaded = reducer(s, { type: 'remote', mapping: { ...s.mapping, groups: [], layers: [sn('a'), sn('b')] }, requestId: null });
+    expect(loaded.selection.groupIds).toEqual([]);
+    expect(s.selection.groupIds).toEqual(['g', 'gone']);
+  });
+});
+
+describe('group / ungroup', () => {
+  const trio = () => initialEditorState(mk(surf('a', 0, 0, 100, 50), surf('b', 130, 0, 100, 50), surf('c', 250, 0, 100, 50)));
+
+  it('groups the selection, selects the group and packs it with the inferred gap', () => {
+    const s = run(trio(), sel(['a', 'b', 'c']), { type: 'group' });
+    expect(s.mapping.layers).toEqual([gn('g-1', sn('a'), sn('b'), sn('c'))]);
+    expect(s.selection).toEqual({ surfaceIds: [], groupIds: ['g-1'], corner: null });
+    expect(s.mapping.surfaces.map((x) => x.corners[0][0])).toEqual([0, 125, 250]);
+  });
+  it('keeps visible items in place when a hidden one sits between them', () => {
+    const m = mk(surf('a', 0, 0, 100, 50), { ...surf('b', 130, 0, 100, 50), visible: false }, surf('c', 250, 0, 100, 50));
+    const s = run(initialEditorState(m), sel(['a', 'b', 'c']), { type: 'group' });
+    expect(s.mapping.surfaces.find((x) => x.id === 'c')?.corners[0][0]).toBe(250);
+  });
+  it('undoes in one step', () => {
+    const s = run(trio(), sel(['a', 'b']), { type: 'group' }, { type: 'undo' });
+    expect(canonicalJson(s.mapping)).toBe(canonicalJson(trio().mapping));
+  });
+  it('refuses quietly across parents and with no selection', () => {
+    const grouped = run(trio(), sel(['b', 'c']), { type: 'group' });
+    const mixed = run(grouped, sel(['a', 'b']));
+    const trio0 = trio();
+    expect(reducer(mixed, { type: 'group' })).toBe(mixed);
+    expect(reducer(trio0, { type: 'group' })).toBe(trio0);
+  });
+  it('ungroup returns the children, selected by kind, without moving them', () => {
+    const grouped = run(trio(), sel(['b', 'c']), { type: 'group' });
+    const s = run(grouped, { type: 'select', selection: { surfaceIds: [], groupIds: ['g-1'], corner: null } }, { type: 'ungroup' });
+    expect(s.mapping.groups).toEqual([]);
+    expect(s.mapping.layers).toEqual([sn('a'), sn('b'), sn('c')]);
+    expect(s.mapping.surfaces).toEqual(grouped.mapping.surfaces);
+    expect(s.selection).toEqual({ surfaceIds: ['b', 'c'], groupIds: [], corner: null });
+  });
+  it('ignores group and ungroup while dragging', () => {
+    const d = run(trio(), sel(['a']), { type: 'dragStart' });
+    expect(reducer(d, { type: 'group' })).toBe(d);
+    expect(reducer(d, { type: 'ungroup' })).toBe(d);
+  });
+  it('addSurface avoids a group id that looks like a surface id', () => {
+    const m = { ...mk(surf('s-1', 0, 0)), groups: [groupOf('s-3')], layers: [sn('s-1'), gn('s-3')] };
+    const s = run(initialEditorState(m), { type: 'addSurface', source: 'x' });
+    expect(s.selection.surfaceIds).toEqual(['s-4']);
+  });
+});
+
+describe('group items', () => {
+  const world = () => {
+    const m: Mapping = {
+      ...mk(surf('a', 100, 100, 100, 50), surf('b', 220, 100, 100, 80), surf('x', 600, 300, 20, 20)),
+      groups: [groupOf('g', { origin: [100, 100], layout: { direction: 'row', gap: 20, align: 'start', padding: 0 } })],
+      layers: [gn('g', sn('a'), sn('b')), sn('x')],
+    };
+    return initialEditorState(m);
+  };
+  const pick = (surfaceIds: string[], groupIds: string[], corner: EditorState['selection']['corner'] = null) => ({ type: 'select', selection: { surfaceIds, groupIds, corner } }) as const;
+
+  it('nudge moves a top-level group origin', () => {
+    const s = run(world(), pick([], ['g']), { type: 'nudge', dx: 1, dy: 2 });
+    expect(s.mapping.groups[0]?.origin).toEqual([101, 102]);
+    expect(s.mapping.surfaces.find((x) => x.id === 'a')?.corners[0]).toEqual([101, 102]);
+  });
+  it('nudge ignores grouped surfaces', () => {
+    const w = run(world(), pick(['a'], []));
+    expect(reducer(w, { type: 'nudge', dx: 1, dy: 2 })).toBe(w);
+  });
+  it('nudge on a selected corner of a grouped surface still edits the shape', () => {
+    const s = run(world(), pick(['a'], [], { surfaceId: 'a', index: 2 }), { type: 'nudge', dx: 10, dy: 0 });
+    expect(s.mapping.surfaces.find((x) => x.id === 'a')?.corners[2]).toEqual([210, 150]);
+    expect(s.mapping.surfaces.find((x) => x.id === 'b')?.corners[0]).toEqual([230, 100]);
+  });
+  it('align left lines a group frame up with a surface', () => {
+    const s = run(world(), pick(['x'], ['g']), { type: 'align', mode: 'left' });
+    expect(s.mapping.groups[0]?.origin[0]).toBe(100);
+    expect(s.mapping.surfaces.find((x) => x.id === 'x')?.corners[0][0]).toBe(100);
+  });
+  it('align ignores grouped surfaces and is a no-op then', () => {
+    const w = run(world(), pick(['a', 'b'], []));
+    expect(reducer(w, { type: 'align', mode: 'left' })).toBe(w);
+  });
+  it('a single group aligns to the canvas', () => {
+    const s = run(world(), pick([], ['g']), { type: 'align', mode: 'left' });
+    expect(s.mapping.groups[0]?.origin[0]).toBe(0);
+  });
+  it('distribute spaces three items by frame', () => {
+    const m = world().mapping;
+    const more: Mapping = { ...m, surfaces: [...m.surfaces, surf('y', 1000, 300, 20, 20)], layers: [...m.layers, sn('y')] };
+    const s = run(initialEditorState(more), pick(['x', 'y'], ['g']), { type: 'distribute', axis: 'x' });
+    expect(s.mapping.surfaces.find((x) => x.id === 'x')?.corners[0][0]).toBe(650);
+    expect(s.mapping.groups[0]?.origin[0]).toBe(100);
+  });
+
+  const offSlot = () => {
+    const w = world();
+    const skewed: Mapping = { ...w.mapping, surfaces: w.mapping.surfaces.map((x) => (x.id === 'b' ? surf('b', 900, 900, 100, 80) : x)) };
+    return { ...w, mapping: skewed };
+  };
+  it('nudge with nothing movable selected returns the same state even when not laid out', () => {
+    const idle = offSlot();
+    expect(reducer(idle, { type: 'nudge', dx: 1, dy: 0 })).toBe(idle);
+    const onlyGrouped = run(idle, pick(['a'], []));
+    expect(reducer(onlyGrouped, { type: 'nudge', dx: 1, dy: 0 })).toBe(onlyGrouped);
+  });
+  it('align and distribute with nothing movable return the same state', () => {
+    const ignored = run(offSlot(), pick(['a'], []));
+    expect(reducer(ignored, { type: 'align', mode: 'left' })).toBe(ignored);
+    expect(reducer(ignored, { type: 'distribute', axis: 'x' })).toBe(ignored);
+  });
+  it('nudge ignores a selected nested group', () => {
+    const m = world().mapping;
+    const nested: Mapping = { ...m, groups: [...m.groups, groupOf('h', { origin: [220, 100] })], layers: [gn('g', sn('a'), gn('h', sn('b'))), sn('x')] };
+    const w = run(initialEditorState(nested), pick([], ['h']));
+    expect(reducer(w, { type: 'nudge', dx: 1, dy: 2 })).toBe(w);
   });
 });

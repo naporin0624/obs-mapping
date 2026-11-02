@@ -25,4 +25,14 @@ describe('keyAction', () => {
     expect(keyAction(key('a'))).toBeNull();
     expect(keyAction(key('ArrowLeft', { metaKey: true }))).toBeNull();
   });
+
+  it('maps Cmd+G to group and Cmd+Shift+G to ungroup', () => {
+    expect(keyAction(key('g', { metaKey: true }))).toEqual({ type: 'group' });
+    expect(keyAction(key('G', { metaKey: true, shiftKey: true }))).toEqual({ type: 'ungroup' });
+  });
+
+  it('ignores auto-repeat for group and ungroup', () => {
+    expect(keyAction(key('g', { metaKey: true, repeat: true }))).toBeNull();
+    expect(keyAction(key('g', { metaKey: true, shiftKey: true, repeat: true }))).toBeNull();
+  });
 });

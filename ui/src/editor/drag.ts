@@ -16,8 +16,7 @@ export type Snapped = { point: Point; guides: readonly GuideLine[] };
 /** Corner and edge hits win; the softer kinds compete on adjustment size so the grid is not starved. */
 const HIT_RANK: Record<Exclude<SnapHit['kind'], 'none'>, number> = { corner: 0, edge: 0, intersection: 1, line: 1, grid: 1 };
 
-/** Surfaces that attract snapping: visible and not part of the current drag. */
-/** Only surfaces that are actually drawn (see effectiveVisibleIds) are snap targets. */
+/** Effectively visible surfaces (see effectiveVisibleIds) that are not part of the current drag. */
 export const snapTargets = (surfaces: readonly Surface[], movingIds: readonly string[], visibleIds: ReadonlySet<string>): Surface[] =>
   surfaces.filter((s) => visibleIds.has(s.id) && !movingIds.includes(s.id));
 

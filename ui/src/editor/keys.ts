@@ -1,6 +1,6 @@
 import type { Action } from './reducer';
 
-export type KeyInput = { key: string; shiftKey: boolean; metaKey: boolean; ctrlKey: boolean };
+export type KeyInput = { key: string; shiftKey: boolean; metaKey: boolean; ctrlKey: boolean; repeat?: boolean };
 
 const NUDGE_SMALL = 1;
 const NUDGE_LARGE = 10;
@@ -18,6 +18,8 @@ const commandAction = (key: string, shift: boolean): Action | null => {
       return { type: shift ? 'redo' : 'undo' };
     case 'd':
       return shift ? null : { type: 'duplicateSelected' };
+    case 'g':
+      return { type: shift ? 'ungroup' : 'group' };
     default:
       return null;
   }
@@ -25,7 +27,7 @@ const commandAction = (key: string, shift: boolean): Action | null => {
 
 /** Maps a keydown on the Stage to an editor action; null when the key is not a shortcut. */
 export const keyAction = (e: KeyInput): Action | null => {
-  if (e.metaKey || e.ctrlKey) return commandAction(e.key, e.shiftKey);
+  if (e.metaKey || e.ctrlKey) return e.repeat === true && e.key.toLowerCase() === 'g' ? null : commandAction(e.key, e.shiftKey);
   const arrow = ARROWS[e.key];
   if (arrow !== undefined) {
     const step = e.shiftKey ? NUDGE_LARGE : NUDGE_SMALL;

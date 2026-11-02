@@ -32,7 +32,8 @@ export type SessionDeps = {
 
 const PLUGIN_ACTIONS: ReadonlySet<Action['type']> = new Set(['load', 'remote', 'resynced', 'staleEcho', 'sent']);
 
-const selectionChanged = (a: EditorState, b: EditorState): boolean => a.selection.surfaceIds !== b.selection.surfaceIds || a.selection.corner !== b.selection.corner;
+const selectionChanged = (a: EditorState, b: EditorState): boolean =>
+  a.selection.surfaceIds !== b.selection.surfaceIds || a.selection.groupIds !== b.selection.groupIds || a.selection.corner !== b.selection.corner;
 
 type CommitParts = {
   overlay: ReturnType<typeof createOverlayControl>;

@@ -161,6 +161,7 @@ Import は元に戻せません（履歴が消えます）。JSON と現在の�
 | `visible` | bool（省略時は true） |
 | `groups`（v2） | 必須。配列 |
 | `groups[].id` | 空でない文字列で、面の ID とも重複しない |
+| `groups[].visible` | bool（省略時は true） |
 | `groups[].name` / `origin` | `name` は文字列、`origin` は有限数の `[x, y]`（どちらも必須） |
 | `groups[].layout.*` | `direction` は `row` / `column`、`align` は `start` / `center` / `end`、`gap` と `padding` は 0〜4096（どれも必須） |
 | `layers`（v2） | 必須。ノードは `surface` か `group` のどちらか 1 つ。存在しない ID、同じ ID の 2 回目の出現、木にない面とグループはエラー。深さは 16 まで。子のないグループは許す |

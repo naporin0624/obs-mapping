@@ -94,13 +94,13 @@ export const useStageDrag = ({ state, dispatch, svgRef, scale }: Args): StageDra
     onBackgroundDown: () => dispatch({ type: 'select', selection: emptySelection() }),
     onCornerDown: (e, surfaceId, index) => {
       e.stopPropagation();
-      dispatch({ type: 'select', selection: { surfaceIds: [surfaceId], corner: { surfaceId, index } } });
+      dispatch({ type: 'select', selection: { surfaceIds: [surfaceId], groupIds: [], corner: { surfaceId, index } } });
       begin(e, { kind: 'corner', surfaceId, index });
     },
     onSurfaceDown: (e, surfaceId) => {
       e.stopPropagation();
       const ids = nextIds(selection.surfaceIds, surfaceId, e.shiftKey || e.metaKey);
-      dispatch({ type: 'select', selection: { surfaceIds: [...ids], corner: null } });
+      dispatch({ type: 'select', selection: { surfaceIds: [...ids], groupIds: [], corner: null } });
       const primary = mapping.surfaces.find((s) => s.id === surfaceId);
       if (primary === undefined || !ids.includes(surfaceId)) return;
       begin(e, { kind: 'surface', ids, primary, start: toCanvas(e), applied: [0, 0] });

@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type KeyboardEvent, type RefObject } from 'react';
+import { useSetAtom } from 'jotai';
+import { groupSelectionAtom } from '../../atoms/mapping';
 import { keyAction } from '../../editor/keys';
 import type { Action } from '../../editor/reducer';
 import type { EditorState } from '../../editor/state';
@@ -28,15 +30,20 @@ const useWidth = (ref: RefObject<HTMLDivElement | null>): number => {
   return width;
 };
 
-const onStageKey = (e: KeyboardEvent<HTMLElement>, dispatch: Dispatch<Action>): void => {
-  const action = keyAction(e);
-  if (action === null) return;
-  e.preventDefault();
-  dispatch(action);
+const useStageKeys = (dispatch: Dispatch<Action>) => {
+  const group = useSetAtom(groupSelectionAtom);
+  return (e: KeyboardEvent<HTMLElement>): void => {
+    const action = keyAction(e);
+    if (action === null) return;
+    e.preventDefault();
+    if (action.type === 'group') group();
+    else dispatch(action);
+  };
 };
 
 /** Live preview of every surface (screenshots warped in the browser) with draggable corner handles on top. */
 export const Stage = ({ state, dispatch, client, online }: Props) => {
+  const onKeyDown = useStageKeys(dispatch);
   const frameRef = useRef<HTMLDivElement>(null);
   const focusRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -56,15 +63,7 @@ export const Stage = ({ state, dispatch, client, online }: Props) => {
   }, []);
 
   return (
-    <div
-      className={outerCls}
-      tabIndex={0}
-      role="application"
-      aria-label="Stage"
-      ref={focusRef}
-      onPointerDown={() => focusRef.current?.focus({ preventScroll: true })}
-      onKeyDown={(e) => onStageKey(e, dispatch)}
-    >
+    <div className={outerCls} tabIndex={0} role="application" aria-label="Stage" ref={focusRef} onPointerDown={() => focusRef.current?.focus({ preventScroll: true })} onKeyDown={onKeyDown}>
       <div ref={frameRef} className={frameCls} style={{ aspectRatio: `${String(mapping.canvas.width)} / ${String(mapping.canvas.height)}` }}>
         <StageUnderlay />
         <div className={layerCls}>

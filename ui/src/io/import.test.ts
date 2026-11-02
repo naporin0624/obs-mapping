@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mapOf } from '../geometry/fixtures';
 import type { Mapping, MappingV1, Surface } from '../model/mapping';
+import { validateTree } from '../model/validate-tree';
 import { exportMapping } from './export';
 import { parseImport, scaleMapping } from './import';
 
@@ -26,6 +27,12 @@ const mappingV1 = (width: number, height: number): MappingV1 => ({ version: 1, c
 const current = { width: 1920, height: 1080 };
 
 describe('parseImport', () => {
+  it('returns an error for malformed fields without throwing', () => {
+    const text = JSON.stringify({ ...mapping(1920, 1080), grid: null });
+    expect(parseImport(text, current).kind).toBe('error');
+    expect(parseImport(JSON.stringify({ ...mapping(1920, 1080), surfaces: [null] }), current).kind).toBe('error');
+  });
+
   it('returns ok for the same resolution', () => {
     const m = mapping(1920, 1080);
     expect(parseImport(JSON.stringify(m), current)).toEqual({ kind: 'ok', mapping: m });
@@ -88,5 +95,63 @@ describe('exportMapping', () => {
     const text = exportMapping(m);
     expect(text.startsWith('{\n  "version": 2')).toBe(true);
     expect(parseImport(text, current)).toEqual({ kind: 'ok', mapping: m });
+  });
+});
+
+describe('scaleMapping groups', () => {
+  it('scales origin per axis, gap by the main axis and padding by the smaller ratio', () => {
+    const base = mapOf({ ...surfaceOf(100, 100), id: 'a' }, { ...surfaceOf(100, 100), id: 'b' });
+    const m: Mapping = {
+      ...base,
+      groups: [{ id: 'g', name: 'g', visible: true, origin: [100, 100], layout: { direction: 'row', gap: 20, align: 'start', padding: 10 } }],
+      layers: [{ group: 'g', children: [{ surface: 'a' }, { surface: 'b' }] }],
+    };
+    const out = scaleMapping(m, 960, 1080);
+    const g = out.groups[0];
+    expect(g?.origin).toEqual([50, 100]);
+    expect(g?.layout).toMatchObject({ gap: 10, padding: 5 });
+    expect(out.surfaces[0]?.corners[0]).toEqual([55, 105]);
+  });
+  it('uses the vertical ratio for a column gap', () => {
+    const m: Mapping = {
+      ...mapping(1920, 1080),
+      groups: [{ id: 'g', name: 'g', visible: true, origin: [0, 0], layout: { direction: 'column', gap: 20, align: 'start', padding: 0 } }],
+      layers: [{ group: 'g', children: [{ surface: 's1' }] }],
+    };
+    expect(scaleMapping(m, 1920, 540).groups[0]?.layout.gap).toBe(10);
+  });
+
+  it('keeps a nested and a hidden group valid', () => {
+    const base = mapOf({ ...surfaceOf(100, 100), id: 'a' }, { ...surfaceOf(100, 100), id: 'b' }, { ...surfaceOf(100, 100), id: 'c' });
+    const layout = { direction: 'column', gap: 20, align: 'start', padding: 10 } as const;
+    const m: Mapping = {
+      ...base,
+      groups: [
+        { id: 'g', name: 'g', visible: true, origin: [100, 100], layout },
+        { id: 'h', name: 'h', visible: true, origin: [100, 100], layout },
+        { id: 'i', name: 'i', visible: false, origin: [300, 300], layout },
+      ],
+      layers: [
+        { group: 'g', children: [{ surface: 'a' }, { group: 'h', children: [{ surface: 'b' }] }] },
+        { group: 'i', children: [{ surface: 'c' }] },
+      ],
+    };
+    const out = scaleMapping(m, 960, 540);
+    expect(validateTree(out)).toBeNull();
+    expect(out.groups.find((g) => g.id === 'i')).toMatchObject({ origin: [150, 150], layout: { gap: 10, padding: 5 } });
+    expect(out.groups.find((g) => g.id === 'h')?.layout).toMatchObject({ gap: 10, padding: 5 });
+  });
+});
+
+describe('scaleMapping spacing limit', () => {
+  it('clamps the scaled gap and padding to the plugin limit', () => {
+    const base = mapOf({ ...surfaceOf(100, 100), id: 'a' }, { ...surfaceOf(100, 100), id: 'b' });
+    const m: Mapping = {
+      ...base,
+      groups: [{ id: 'g', name: 'g', visible: true, origin: [0, 0], layout: { direction: 'row', gap: 2000, align: 'start', padding: 2000 } }],
+      layers: [{ group: 'g', children: [{ surface: 'a' }, { surface: 'b' }] }],
+    };
+    const out = scaleMapping(m, 7680, 4320);
+    expect(out.groups[0]?.layout).toMatchObject({ gap: 4096, padding: 4096 });
   });
 });
