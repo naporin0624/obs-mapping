@@ -1,7 +1,27 @@
 import { useState, type ReactNode } from 'react';
 import { Provider, createStore } from 'jotai';
 import { Link } from 'react-aria-components';
-import { EyeIcon, EyeOffIcon, PlusIcon, TrashIcon } from '../../components/icons';
+import {
+  AlignBottomIcon,
+  AlignCenterHIcon,
+  AlignCenterVIcon,
+  AlignLeftIcon,
+  AlignRightIcon,
+  AlignTopIcon,
+  DistributeHIcon,
+  DistributeVIcon,
+  ExportIcon,
+  EyeIcon,
+  EyeOffIcon,
+  GroupIcon,
+  ImportIcon,
+  PlusIcon,
+  RedoIcon,
+  TrashIcon,
+  UndoIcon,
+  UngroupIcon,
+} from '../../components/icons';
+import { IconButton } from '../../components/icon-button';
 import { GroupInspector } from '../../components/group-inspector';
 import { Inspector } from '../../components/inspector';
 import { LayerTree } from '../../components/layer-tree';
@@ -86,6 +106,28 @@ const inspectorSample: Mapping = {
 
 const sampleGroup = inspectorSample.groups[0];
 
+const IconCases = () => (
+  <>
+    <Case title="Icons / Eye, EyeOff, Plus, Trash">
+      <div>
+        <EyeIcon /> <EyeOffIcon /> <PlusIcon /> <TrashIcon />
+      </div>
+    </Case>
+    <Case title="Icons / Toolbar">
+      <div>
+        <UndoIcon /> <RedoIcon /> <AlignLeftIcon /> <AlignCenterHIcon /> <AlignRightIcon /> <AlignTopIcon /> <AlignCenterVIcon /> <AlignBottomIcon /> <DistributeHIcon /> <DistributeVIcon />{' '}
+        <GroupIcon /> <UngroupIcon /> <ImportIcon /> <ExportIcon />
+      </div>
+    </Case>
+    <Case title="IconButton / enabled, disabled with reason">
+      <div>
+        <IconButton label="Undo" icon={<UndoIcon />} onClick={noop} />
+        <IconButton label="Distribute horizontally" icon={<DistributeHIcon />} unavailable={{ reason: 'Select 3 or more surfaces' }} onClick={noop} />
+      </div>
+    </Case>
+  </>
+);
+
 const InspectorCases = () => (
   <>
     <Case title="GroupInspector / row">{sampleGroup === undefined ? null : <GroupInspector group={sampleGroup} dispatch={noop} />}</Case>
@@ -114,11 +156,7 @@ export const Colophon = () => {
       </Case>
       <FrameCases />
       <InspectorCases />
-      <Case title="Icons / Eye, EyeOff, Plus, Trash">
-        <div>
-          <EyeIcon /> <EyeOffIcon /> <PlusIcon /> <TrashIcon />
-        </div>
-      </Case>
+      <IconCases />
       <Case title="SourceSelect / placeholder">
         <SourceSelect label="Source" placeholder="Select a source" items={options} value={null} onChange={noop} />
       </Case>
