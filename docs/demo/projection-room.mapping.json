@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "grid": {
+    "size": 20
+  },
+  "surfaces": [
+    {
+      "id": "wall-left",
+      "name": "左の壁",
+      "type": "quad",
+      "source": "左の壁",
+      "crop": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "corners": [
+        [
+          47,
+          229
+        ],
+        [
+          960,
+          249
+        ],
+        [
+          960,
+          696
+        ],
+        [
+          110,
+          917
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "wall-right",
+      "name": "右の壁",
+      "type": "quad",
+      "source": "右の壁",
+      "crop": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "corners": [
+        [
+          960,
+          249
+        ],
+        [
+          1873,
+          229
+        ],
+        [
+          1810,
+          917
+        ],
+        [
+          960,
+          696
+        ]
+      ],
+      "visible": true
+    }
+  ],
+  "groups": [],
+  "layers": [
+    {
+      "surface": "wall-left"
+    },
+    {
+      "surface": "wall-right"
+    }
+  ]
+}
