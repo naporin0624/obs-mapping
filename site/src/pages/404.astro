@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/base.astro';
+---
+
+<Base lang="ja" title="404 Not Found | obs-mapping" description="Page not found.">
+  <div class="not-found">
+    <h1>404</h1>
+    <p>ページが見つかりません / Page not found</p>
+    <p class="actions">
+      <a href="/">obs-mapping</a>
+      <a href="/demo/">Demo</a>
+    </p>
+  </div>
+</Base>
+
+<style>
+  .not-found {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 64px 16px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 16px;
+  }
+</style>

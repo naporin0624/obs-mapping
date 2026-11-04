@@ -245,6 +245,29 @@ OBS の出力では、形を小さなテクスチャ（一辺 16〜1024px の 2 
 
 `selectionJson` を省略すると、選択なしとして扱います。`enabled` を省略すると、現在のオン・オフはそのままで、選択だけを更新します（ドックは選択の変更ではこの形で送ります）。
 
+## デモサイト
+
+`site/` に、面の貼り付けを試せるデモサイト（Astro + three.js、日本語と英語）があります。
+
+```sh
+pnpm -C site install --frozen-lockfile
+pnpm -C site test        # unit と browser のテスト
+pnpm -C site test:dist   # build して dist のページを検査
+pnpm -C site dev         # 開発サーバー
+```
+
+Cloudflare Workers（静的アセット）へのデプロイは `cf` CLI で行います。`cf` は Astro プロジェクトから切り離して `site/deploy/` に入れています。デプロイは手元からだけで、GitHub Actions には載せていません。
+
+```sh
+export CLOUDFLARE_ACCOUNT_ID=<自分のアカウント ID>
+pnpm -C site deploy:install
+pnpm -C site/deploy exec cf auth login   # 自分でログインする
+pnpm -C site deploy:dry                  # build して設定を検証する（認証不要）
+pnpm -C site deploy                      # build して公開する
+```
+
+公開先は Worker `obs-mapping-site`、ドメインは `obs-mapping.napochaan.dev` です。
+
 ## 今後の予定（未実装）
 
 - macOS 版の署名と公証。CI は、リポジトリのシークレットに `MACOS_SIGNING_*`（公証には `MACOS_NOTARIZATION_*` も）を登録すると、自動で署名するようになっています。
