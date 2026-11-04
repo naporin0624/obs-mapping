@@ -47,3 +47,16 @@ TEST_CASE("square_strip is centered with the requested side")
 	CHECK(q[0] == Point{94, 44});
 	CHECK(q[3] == Point{106, 56});
 }
+
+TEST_CASE("warp_points maps unit points through a surface homography")
+{
+	const auto h = unit_square_to_quad({Point{100, 100}, Point{300, 100}, Point{300, 200}, Point{100, 200}});
+	REQUIRE(h.has_value());
+	const auto out = warp_points(*h, {{0, 0}, {1, 1}, {0.5, 0.5}});
+	REQUIRE(out.size() == 3);
+	const Point want[] = {{100, 100}, {300, 200}, {200, 150}};
+	for (size_t i = 0; i < 3; ++i) {
+		CHECK(out[i].x == doctest::Approx(want[i].x).epsilon(1e-9));
+		CHECK(out[i].y == doctest::Approx(want[i].y).epsilon(1e-9));
+	}
+}

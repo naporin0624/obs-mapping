@@ -21,6 +21,7 @@ add_executable(
   test_overlay_geometry.cpp
   test_selection.cpp
   test_visibility.cpp
+  test_mask.cpp
 )
 target_link_libraries(obs_mapping_core_tests PRIVATE obs_mapping_core doctest::doctest)
 set_target_properties(

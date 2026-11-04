@@ -332,3 +332,81 @@ TEST_CASE("v2 tree depth is limited to 16")
 	CHECK(parse_mapping(nested_chain(16)).has_value());
 	CHECK(starts_with(error_of(nested_chain(17)), child_path(17) + ": depth exceeds 16"));
 }
+
+namespace {
+
+std::string with_mask(const std::string &mask)
+{
+	return replace(kValid, "\"visible\": true", "\"visible\": true, \"mask\": " + mask);
+}
+
+std::string points_json(int n)
+{
+	std::string s = "[";
+	for (int i = 0; i < n; ++i)
+		s += std::string(i ? "," : "") + "[" + std::to_string(i) + ",0.5]";
+	return s + "]";
+}
+
+} // namespace
+
+TEST_CASE("mask ellipse round trip")
+{
+	auto m = parse_mapping(with_mask(R"({"type":"ellipse","x":0.1,"y":-0.2,"width":0.8,"height":1.4})"));
+	REQUIRE(m.has_value());
+	REQUIRE(m->surfaces[0].mask.has_value());
+	const auto &e = std::get<EllipseMask>(*m->surfaces[0].mask);
+	CHECK(e.x == 0.1);
+	CHECK(e.y == -0.2);
+	CHECK(e.width == 0.8);
+	CHECK(e.height == 1.4);
+	auto b = parse_mapping(serialize_mapping(*m));
+	REQUIRE(b.has_value());
+	CHECK(*m == *b);
+}
+
+TEST_CASE("mask polygon round trip")
+{
+	auto m = parse_mapping(with_mask(R"({"type":"polygon","points":[[0,0],[1,0],[1.2,1],[-0.1,0.9]]})"));
+	REQUIRE(m.has_value());
+	const auto &p = std::get<PolygonMask>(*m->surfaces[0].mask);
+	REQUIRE(p.points.size() == 4);
+	CHECK(p.points[2] == Point{1.2, 1});
+	auto b = parse_mapping(serialize_mapping(*m));
+	REQUIRE(b.has_value());
+	CHECK(*m == *b);
+}
+
+TEST_CASE("mask absent is nullopt and not serialized")
+{
+	auto m = parse_mapping(kValid);
+	REQUIRE(m.has_value());
+	CHECK(m->surfaces[0].mask == std::nullopt);
+	CHECK(serialize_mapping(*m).find("\"mask\"") == std::string::npos);
+}
+
+TEST_CASE("mask serialization puts type first")
+{
+	auto m = parse_mapping(with_mask(R"({"width":1,"type":"ellipse","x":0,"y":0,"height":1})"));
+	REQUIRE(m.has_value());
+	auto out = serialize_mapping(*m);
+	auto mask = out.find("\"mask\"");
+	REQUIRE(mask != std::string::npos);
+	CHECK(out.find("\"type\"", mask) < out.find("\"x\"", mask));
+}
+
+TEST_CASE("mask validation errors carry the path")
+{
+	const std::string mp = "surfaces[0].mask";
+	CHECK(starts_with(error_of(with_mask(R"({"type":"polygon","points":)" + points_json(2) + "}")),
+			  mp + ".points"));
+	CHECK(parse_mapping(with_mask(R"({"type":"polygon","points":)" + points_json(64) + "}")).has_value());
+	CHECK(starts_with(error_of(with_mask(R"({"type":"polygon","points":)" + points_json(65) + "}")),
+			  mp + ".points"));
+	CHECK(starts_with(error_of(with_mask(R"({"type":"ellipse","x":0,"y":0,"width":0,"height":1})")),
+			  mp + ".width"));
+	CHECK(starts_with(error_of(with_mask(R"({"type":"ellipse","x":0,"y":0,"width":1,"height":-1})")),
+			  mp + ".height"));
+	CHECK(starts_with(error_of(with_mask(R"({"type":"star"})")), mp + ".type"));
+	CHECK(starts_with(error_of(with_mask(R"({"type":"polygon","points":[[1],[0,0],[1,1]]})")), mp + ".points[0]"));
+}

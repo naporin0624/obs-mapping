@@ -1,8 +1,11 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace obs_mapping {
@@ -18,6 +21,21 @@ struct CropRect {
 	bool operator==(const CropRect &) const = default;
 };
 
+struct EllipseMask {
+	double x = 0, y = 0, width = 1, height = 1;
+	bool operator==(const EllipseMask &) const = default;
+};
+
+struct PolygonMask {
+	std::vector<Point> points;
+	bool operator==(const PolygonMask &) const = default;
+};
+
+using Mask = std::variant<EllipseMask, PolygonMask>;
+
+constexpr size_t kMaskMinPoints = 3;
+constexpr size_t kMaskMaxPoints = 64;
+
 enum class SurfaceType { Quad };
 
 struct Surface {
@@ -27,6 +45,7 @@ struct Surface {
 	CropRect crop;
 	std::array<Point, 4> corners{};
 	bool visible = true;
+	std::optional<Mask> mask;
 	bool operator==(const Surface &) const = default;
 };
 

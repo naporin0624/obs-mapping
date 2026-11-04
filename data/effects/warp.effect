@@ -7,6 +7,9 @@ uniform float4x4 inv_h;
 uniform float4 crop;
 // Quad bounding box in canvas px: x, y, w, h.
 uniform float4 bbox;
+// Coverage in the unit square (R8). Surfaces without a mask bind `image` here with use_mask = 0.
+uniform texture2d mask_image;
+uniform float use_mask;
 
 sampler_state textureSampler {
 	Filter    = Linear;
@@ -36,7 +39,8 @@ float4 PSWarp(VertData v_in) : TARGET
 	float inside = step(0.00000001, h.z) * step(0.0, s.x) * step(s.x, 1.0) * step(0.0, s.y) * step(s.y, 1.0);
 
 	float2 src_uv = crop.xy + s * crop.zw;
-	return image.Sample(textureSampler, src_uv) * inside;
+	float coverage = lerp(1.0, mask_image.Sample(textureSampler, s).r, use_mask);
+	return image.Sample(textureSampler, src_uv) * (inside * coverage);
 }
 
 technique Draw

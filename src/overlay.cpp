@@ -4,8 +4,10 @@
 
 #include <algorithm>
 #include <array>
+#include <vector>
 
 #include "obs-mapping/homography.hpp"
+#include "obs-mapping/mask.hpp"
 #include "overlay-geometry.hpp"
 
 using obs_mapping::Point;
@@ -56,6 +58,12 @@ struct Painter {
 			strip(*q);
 	}
 
+	void closed_loop(const std::vector<Point> &pts, double thickness) const
+	{
+		for (size_t i = 0; i < pts.size(); ++i)
+			line(pts[i], pts[(i + 1) % pts.size()], thickness);
+	}
+
 	void dashed_line(Point a, Point b, double thickness) const
 	{
 		const double len = std::hypot(b.x - a.x, b.y - a.y);
@@ -69,6 +77,19 @@ bool is_selected(const OverlayState &state, const std::string &id)
 {
 	return std::find(state.selected_surface_ids.begin(), state.selected_surface_ids.end(), id) !=
 	       state.selected_surface_ids.end();
+}
+
+constexpr int kMaskOutlineSegments = 64;
+
+void draw_mask_outline(const Painter &p, const obs_mapping::Surface &surface)
+{
+	if (!surface.mask)
+		return;
+	const auto h = obs_mapping::unit_square_to_quad(surface.corners);
+	if (!h)
+		return;
+	p.closed_loop(obs_mapping::warp_points(*h, obs_mapping::mask_outline(*surface.mask, kMaskOutlineSegments)),
+		      kOutlineThickness);
 }
 
 void draw_grid(const Painter &p, const obs_mapping::Mapping &m)
@@ -114,6 +135,7 @@ void draw_overlay(const obs_mapping::Mapping &mapping, const OverlayState &state
 				else
 					painter.dashed_line(a, b, kOutlineThickness);
 			}
+			draw_mask_outline(painter, surface);
 		}
 
 		for (const auto &surface : mapping.surfaces) {
