@@ -1,0 +1,16 @@
+/* Subsets from `pnpm gen:fonts`; see src/assets/fonts/OFL.txt. */
+@font-face {
+  font-family: 'LINE Seed JP';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/line-seed-jp-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'LINE Seed JP';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../assets/fonts/line-seed-jp-700.woff2') format('woff2');
+}
