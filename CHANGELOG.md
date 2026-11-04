@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.0](https://github.com/naporin0624/obs-mapping/compare/0.3.0...0.4.0) (2026-11-04)
+
+
+### Features
+
+* obs-mapping を扱う Claude Code プラグインと marketplace を追加 ([36518da](https://github.com/naporin0624/obs-mapping/commit/36518da54ea15e4dd12791727b5e60a1c2227aec))
+* obs-mapping を扱う Claude Code プラグインと marketplace を追加 ([402c5fd](https://github.com/naporin0624/obs-mapping/commit/402c5fdc806d12fe35af08457da8db6d74e13237))
+* **plugin:** 面の Mask（円・多角形）で OBS 出力を切り抜く ([be9453b](https://github.com/naporin0624/obs-mapping/commit/be9453b6be8908a0f4d131981fe348df116ed751))
+* **site:** Panda CSS に移し、サムネを投影した部屋の画像にする ([ac6f076](https://github.com/naporin0624/obs-mapping/commit/ac6f076aee8a8b76dfb39683815dc45e427d9093))
+* **site:** 変な面へのマッピングを 3D の部屋で見せるデモサイト ([0ac24c9](https://github.com/naporin0624/obs-mapping/commit/0ac24c91cb7f2c7549adece03ef6e2ad188e5914))
+* **site:** 変な面へのマッピングを 3D の部屋で見せるデモサイトを追加 ([da8237c](https://github.com/naporin0624/obs-mapping/commit/da8237c75e3c0c07efca842ceaa08361eef71bec))
+* **ui:** ドックで面の形（Mask）を編集する ([ebc9274](https://github.com/naporin0624/obs-mapping/commit/ebc92747fa1a7153d3ad703e362e64da873c53d6))
+* **ui:** 複数のレイヤーの source をまとめて変える ([8fe23d4](https://github.com/naporin0624/obs-mapping/commit/8fe23d4530b770e1b6d901675bc76f4757380df4))
+* **ui:** 複数のレイヤーの source をまとめて変える ([cf59c8a](https://github.com/naporin0624/obs-mapping/commit/cf59c8a2fdb0371ccdefff3492286bb31002abf2))
+* 面に円・多角形の Mask を付けて切り抜く ([374ee3c](https://github.com/naporin0624/obs-mapping/commit/374ee3cd0bcc2e9ab1959cae0b6484baa9336740))
+
+
+### Bug Fixes
+
+* **site:** デプロイのスクリプト名を deploy:prod にする ([02273f1](https://github.com/naporin0624/obs-mapping/commit/02273f1a4342dab3c8af6f9e90f43ade165a14fa))
+* **ui:** ボタンの hover をずらす動きから色の変化に変える ([5530f25](https://github.com/naporin0624/obs-mapping/commit/5530f25e852e92259e0a914fd052adfe25156f06))
+* **ui:** ボタンの hover をずらす動きから色の変化に変える ([dd06901](https://github.com/naporin0624/obs-mapping/commit/dd069010be0c0b293b4a7577d57c74eae6106e3f))
+* **ui:** 一括変更の見出しを「n レイヤーを変更」にする ([f2124ee](https://github.com/naporin0624/obs-mapping/commit/f2124eebba93a8ec95733fd8303bbcdf7e3ed347))
+
 ## [0.3.0](https://github.com/naporin0624/obs-mapping/compare/0.2.0...0.3.0) (2026-11-02)
 
 
