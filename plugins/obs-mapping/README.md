@@ -11,6 +11,18 @@ Claude Code skills for using [obs-mapping](https://github.com/naporin0624/obs-ma
 /plugin install obs-mapping@obs-mapping
 ```
 
+### Any other agent (Skills CLI)
+
+Works with Codex, GitHub Copilot, Amp, Cursor, Antigravity, and others via [skills.sh](https://skills.sh/naporin0624/obs-mapping). **Install one skill per command** — passing several at once only installs the first:
+
+```bash
+npx skills add naporin0624/obs-mapping@driving-obs-mapping-over-websocket
+npx skills add naporin0624/obs-mapping@writing-mapping-json
+npx skills add naporin0624/obs-mapping@mapping-led-pixel-maps
+```
+
+Add `-g` to install globally instead of into the current project.
+
 ## Skills
 
 Skills activate automatically from conversation context — no commands to learn.

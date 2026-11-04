@@ -245,7 +245,7 @@ OBS の出力では、形を小さなテクスチャ（一辺 16〜1024px の 2 
 
 `selectionJson` を省略すると、選択なしとして扱います。`enabled` を省略すると、現在のオン・オフはそのままで、選択だけを更新します（ドックは選択の変更ではこの形で送ります）。
 
-## Claude Code (plugin)
+## Claude Code (plugin) / skills CLI
 
 スクリプトやエージェントからマッピングを扱うための Claude Code 用スキルを、プラグインとして配布しています。obs-websocket のベンダーリクエストの使い方、JSON v2 の書き方、LED のピクセルマップ（チャート）からマッピングを作る手順の 3 つです。
 
@@ -253,6 +253,16 @@ OBS の出力では、形を小さなテクスチャ（一辺 16〜1024px の 2 
 /plugin marketplace add naporin0624/obs-mapping
 /plugin install obs-mapping@obs-mapping
 ```
+
+Claude Code 以外のエージェント（Codex、GitHub Copilot、Cursor など）では、[skills CLI](https://skills.sh/naporin0624/obs-mapping) で 1 つずつ入れます。1 回のコマンドで複数を指定すると、最初の 1 つしか入りません。
+
+```bash
+npx skills add naporin0624/obs-mapping@driving-obs-mapping-over-websocket
+npx skills add naporin0624/obs-mapping@writing-mapping-json
+npx skills add naporin0624/obs-mapping@mapping-led-pixel-maps
+```
+
+`-g` を付けると、プロジェクトではなくユーザー全体に入ります。
 
 スキルの一覧は [plugins/obs-mapping/README.md](plugins/obs-mapping/README.md) にあります。
 
