@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { en as dockEn } from '../../../ui/src/i18n/messages/en';
 import { ja as dockJa } from '../../../ui/src/i18n/messages/ja';
 import { DEMO_SOURCE, type DemoSlug, type StepId } from '../scene/spec';
-import { localePath, messagesFor, type Lang } from './messages';
+import { localePath, messagesFor, SKILLS, type Lang } from './messages';
 
 const docks = { ja: dockJa, en: dockEn } as const;
 const langs: readonly Lang[] = ['ja', 'en'];
@@ -13,6 +13,9 @@ const steps: Record<DemoSlug, readonly StepId[]> = {
   cubes: ['place', 'fit', 'shape', 'done'],
 };
 const demos = Object.keys(steps) as DemoSlug[];
+
+const keyPaths = (value: unknown, prefix = ''): string[] =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? Object.entries(value).flatMap(([k, v]) => keyPaths(v, prefix === '' ? k : `${prefix}.${k}`)) : [prefix];
 
 describe('messagesFor', () => {
   it('has the same keys in ja and en', () => {
@@ -119,6 +122,42 @@ describe('messagesFor', () => {
     const { sample } = messagesFor(lang);
     expect(sample.pause).not.toBe('');
     expect(sample.play).not.toBe(sample.pause);
+  });
+});
+
+describe('root page copy', () => {
+  it('has the same root keys in ja and en', () => {
+    expect(keyPaths(messagesFor('en').root).toSorted()).toEqual(keyPaths(messagesFor('ja').root).toSorted());
+  });
+
+  it.each(langs)('%s: lists as many features in each language', (lang) => {
+    expect(messagesFor(lang).root.can.items).toHaveLength(messagesFor('ja').root.can.items.length);
+    for (const item of messagesFor(lang).root.can.items) expect(item).not.toBe('');
+  });
+
+  it.each(langs)('%s: the dock step names the dock connect label', (lang) => {
+    expect(messagesFor(lang).root.how.connect.body).toContain(docks[lang].connectConnect);
+  });
+
+  it.each(langs)('%s: the mapping step names the dock source, add and shape labels', (lang) => {
+    const body = messagesFor(lang).root.how.map.body;
+    for (const label of [docks[lang].source, docks[lang].add, docks[lang].maskHeading]) expect(body).toContain(label);
+  });
+
+  it.each(langs)('%s: the install step names every release package', (lang) => {
+    const body = messagesFor(lang).root.how.install.body;
+    for (const ext of ['.pkg', '.tar.xz', '.zip']) expect(body).toContain(ext);
+    expect(messagesFor(lang).root.how.install.gatekeeper).toContain('Gatekeeper');
+  });
+
+  it.each(langs)('%s: describes every published skill', (lang) => {
+    const { list } = messagesFor(lang).root.skills;
+    expect(Object.keys(list).toSorted()).toEqual([...SKILLS].toSorted());
+    for (const skill of SKILLS) expect(list[skill]).not.toBe('');
+  });
+
+  it('names the three skills once each', () => {
+    expect(new Set(SKILLS).size).toBe(3);
   });
 });
 

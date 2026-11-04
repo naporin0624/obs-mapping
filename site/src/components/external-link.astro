@@ -1,0 +1,18 @@
+---
+import { css } from '../../styled-system/css';
+import { messagesFor, type Lang } from '../i18n/messages';
+
+type Props = { lang: Lang; href: string; class?: string };
+
+const { lang, href, class: className } = Astro.props;
+const t = messagesFor(lang);
+
+const arrow = css({ marginLeft: '0.25em' });
+const visuallyHidden = css({ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap' });
+---
+
+<a class={className} href={href}>
+  <slot />
+  <span class={arrow} aria-hidden="true">↗</span>
+  <span class={visuallyHidden}>{t.root.external}</span>
+</a>
