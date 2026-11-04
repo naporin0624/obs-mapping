@@ -25,6 +25,7 @@ add_library(
   src/visibility.cpp
   src/homography.cpp
   src/selection.cpp
+  src/mask.cpp
 )
 target_include_directories(obs_mapping_core PUBLIC include)
 target_link_libraries(obs_mapping_core PUBLIC nlohmann_json::nlohmann_json)

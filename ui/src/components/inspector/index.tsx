@@ -1,7 +1,7 @@
 import { useId, type Dispatch } from 'react';
 import { withCrop, type CropKey } from '../../editor/crop';
 import type { UiAction } from '../../editor/reducer';
-import type { CornerIndex, Selection } from '../../editor/state';
+import type { CornerIndex, Selection, ShapeEdit } from '../../editor/state';
 import { boundsOf, type Bounds } from '../../geometry/rect';
 import type { Group, Mapping, Surface } from '../../model/mapping';
 import { useT } from '../../i18n/use-t';
@@ -9,6 +9,7 @@ import { countSurfacesBySource } from '../../model/source-usage';
 import { isLaidOut } from '../../editor/items';
 import { NumField, TextField } from '../field';
 import { GroupInspector } from '../group-inspector';
+import { MaskFields } from '../mask-fields';
 import { SourceSelect } from '../source-select';
 import { sectionCls, headingCls, gridCls, hintCls } from './styles.css';
 
@@ -19,20 +20,31 @@ const CROP_FIELDS: readonly { key: CropKey; label: string }[] = [
   { key: 'height', label: 'H' },
 ];
 
-type Props = { mapping: Mapping; selection: Selection; inputs: readonly string[]; dispatch: Dispatch<UiAction> };
+type Props = { mapping: Mapping; selection: Selection; shapeEdit: ShapeEdit | null; inputs: readonly string[]; dispatch: Dispatch<UiAction> };
 
-type SurfaceProps = { surface: Surface; laidOut: boolean; selection: Selection; inputs: readonly string[]; counts: ReadonlyMap<string, number>; dispatch: Dispatch<UiAction> };
+type SurfaceProps = {
+  surface: Surface;
+  laidOut: boolean;
+  selection: Selection;
+  shapeEdit: ShapeEdit | null;
+  inputs: readonly string[];
+  counts: ReadonlyMap<string, number>;
+  dispatch: Dispatch<UiAction>;
+};
 
 type FieldProps = { surface: Surface; dispatch: Dispatch<UiAction> };
 
 const CornerFields = ({ surface, index, dispatch }: FieldProps & { index: CornerIndex }) => {
   const t = useT();
+  const headingId = useId();
   const [cx, cy] = surface.corners[index];
   const set = (to: readonly [number, number]): void => dispatch({ type: 'setCorner', surfaceId: surface.id, index, to });
   return (
     <>
-      <div className={headingCls}>{t.cornerHeading(index + 1)}</div>
-      <div className={gridCls}>
+      <div id={headingId} className={headingCls}>
+        {t.cornerHeading(index + 1)}
+      </div>
+      <div role="group" aria-labelledby={headingId} className={gridCls}>
         <NumField label="X" value={cx} onCommit={(x) => set([x, cy])} />
         <NumField label="Y" value={cy} onCommit={(y) => set([cx, y])} />
       </div>
@@ -42,12 +54,15 @@ const CornerFields = ({ surface, index, dispatch }: FieldProps & { index: Corner
 
 const BoundsFields = ({ surface, laidOut, hintId, dispatch }: FieldProps & { laidOut: boolean; hintId: string }) => {
   const t = useT();
+  const headingId = useId();
   const bounds = boundsOf(surface);
   const set = (patch: Partial<Bounds>): void => dispatch({ type: 'setBounds', surfaceId: surface.id, bounds: { ...bounds, ...patch } });
   return (
     <>
-      <div className={headingCls}>{t.boundsHeading}</div>
-      <div className={gridCls}>
+      <div id={headingId} className={headingCls}>
+        {t.boundsHeading}
+      </div>
+      <div role="group" aria-labelledby={headingId} className={gridCls}>
         <NumField label="X" value={bounds.x} onCommit={(x) => set({ x })} disabled={laidOut} describedBy={laidOut ? hintId : undefined} />
         <NumField label="Y" value={bounds.y} onCommit={(y) => set({ y })} disabled={laidOut} describedBy={laidOut ? hintId : undefined} />
         <NumField label="W" value={bounds.width} onCommit={(width) => set({ width })} />
@@ -59,10 +74,13 @@ const BoundsFields = ({ surface, laidOut, hintId, dispatch }: FieldProps & { lai
 
 const CropFields = ({ surface, dispatch }: FieldProps) => {
   const t = useT();
+  const headingId = useId();
   return (
     <>
-      <div className={headingCls}>{t.cropHeading}</div>
-      <div className={gridCls}>
+      <div id={headingId} className={headingCls}>
+        {t.cropHeading}
+      </div>
+      <div role="group" aria-labelledby={headingId} className={gridCls}>
         {CROP_FIELDS.map((f) => (
           <NumField
             key={f.key}
@@ -77,7 +95,7 @@ const CropFields = ({ surface, dispatch }: FieldProps) => {
   );
 };
 
-const SurfaceFields = ({ surface, laidOut, selection, inputs, counts, dispatch }: SurfaceProps) => {
+const SurfaceFields = ({ surface, laidOut, selection, shapeEdit, inputs, counts, dispatch }: SurfaceProps) => {
   const t = useT();
   const id = surface.id;
   const hintId = useId();
@@ -101,6 +119,7 @@ const SurfaceFields = ({ surface, laidOut, selection, inputs, counts, dispatch }
       ) : null}
       <BoundsFields surface={surface} laidOut={laidOut} hintId={hintId} dispatch={dispatch} />
       <CropFields surface={surface} dispatch={dispatch} />
+      <MaskFields surface={surface} shapeEdit={shapeEdit} dispatch={dispatch} />
     </>
   );
 };
@@ -108,14 +127,23 @@ const SurfaceFields = ({ surface, laidOut, selection, inputs, counts, dispatch }
 const soleGroup = (mapping: Mapping, selection: Selection): Group | undefined =>
   selection.surfaceIds.length === 0 && selection.groupIds.length === 1 ? mapping.groups.find((g) => g.id === selection.groupIds[0]) : undefined;
 
-const InspectorBody = ({ mapping, selection, inputs, dispatch }: Props) => {
+const InspectorBody = ({ mapping, selection, shapeEdit, inputs, dispatch }: Props) => {
   const t = useT();
   const group = soleGroup(mapping, selection);
   if (group !== undefined) return <GroupInspector key={group.id} group={group} dispatch={dispatch} />;
   const surface = selection.surfaceIds.length === 1 ? mapping.surfaces.find((s) => s.id === selection.surfaceIds[0]) : undefined;
   if (surface === undefined) return <div className={hintCls}>{t.inspectorEmpty}</div>;
   return (
-    <SurfaceFields key={surface.id} surface={surface} laidOut={isLaidOut(mapping, surface.id)} selection={selection} inputs={inputs} counts={countSurfacesBySource(mapping)} dispatch={dispatch} />
+    <SurfaceFields
+      key={surface.id}
+      surface={surface}
+      laidOut={isLaidOut(mapping, surface.id)}
+      selection={selection}
+      shapeEdit={shapeEdit}
+      inputs={inputs}
+      counts={countSurfacesBySource(mapping)}
+      dispatch={dispatch}
+    />
   );
 };
 

@@ -97,6 +97,26 @@ PixelBox canvas_bounds(const obs_mapping::Surface &s, uint32_t canvas_w, uint32_
 	return {static_cast<int>(x0), static_cast<int>(y0), static_cast<int>(x1 - x0), static_cast<int>(y1 - y0)};
 }
 
+gs_texture_t *surface_mask(MaskTextures &masks, const obs_mapping::Surface &surface)
+{
+	if (!surface.mask)
+		return nullptr;
+	const auto [extent_w, extent_h] = obs_mapping::corner_extent(surface);
+	const auto [w, h] = obs_mapping::mask_texture_size(extent_w, extent_h);
+	return masks.get(surface.id, *surface.mask, w, h);
+}
+
+// Kept for hidden surfaces too, so toggling visibility does not rasterize again.
+std::set<std::string> masked_surface_ids(const Mapping &mapping)
+{
+	std::set<std::string> ids;
+	for (const auto &surface : mapping.surfaces) {
+		if (surface.mask)
+			ids.insert(surface.id);
+	}
+	return ids;
+}
+
 void rename_signal_cb(void *param, calldata_t *cd)
 {
 	const char *prev = calldata_string(cd, "prev_name");
@@ -140,11 +160,10 @@ MappingSource::~MappingSource()
 {
 	signal_handler_disconnect(obs_get_signal_handler(), "source_rename", rename_signal_cb, this);
 	cache_.clear();
-	if (effect_) {
-		obs_enter_graphics();
-		gs_effect_destroy(effect_);
-		obs_leave_graphics();
-	}
+	obs_enter_graphics();
+	masks_.clear();
+	gs_effect_destroy(effect_);
+	obs_leave_graphics();
 }
 
 void MappingSource::load_effect()
@@ -365,6 +384,8 @@ void MappingSource::video_render()
 	gs_eparam_t *inv_h_param = gs_effect_get_param_by_name(effect_, "inv_h");
 	gs_eparam_t *crop_param = gs_effect_get_param_by_name(effect_, "crop");
 	gs_eparam_t *bbox_param = gs_effect_get_param_by_name(effect_, "bbox");
+	gs_eparam_t *mask_param = gs_effect_get_param_by_name(effect_, "mask_image");
+	gs_eparam_t *use_mask_param = gs_effect_get_param_by_name(effect_, "use_mask");
 
 	const bool linear = gs_get_linear_srgb();
 	const bool previous_srgb = gs_framebuffer_srgb_enabled();
@@ -399,6 +420,12 @@ void MappingSource::video_render()
 		gs_effect_set_matrix4(inv_h_param, &inv_h);
 		gs_effect_set_vec4(crop_param, &crop);
 		gs_effect_set_vec4(bbox_param, &bbox);
+		gs_texture_t *mask = surface_mask(masks_, surface);
+		// Without a mask a blank R8 stands in so the sampler is never bound to nothing;
+		// binding `image` here could flip its sRGB decode flag on OpenGL.
+		gs_texture_t *blank = mask ? nullptr : masks_.blank();
+		gs_effect_set_texture(mask_param, mask ? mask : (blank ? blank : frame.texture));
+		gs_effect_set_float(use_mask_param, mask ? 1.0f : 0.0f);
 
 		gs_matrix_push();
 		gs_matrix_translate3f(static_cast<float>(box.x), static_cast<float>(box.y), 0.0f);
@@ -409,6 +436,7 @@ void MappingSource::video_render()
 
 	gs_blend_state_pop();
 	gs_enable_framebuffer_srgb(previous_srgb);
+	masks_.retain(masked_surface_ids(mapping));
 
 	if (const auto overlay_state = overlay(); overlay_state->enabled)
 		draw_overlay(mapping, *overlay_state);

@@ -1,7 +1,7 @@
 import { jaNaming } from '../test/naming';
 import { describe, expect, it } from 'vitest';
 import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
-import type { LayerNode, Mapping } from '../model/mapping';
+import type { LayerNode, Mapping, Mask, Point } from '../model/mapping';
 import { validateTree } from '../model/validate-tree';
 import { reducer, type Action } from './reducer';
 import { canonicalJson, initialEditorState, type EditorState } from './state';
@@ -718,5 +718,127 @@ describe('dragItems', () => {
   it('ignores a nested group', () => {
     const s = run(nested(), { type: 'dragStart' });
     expect(reducer(s, { type: 'dragItems', ids: ['g2'], dx: 5, dy: 5 }).mapping).toEqual(s.mapping);
+  });
+});
+
+describe('shape edit', () => {
+  const poly: Mask = {
+    type: 'polygon',
+    points: [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+    ],
+  };
+  const withPoly = () => initialEditorState(mk({ ...surf('a', 0, 0), mask: poly }, surf('b', 100, 0)));
+  const entered = () => run(withPoly(), sel(['a']), { type: 'enterShapeEdit', surfaceId: 'a' });
+
+  it('enters only for a masked surface that is the sole selection', () => {
+    expect(entered().shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+    expect(run(withPoly(), { type: 'enterShapeEdit', surfaceId: 'a' }).shapeEdit).toBeNull();
+    expect(run(withPoly(), sel(['b']), { type: 'enterShapeEdit', surfaceId: 'b' }).shapeEdit).toBeNull();
+    expect(run(withPoly(), sel(['a', 'b']), { type: 'enterShapeEdit', surfaceId: 'a' }).shapeEdit).toBeNull();
+  });
+  it('entering clears the selected corner so arrow keys do not move a hidden corner', () => {
+    const s = run(withPoly(), sel(['a'], { surfaceId: 'a', index: 2 }), { type: 'enterShapeEdit', surfaceId: 'a' });
+    expect(s.shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+    expect(s.selection.corner).toBeNull();
+  });
+  it('invalid enter keeps the current shape edit', () => {
+    expect(run(entered(), { type: 'enterShapeEdit', surfaceId: 'b' }).shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+  });
+  it('exitShapeEdit clears it and selectVertex sets the vertex', () => {
+    expect(run(entered(), { type: 'selectVertex', index: 1 }).shapeEdit).toEqual({ surfaceId: 'a', vertex: 1 });
+    expect(run(entered(), { type: 'exitShapeEdit' }).shapeEdit).toBeNull();
+    expect(run(withPoly(), { type: 'selectVertex', index: 1 }).shapeEdit).toBeNull();
+    expect(run(entered(), { type: 'selectVertex', index: 9 }).shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+  });
+  it('select away from the surface leaves shape edit', () => {
+    expect(run(entered(), sel(['b'])).shapeEdit).toBeNull();
+    expect(run(entered(), sel(['a', 'b'])).shapeEdit).toBeNull();
+    expect(run(entered(), sel(['a'])).shapeEdit).not.toBeNull();
+  });
+  it('setMask commits, and null removes the key and leaves shape edit', () => {
+    const grown = run(entered(), { type: 'setMask', surfaceId: 'a', mask: { type: 'ellipse', x: 0, y: 0, width: 1, height: 1 } });
+    expect(grown.mapping.surfaces[0]?.mask?.type).toBe('ellipse');
+    expect(grown.past).toHaveLength(1);
+    const cleared = run(entered(), { type: 'setMask', surfaceId: 'a', mask: null });
+    expect('mask' in (cleared.mapping.surfaces[0] ?? {})).toBe(false);
+    expect(cleared.shapeEdit).toBeNull();
+    expect(cleared.past).toHaveLength(1);
+  });
+  it('dragMask updates live without history', () => {
+    const s = run(entered(), { type: 'dragStart' }, { type: 'dragMask', surfaceId: 'a', mask: { ...poly, points: [...poly.points.slice(1), poly.points[0] as Point] } });
+    expect(s.mapping.surfaces[0]?.mask).not.toEqual(poly);
+    expect(s.shapeEdit).not.toBeNull();
+  });
+  it('undo past the mask leaves shape edit', () => {
+    const s = run(initialEditorState(mk(surf('a', 0, 0))), sel(['a']), { type: 'setMask', surfaceId: 'a', mask: poly }, { type: 'enterShapeEdit', surfaceId: 'a' });
+    expect(s.shapeEdit).not.toBeNull();
+    expect(run(s, { type: 'undo' }).shapeEdit).toBeNull();
+  });
+  it('remote, resynced and load drop shape edit when the mask is gone', () => {
+    const bare = mk(surf('a', 0, 0));
+    expect(run(entered(), { type: 'remote', mapping: bare, requestId: null }).shapeEdit).toBeNull();
+    expect(run(entered(), { type: 'resynced', mapping: bare }).shapeEdit).toBeNull();
+    expect(run(entered(), { type: 'load', mapping: bare }).shapeEdit).toBeNull();
+    expect(run(entered(), { type: 'remote', mapping: mk(surf('b', 0, 0)), requestId: null }).shapeEdit).toBeNull();
+  });
+  it('removeSelected removes the selected vertex, not the surface', () => {
+    const quad: Mask = { ...poly, points: [...poly.points, [1, 1]] };
+    const s0 = run(initialEditorState(mk({ ...surf('a', 0, 0), mask: quad })), sel(['a']), { type: 'enterShapeEdit', surfaceId: 'a' }, { type: 'selectVertex', index: 3 });
+    const s = run(s0, { type: 'removeSelected' });
+    expect(s.mapping.surfaces).toHaveLength(1);
+    expect(s.mapping.surfaces[0]?.mask).toEqual(poly);
+    expect(s.shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+    expect(s.past).toHaveLength(1);
+  });
+  it('removeSelected at 3 points is a no-op for the mapping but clears the vertex', () => {
+    const s = run(entered(), { type: 'selectVertex', index: 0 }, { type: 'removeSelected' });
+    expect(s.mapping.surfaces).toHaveLength(2);
+    expect(s.mapping.surfaces[0]?.mask).toBe(poly);
+    expect(s.past).toHaveLength(0);
+    expect(s.shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+  });
+  it('removeSelected without a vertex does nothing during shape edit', () => {
+    const start = entered();
+    expect(run(start, { type: 'removeSelected' })).toBe(start);
+  });
+  it('removeSelected with a vertex removes only that vertex and clears it', () => {
+    const square: Mask = {
+      type: 'polygon',
+      points: [
+        [0, 0],
+        [1, 0],
+        [1, 1],
+        [0, 1],
+      ],
+    };
+    const s = run(initialEditorState(mk({ ...surf('a', 0, 0), mask: square })), sel(['a']), { type: 'enterShapeEdit', surfaceId: 'a' }, { type: 'selectVertex', index: 1 }, { type: 'removeSelected' });
+    expect(s.mapping.surfaces[0]?.mask).toEqual({
+      type: 'polygon',
+      points: [
+        [0, 0],
+        [1, 1],
+        [0, 1],
+      ],
+    });
+    expect(s.shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+  });
+  it('redo reapplies an undone mask change', () => {
+    const ellipse: Mask = { type: 'ellipse', x: 0, y: 0, width: 1, height: 1 };
+    const edited = run(withPoly(), { type: 'setMask', surfaceId: 'a', mask: ellipse });
+    const redone = run(edited, { type: 'undo' }, { type: 'redo' });
+    expect(redone.mapping.surfaces[0]?.mask).toEqual(ellipse);
+    expect(redone.future).toHaveLength(0);
+  });
+  it('exitShapeEdit is blocked while dragging so mask handles stay visible', () => {
+    const d = run(entered(), { type: 'dragStart' });
+    expect(reducer(d, { type: 'exitShapeEdit' })).toBe(d);
+  });
+  it('setMask and enterShapeEdit are blocked while dragging', () => {
+    const d = run(withPoly(), sel(['a']), { type: 'dragStart' });
+    expect(run(d, { type: 'setMask', surfaceId: 'a', mask: null }).mapping).toBe(d.mapping);
+    expect(run(d, { type: 'enterShapeEdit', surfaceId: 'a' }).shapeEdit).toBeNull();
   });
 });

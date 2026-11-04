@@ -13,6 +13,7 @@
 
 #include "obs-mapping/homography.hpp"
 #include "obs-mapping/mapping_json.hpp"
+#include "mask-textures.hpp"
 #include "overlay.hpp"
 #include "source-cache.hpp"
 
@@ -73,6 +74,7 @@ private:
 	std::mutex write_mutex_;                      // serializes apply_json + settings writes
 
 	SourceCache cache_;
+	MaskTextures masks_; // graphics thread only
 	gs_effect_t *effect_ = nullptr;
 };
 

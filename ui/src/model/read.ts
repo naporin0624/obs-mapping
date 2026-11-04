@@ -1,5 +1,6 @@
+import { checkMasks } from './check-masks';
 import { flatLayers } from './layers';
-import type { Group, LayerNode, Mapping, MappingV1, Point, Surface } from './mapping';
+import type { Group, LayerNode, Mapping, MappingV1, Mask, Point, Surface } from './mapping';
 import { validateTree, type RawTree } from './validate-tree';
 
 export type ReadResult = { kind: 'ok'; mapping: Mapping } | { kind: 'error'; message: string };
@@ -14,6 +15,8 @@ const readPoint = (p: Point): Point => [p[0], p[1]];
 type RawSurface = Omit<Surface, 'visible'> & { visible?: boolean };
 type RawGroup = Omit<Group, 'visible'> & { visible?: boolean };
 
+const readMask = (m: Mask): Mask => (m.type === 'ellipse' ? { type: 'ellipse', x: m.x, y: m.y, width: m.width, height: m.height } : { type: 'polygon', points: m.points.map(readPoint) });
+
 // The plugin owns the corner count check, so the points are mapped as given.
 const readSurface = (s: RawSurface): Surface => ({
   id: s.id,
@@ -23,6 +26,7 @@ const readSurface = (s: RawSurface): Surface => ({
   crop: { x: s.crop.x, y: s.crop.y, width: s.crop.width, height: s.crop.height },
   corners: s.corners.map(readPoint) as unknown as Surface['corners'],
   visible: s.visible ?? true,
+  ...(s.mask === undefined ? {} : { mask: readMask(s.mask) }),
 });
 
 const readGroup = (g: RawGroup): Group => ({
@@ -68,13 +72,15 @@ const checkStructure = (json: Record<string, unknown>): string | null => {
 };
 
 const readChecked = (json: Record<string, unknown>): ReadResult => {
+  const maskProblem = checkMasks(json['surfaces'] as unknown[]);
+  if (maskProblem !== null) return fail(maskProblem);
   // Both casts are backed by checkStructure (and validateTree for v2) just above.
   if (json['version'] === 1) return { kind: 'ok', mapping: upgradeV1(json as unknown as MappingV1) };
   const treeProblem = validateTree(json as unknown as RawTree);
   return treeProblem === null ? { kind: 'ok', mapping: readV2(json as unknown as Mapping) } : fail(treeProblem);
 };
 
-/** Structure and tree checks only; the plugin validates the surfaces themselves. */
+/** Structure, tree and mask checks; the plugin validates the other surface fields. */
 export const readMapping = (json: unknown): ReadResult => {
   if (!isRecord(json)) return fail('json: expected an object');
   const problem = checkStructure(json);

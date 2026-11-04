@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
+import { gn, groupOf, mapOf, sn, surf, withMask } from '../geometry/fixtures';
 import type { Mapping, Surface } from '../model/mapping';
 import { clickTarget, deepTarget, drillTarget, pickPath, surfaceAt } from './stage-pick';
 import { emptySelection, type Selection } from './state';
@@ -90,5 +90,28 @@ describe('surfaceAt even-odd rule', () => {
       ]),
     );
     expect([surfaceAt(m, [50, 10]), surfaceAt(m, [10, 50]), surfaceAt(m, [50, 90])]).toEqual([null, 'b', null]);
+  });
+});
+
+describe('surfaceAt with a mask', () => {
+  const circle = { type: 'ellipse', x: 0, y: 0, width: 1, height: 1 } as const;
+  const stacked = (front: Surface): Mapping => mapOf(surf('back', 0, 0, 100, 100), front);
+  it('falls through to the surface below outside the mask, hits it inside', () => {
+    const m = stacked(withMask(surf('front', 0, 0, 100, 100), circle));
+    expect([surfaceAt(m, [3, 3]), surfaceAt(m, [50, 50])]).toEqual(['back', 'front']);
+  });
+  it('applies the mask in the unit space of a trapezoid', () => {
+    const trapezoid: Surface = {
+      ...surf('front', 0, 0),
+      corners: [
+        [20, 0],
+        [80, 0],
+        [100, 100],
+        [0, 100],
+      ],
+      mask: circle,
+    };
+    const m = stacked(trapezoid);
+    expect([surfaceAt(m, [4, 96]), surfaceAt(m, [50, 50])]).toEqual(['back', 'front']);
   });
 });

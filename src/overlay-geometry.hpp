@@ -8,6 +8,7 @@
 #include <optional>
 #include <vector>
 
+#include "obs-mapping/homography.hpp"
 #include "obs-mapping/model.hpp"
 
 namespace obs_mapping {
@@ -53,6 +54,17 @@ inline Point point_along(Point a, Point b, double t)
 {
 	const double len = std::hypot(b.x - a.x, b.y - a.y);
 	return {a.x + (b.x - a.x) * t / len, a.y + (b.y - a.y) * t / len};
+}
+
+// Maps unit-space points through h; points the homography cannot map (w ~ 0) are dropped.
+inline std::vector<Point> warp_points(const Mat3 &h, const std::vector<Point> &unit)
+{
+	std::vector<Point> out;
+	out.reserve(unit.size());
+	for (const Point &p : unit)
+		if (const auto q = apply(h, p))
+			out.push_back(*q);
+	return out;
 }
 
 } // namespace obs_mapping

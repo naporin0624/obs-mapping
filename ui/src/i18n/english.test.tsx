@@ -29,7 +29,8 @@ const mapping: Mapping = {
 
 const inEnglish = (ui: ReactNode) => render(<Provider store={storeOf('en')}>{ui}</Provider>);
 
-const inspect = (selection: Partial<Selection>) => inEnglish(<Inspector mapping={mapping} selection={{ surfaceIds: [], groupIds: [], corner: null, ...selection }} inputs={[]} dispatch={vi.fn()} />);
+const inspect = (selection: Partial<Selection>) =>
+  inEnglish(<Inspector mapping={mapping} selection={{ surfaceIds: [], groupIds: [], corner: null, ...selection }} shapeEdit={null} inputs={[]} dispatch={vi.fn()} />);
 
 const toolbar = (tile: TileTarget = { kind: 'blocked', why: 'noSurface' }) => (
   <Toolbar

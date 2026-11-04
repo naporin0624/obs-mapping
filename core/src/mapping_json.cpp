@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <set>
+#include <variant>
 #include <string_view>
 
 namespace obs_mapping {
@@ -26,6 +27,52 @@ uint32_t dimension(const json &v, const std::string &path)
 	if (d < 1 || d > 16384)
 		fail(path, "must be between 1 and 16384");
 	return static_cast<uint32_t>(d);
+}
+
+Point parse_point(const json &pt, const std::string &path)
+{
+	if (!pt.is_array() || pt.size() != 2)
+		fail(path, "expected [x, y]");
+	return {number(pt[0], path + "[0]"), number(pt[1], path + "[1]")};
+}
+
+EllipseMask parse_ellipse(const json &m, const std::string &path)
+{
+	EllipseMask e;
+	e.x = number(require(m, "x", path), path + ".x");
+	e.y = number(require(m, "y", path), path + ".y");
+	e.width = number(require(m, "width", path), path + ".width");
+	e.height = number(require(m, "height", path), path + ".height");
+	if (e.width <= 0)
+		fail(path + ".width", "must be greater than 0");
+	if (e.height <= 0)
+		fail(path + ".height", "must be greater than 0");
+	return e;
+}
+
+PolygonMask parse_polygon(const json &m, const std::string &path)
+{
+	const std::string pp = path + ".points";
+	const json &arr = require(m, "points", path);
+	if (!arr.is_array() || arr.size() < kMaskMinPoints || arr.size() > kMaskMaxPoints)
+		fail(pp, "expected " + std::to_string(kMaskMinPoints) + " to " + std::to_string(kMaskMaxPoints) +
+				 " points");
+	PolygonMask out;
+	for (size_t i = 0; i < arr.size(); ++i)
+		out.points.push_back(parse_point(arr[i], pp + "[" + std::to_string(i) + "]"));
+	return out;
+}
+
+Mask parse_mask(const json &m, const std::string &path)
+{
+	if (!m.is_object())
+		fail(path, "expected object");
+	const std::string type = str(require(m, "type", path), path + ".type");
+	if (type == "ellipse")
+		return parse_ellipse(m, path);
+	if (type == "polygon")
+		return parse_polygon(m, path);
+	fail(path + ".type", "unknown type \"" + type + "\"");
 }
 
 Surface parse_surface(const json &s, size_t i, std::set<std::string> &ids)
@@ -80,6 +127,10 @@ Surface parse_surface(const json &s, size_t i, std::set<std::string> &ids)
 			fail(p + ".visible", "expected boolean");
 		out.visible = vit->get<bool>();
 	}
+
+	auto mit = s.find("mask");
+	if (mit != s.end())
+		out.mask = parse_mask(*mit, p + ".mask");
 	return out;
 }
 
@@ -141,6 +192,29 @@ std::expected<Mapping, ParseError> parse_mapping(std::string_view text)
 	}
 }
 
+namespace {
+
+ordered_json mask_to_json(const Mask &mask)
+{
+	ordered_json o = ordered_json::object();
+	if (const auto *e = std::get_if<EllipseMask>(&mask)) {
+		o["type"] = "ellipse";
+		o["x"] = e->x;
+		o["y"] = e->y;
+		o["width"] = e->width;
+		o["height"] = e->height;
+		return o;
+	}
+	o["type"] = "polygon";
+	ordered_json pts = ordered_json::array();
+	for (const Point &p : std::get<PolygonMask>(mask).points)
+		pts.push_back(ordered_json::array({p.x, p.y}));
+	o["points"] = pts;
+	return o;
+}
+
+} // namespace
+
 std::string serialize_mapping(const Mapping &m)
 {
 	ordered_json j = ordered_json::object();
@@ -160,6 +234,8 @@ std::string serialize_mapping(const Mapping &m)
 			corners.push_back(ordered_json::array({p.x, p.y}));
 		o["corners"] = corners;
 		o["visible"] = s.visible;
+		if (s.mask)
+			o["mask"] = mask_to_json(*s.mask);
 		arr.push_back(o);
 	}
 	j["surfaces"] = arr;

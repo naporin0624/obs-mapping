@@ -14,13 +14,21 @@ const mapping: Mapping = {
   layers: [gn('g-1', sn('a')), sn('b')],
 };
 
-const mount = (selection: Partial<Selection>) => render(<Inspector mapping={mapping} selection={{ surfaceIds: [], groupIds: [], corner: null, ...selection }} inputs={['src']} dispatch={vi.fn()} />);
+const mount = (selection: Partial<Selection>) =>
+  render(<Inspector mapping={mapping} selection={{ surfaceIds: [], groupIds: [], corner: null, ...selection }} shapeEdit={null} inputs={['src']} dispatch={vi.fn()} />);
 
 const boundsField = (label: string): HTMLInputElement => {
   const bounds = screen.getByText('位置とサイズ').nextElementSibling;
   if (bounds === null) throw new Error('no bounds');
   return within(bounds as HTMLElement).getAllByLabelText(label)[0] as HTMLInputElement;
 };
+
+describe('Inspector field groups', () => {
+  it.each(['位置とサイズ', '切り抜き'])('names the %s grid as a group', (name) => {
+    mount({ surfaceIds: ['a'] });
+    expect(within(screen.getByRole('group', { name })).getAllByLabelText('X').length).toBe(1);
+  });
+});
 
 describe('Inspector', () => {
   it('shows GroupInspector for exactly one selected group', () => {

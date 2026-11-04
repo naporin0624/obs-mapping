@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
-import type { MappingV1 } from './mapping';
+import { gn, groupOf, mapOf, sn, surf, withMask } from '../geometry/fixtures';
+import { canonicalJson } from '../editor/state';
+import type { Mapping, MappingV1, Mask } from './mapping';
 import { readMapping, upgradeV1 } from './read';
 
 const v1 = (): MappingV1 => ({ version: 1, canvas: { width: 1920, height: 1080 }, grid: { size: 10 }, surfaces: [surf('a', 0, 0), surf('b', 20, 0)] });
@@ -78,5 +79,63 @@ describe('readMapping', () => {
   it('lets the plugin report a wrong corner count', () => {
     const bad = { ...surf('a', 0, 0), corners: [[0, 0]] };
     expect(readMapping({ ...mapOf(surf('a', 0, 0)), surfaces: [bad] }).kind).toBe('ok');
+  });
+});
+
+describe('readMapping mask', () => {
+  const ellipse: Mask = { type: 'ellipse', x: 0.5, y: 0.5, width: 0.4, height: 0.2 };
+  const polygon: Mask = {
+    type: 'polygon',
+    points: [
+      [0, 0],
+      [1, 0],
+      [1.5, 1],
+    ],
+  };
+  const roundTrip = (m: Mask) => readMapping(JSON.parse(JSON.stringify(mapOf(withMask(surf('a', 0, 0), m)))));
+
+  it('reads ellipse and polygon masks', () => {
+    expect(roundTrip(ellipse)).toEqual({ kind: 'ok', mapping: mapOf(withMask(surf('a', 0, 0), ellipse)) });
+    expect(roundTrip(polygon)).toEqual({ kind: 'ok', mapping: mapOf(withMask(surf('a', 0, 0), polygon)) });
+  });
+
+  it('leaves no mask key on a surface without one', () => {
+    const r = readMapping(JSON.parse(JSON.stringify(mapOf(surf('a', 0, 0)))));
+    expect(r.kind === 'ok' && 'mask' in (r.mapping.surfaces[0] ?? {})).toBe(false);
+  });
+
+  it.each([
+    [
+      'two points',
+      {
+        type: 'polygon',
+        points: [
+          [0, 0],
+          [1, 1],
+        ],
+      },
+    ],
+    ['65 points', { type: 'polygon', points: Array.from({ length: 65 }, (_, i) => [i, i]) }],
+    ['zero width', { type: 'ellipse', x: 0, y: 0, width: 0, height: 1 }],
+    ['unknown type', { type: 'star' }],
+    ['short point', { type: 'polygon', points: [[0, 0], [1], [1, 1]] }],
+    ['non-object', 5],
+  ])('rejects %s', (_name, mask) => {
+    const json = { ...mapOf(surf('a', 0, 0)), surfaces: [{ ...surf('a', 0, 0), mask }] };
+    const r = readMapping(JSON.parse(JSON.stringify(json)));
+    expect(r.kind === 'error' && r.message.startsWith('surfaces[0].mask')).toBe(true);
+  });
+
+  it('matches canonicalJson of a plugin-shaped v2 JSON with type first', () => {
+    const plugin: Mapping = {
+      version: 2,
+      canvas: { width: 1920, height: 1080 },
+      grid: { size: 10 },
+      surfaces: [{ ...surf('a', 0, 0), mask: { type: 'ellipse', x: 0.5, y: 0.5, width: 0.4, height: 0.2 } }],
+      groups: [],
+      layers: [{ surface: 'a' }],
+    };
+    const r = readMapping(JSON.parse(JSON.stringify(plugin)));
+    expect(r.kind === 'ok' && canonicalJson(r.mapping)).toBe(canonicalJson(plugin));
   });
 });

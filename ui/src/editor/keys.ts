@@ -33,5 +33,6 @@ export const keyAction = (e: KeyInput): UiAction | null => {
     const step = e.shiftKey ? NUDGE_LARGE : NUDGE_SMALL;
     return { type: 'nudge', dx: arrow[0] * step, dy: arrow[1] * step };
   }
+  if (e.key === 'Escape') return { type: 'exitShapeEdit' };
   return e.key === 'Delete' || e.key === 'Backspace' ? { type: 'removeSelected' } : null;
 };

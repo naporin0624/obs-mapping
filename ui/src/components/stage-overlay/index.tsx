@@ -1,14 +1,18 @@
+import { useId } from 'react';
 import type { Messages } from '../../i18n/messages';
 import { useT } from '../../i18n/use-t';
 import type { StageDrag } from '../../editor/use-stage-drag';
-import type { CornerIndex, Selection } from '../../editor/state';
+import type { CornerIndex, Selection, ShapeEdit } from '../../editor/state';
 import { isLaidOut, isTopLevel } from '../../editor/items';
 import { clipLine } from '../../geometry/clip';
+import { unitToQuad } from '../../geometry/homography';
+import { maskOutline } from '../../geometry/mask';
 import { pasteboardBounds } from '../../geometry/pasteboard';
 import { groupFrame } from '../../layout/frame';
 import { quadWarning, type QuadWarning } from '../../geometry/quad';
-import type { Mapping, Surface } from '../../model/mapping';
+import type { Mapping, Point, Surface } from '../../model/mapping';
 import { StageGroupFrame } from '../stage-group-frame';
+import { StageMaskHandles } from '../stage-mask-handles';
 import { outlineCls, selectedCls, movableCls, lockedCls, hiddenCls, warnCls, handleCls, handleOnCls, gridLineCls, guideLineCls, warnTextCls } from './styles.css';
 
 const HANDLE_PX = 10;
@@ -19,6 +23,15 @@ const warningText = (t: Messages, warning: Exclude<QuadWarning, null>): string =
 const points = (s: Surface): string => s.corners.map((p) => `${String(p[0])},${String(p[1])}`).join(' ');
 
 const center = (s: Surface): readonly [number, number] => [s.corners.reduce((a, p) => a + p[0], 0) / 4, s.corners.reduce((a, p) => a + p[1], 0) / 4];
+
+const MASK_SEGMENTS = 64;
+
+const maskPoints = (s: Surface): string | null => {
+  if (s.mask === undefined) return null;
+  const quad = maskOutline(s.mask, MASK_SEGMENTS).map((p) => unitToQuad(s.corners, p));
+  if (quad.some((p) => p === null)) return null;
+  return (quad as Point[]).map((p) => `${String(p[0])},${String(p[1])}`).join(' ');
+};
 
 type Look = { selected: boolean; locked: boolean; visible: boolean; warning: QuadWarning };
 
@@ -31,10 +44,34 @@ type OutlineProps = SurfaceProps & { selected: boolean; locked: boolean; visible
 const SurfaceOutline = ({ surface, selected, locked, visible, scale, drag }: OutlineProps) => {
   const t = useT();
   const warning = quadWarning(surface.corners);
+  const hit = maskPoints(surface);
+  const clipId = useId();
   const [cx, cy] = center(surface);
   return (
     <g>
-      <polygon points={points(surface)} className={classOf({ selected, locked, visible, warning })} vectorEffect="non-scaling-stroke" onPointerDown={(e) => drag.onSurfaceDown(e, surface.id)} />
+      {hit === null ? null : (
+        <clipPath id={clipId}>
+          <polygon points={points(surface)} />
+        </clipPath>
+      )}
+      <polygon
+        points={points(surface)}
+        className={classOf({ selected, locked, visible, warning })}
+        vectorEffect="non-scaling-stroke"
+        pointerEvents={hit === null ? undefined : 'none'}
+        onPointerDown={hit === null ? (e) => drag.onSurfaceDown(e, surface.id) : undefined}
+      />
+      {hit === null ? null : (
+        <polygon
+          points={hit}
+          fillRule="evenodd"
+          strokeDasharray="2 3"
+          clipPath={`url(#${clipId})`}
+          className={classOf({ selected, locked, visible, warning: null })}
+          vectorEffect="non-scaling-stroke"
+          onPointerDown={(e) => drag.onSurfaceDown(e, surface.id)}
+        />
+      )}
       {warning === null ? null : (
         <text x={cx} y={cy} textAnchor="middle" fontSize={12 / scale} className={warnTextCls}>
           {warningText(t, warning)}
@@ -53,6 +90,7 @@ const Handles = ({ surface, selection, scale, drag }: SurfaceProps & { selection
         return (
           <rect
             key={i}
+            data-corner={i}
             x={p[0] - size / 2}
             y={p[1] - size / 2}
             width={size}
@@ -106,13 +144,33 @@ const Guides = ({ drag, mapping }: { drag: StageDrag; mapping: Mapping }) => (
 
 const Background = ({ mapping, drag }: { mapping: Mapping; drag: StageDrag }) => {
   const b = pasteboardBounds(mapping.canvas);
-  return <rect data-background="" x={b.x} y={b.y} width={b.width} height={b.height} fill="transparent" onPointerDown={() => drag.onBackgroundDown()} />;
+  return <rect data-background="" x={b.x} y={b.y} width={b.width} height={b.height} fill="transparent" onPointerDown={(e) => drag.onBackgroundDown(e)} />;
 };
 
-type Props = { mapping: Mapping; selection: Selection; visibleIds: ReadonlySet<string>; scale: number; drag: StageDrag };
+const MaskHandles = ({ surface, shapeEdit, scale, drag }: SurfaceProps & { shapeEdit: ShapeEdit }) =>
+  surface.mask === undefined ? null : (
+    <StageMaskHandles
+      corners={surface.corners}
+      mask={surface.mask}
+      vertex={shapeEdit.vertex}
+      scale={scale}
+      onHandleDown={(e, handle) => drag.onMaskHandleDown(e, surface.id, handle)}
+      onEdgeDown={(e, edge) => drag.onMaskEdgeDown(e, surface.id, edge)}
+    />
+  );
 
-/** SVG layer in canvas px (pasteboard margin included): grid, surface outlines (danger dashed + text for bad quads), group frames, then corner handles. */
-export const StageOverlay = ({ mapping, selection, visibleIds, scale, drag }: Props) => (
+// Corner and mask handles never show together, so a warp drag cannot be mistaken for a mask edit.
+const SelectionHandles = ({ surface, selection, shapeEdit, scale, drag }: SurfaceProps & { selection: Selection; shapeEdit: ShapeEdit | null }) =>
+  shapeEdit?.surfaceId === surface.id ? (
+    <MaskHandles surface={surface} shapeEdit={shapeEdit} scale={scale} drag={drag} />
+  ) : (
+    <Handles surface={surface} selection={selection} scale={scale} drag={drag} />
+  );
+
+type Props = { mapping: Mapping; selection: Selection; shapeEdit: ShapeEdit | null; visibleIds: ReadonlySet<string>; scale: number; drag: StageDrag };
+
+/** SVG layer in canvas px (pasteboard margin included): grid, surface outlines (danger dashed + text for bad quads), group frames, then corner or mask handles. */
+export const StageOverlay = ({ mapping, selection, shapeEdit, visibleIds, scale, drag }: Props) => (
   <>
     <Background mapping={mapping} drag={drag} />
     <Grid mapping={mapping} scale={scale} />
@@ -132,7 +190,7 @@ export const StageOverlay = ({ mapping, selection, visibleIds, scale, drag }: Pr
     {mapping.surfaces
       .filter((s) => selection.surfaceIds.includes(s.id))
       .map((s) => (
-        <Handles key={s.id} surface={s} selection={selection} scale={scale} drag={drag} />
+        <SelectionHandles key={s.id} surface={s} selection={selection} shapeEdit={shapeEdit} scale={scale} drag={drag} />
       ))}
   </>
 );

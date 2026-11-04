@@ -25,16 +25,20 @@ import {
 import { IconButton } from '../../components/icon-button';
 import { GroupInspector } from '../../components/group-inspector';
 import { Inspector } from '../../components/inspector';
+import { MaskFields } from '../../components/mask-fields';
 import { LayerTree } from '../../components/layer-tree';
 import { SourceSelect, type SourceOption } from '../../components/source-select';
 import { StageGroupFrame } from '../../components/stage-group-frame';
+import { StageMaskHandles } from '../../components/stage-mask-handles';
 import { Segmented } from '../../components/segmented';
 import { TilePopover } from '../../components/tile-popover';
 import { UnderlayImage } from '../../components/stage-underlay';
 import { UnderlayControlsView, type UnderlayView } from '../../components/underlay-controls';
+import { initialMask } from '../../editor/mask-edit';
 import { emptySelection } from '../../editor/state';
 import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
-import type { Direction, Mapping } from '../../model/mapping';
+import { rectCorners } from '../../geometry/rect';
+import type { Direction, Mapping, Mask } from '../../model/mapping';
 import { pageCls, headingCls, caseCls, captionCls, linkCls, frameCls } from './styles.css';
 
 const options: readonly SourceOption[] = [
@@ -88,6 +92,36 @@ const FrameCases = () => (
     </Case>
     <Case title="StageGroupFrame / 空のグループ">
       <FrameCase frame={{ x: 180, y: 70, width: 40, height: 20 }} />
+    </Case>
+  </>
+);
+
+const maskCorners = rectCorners({ x: 60, y: 20, width: 280, height: 120 });
+
+const MaskHandlesCase = ({ mask, vertex }: { mask: Mask; vertex: number | null }) => (
+  <svg viewBox="0 0 400 160" width="100%" role="img" aria-label="StageMaskHandles sample">
+    <StageMaskHandles corners={maskCorners} mask={mask} vertex={vertex} scale={1} onHandleDown={noop} onEdgeDown={noop} />
+  </svg>
+);
+
+const MaskHandlesCases = () => (
+  <>
+    <Case title="StageMaskHandles / 円">
+      <MaskHandlesCase mask={{ type: 'ellipse', x: 0.1, y: 0.1, width: 0.8, height: 0.8 }} vertex={null} />
+    </Case>
+    <Case title="StageMaskHandles / 多角形（頂点 1 を選択）">
+      <MaskHandlesCase
+        mask={{
+          type: 'polygon',
+          points: [
+            [0, 0.2],
+            [0.6, 0],
+            [1, 0.7],
+            [0.3, 1],
+          ],
+        }}
+        vertex={1}
+      />
     </Case>
   </>
 );
@@ -170,7 +204,27 @@ const InspectorCases = () => (
   <>
     <Case title="GroupInspector / row">{sampleGroup === undefined ? null : <GroupInspector group={sampleGroup} dispatch={noop} />}</Case>
     <Case title="Inspector / グループが位置を決めています">
-      <Inspector mapping={inspectorSample} selection={{ surfaceIds: ['a'], groupIds: [], corner: null }} inputs={['src']} dispatch={noop} />
+      <Inspector mapping={inspectorSample} selection={{ surfaceIds: ['a'], groupIds: [], corner: null }} shapeEdit={null} inputs={['src']} dispatch={noop} />
+    </Case>
+    <Case title="MaskFields / なし">
+      <MaskFields surface={surf('a', 0, 0, 500, 300)} shapeEdit={null} dispatch={noop} />
+    </Case>
+    <Case title="MaskFields / 円">
+      <MaskFields surface={{ ...surf('a', 0, 0, 500, 300), mask: { type: 'ellipse', x: 0.1, y: 0.1, width: 0.8, height: 0.8 } }} shapeEdit={null} dispatch={noop} />
+    </Case>
+    <Case title="MaskFields / 多角形（頂点 2 を選択）">
+      <MaskFields surface={{ ...surf('a', 0, 0, 500, 300), mask: initialMask('polygon') }} shapeEdit={{ surfaceId: 'a', vertex: 1 }} dispatch={noop} />
+    </Case>
+  </>
+);
+
+const LayerTreeCases = () => (
+  <>
+    <Case title="LayerTree / 入れ子と折りたたみ">
+      <LayerTreeCase hideGroup={false} />
+    </Case>
+    <Case title="LayerTree / 非表示のグループ">
+      <LayerTreeCase hideGroup />
     </Case>
   </>
 );
@@ -189,13 +243,9 @@ export const Colophon = () => {
       <Link href="https://react-spectrum.adobe.com/react-aria/Popover.html" className={linkCls} onClick={(e) => e.preventDefault()}>
         TilePopover is built on react-aria-components DialogTrigger + Popover
       </Link>
-      <Case title="LayerTree / 入れ子と折りたたみ">
-        <LayerTreeCase hideGroup={false} />
-      </Case>
-      <Case title="LayerTree / 非表示のグループ">
-        <LayerTreeCase hideGroup />
-      </Case>
+      <LayerTreeCases />
       <FrameCases />
+      <MaskHandlesCases />
       <InspectorCases />
       <IconCases />
       <TileCases />
