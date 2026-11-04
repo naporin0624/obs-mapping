@@ -19,6 +19,11 @@ if printf '%s\n' "$staged" | grep -q '^ui/'; then
   pnpm -C ui typecheck || exit 1
 fi
 
+if printf '%s\n' "$staged" | grep -q '^site/'; then
+  pnpm -C site lint || exit 1
+  pnpm -C site typecheck || exit 1
+fi
+
 cpp=$(pick '*.c' '*.h' '*.cpp' '*.hpp' '*.m' '*.mm' | tr -d '\0')
 if [ -n "$cpp" ]; then
   command -v clang-format-19 >/dev/null 2>&1 \

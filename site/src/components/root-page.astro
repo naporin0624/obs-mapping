@@ -1,0 +1,31 @@
+---
+import { css } from '../../styled-system/css';
+import { localePath, messagesFor, type Lang } from '../i18n/messages';
+
+type Props = { lang: Lang };
+
+const GITHUB_URL = 'https://github.com/naporin0624/obs-mapping';
+const { lang } = Astro.props;
+const t = messagesFor(lang);
+
+const root = css({ maxWidth: '40rem', margin: '0 auto', padding: '64px 16px', '& h1': { margin: 0, fontSize: '2.5rem', lineHeight: '1.3' } });
+const lead = css({ color: 'fg.muted', fontSize: '1.125rem' });
+const actions = css({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: '16px 24px',
+  marginTop: '32px',
+  '& a': { display: 'inline-flex', alignItems: 'center', minHeight: 'target-min' },
+});
+---
+
+<div class={root}>
+  <h1>{t.root.title}</h1>
+  <p class={lead}>{t.root.description}</p>
+  <p class={actions}>
+    <a class="button" href={localePath(lang, '/demo/')}>{t.root.demos}</a>
+    <a href={GITHUB_URL}>{t.root.github}</a>
+  </p>
+</div>
+

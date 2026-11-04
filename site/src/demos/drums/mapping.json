@@ -1,0 +1,220 @@
+{
+  "version": 2,
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "grid": {
+    "size": 20
+  },
+  "surfaces": [
+    {
+      "id": "kick",
+      "name": "Kick",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          778.17,
+          527.43
+        ],
+        [
+          1141.83,
+          527.43
+        ],
+        [
+          1136.96,
+          879.46
+        ],
+        [
+          783.04,
+          879.46
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "ellipse",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "snare",
+      "name": "Snare",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          402,
+          507.26
+        ],
+        [
+          595.66,
+          492.31
+        ],
+        [
+          628.78,
+          657.52
+        ],
+        [
+          426.28,
+          682.61
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "ellipse",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "tom-1",
+      "name": "Tom 1",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          708.98,
+          245.14
+        ],
+        [
+          860.95,
+          244.02
+        ],
+        [
+          891.5,
+          370.59
+        ],
+        [
+          733.46,
+          376.47
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "ellipse",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "tom-2",
+      "name": "Tom 2",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          1051.66,
+          234.54
+        ],
+        [
+          1220.55,
+          235.41
+        ],
+        [
+          1193.66,
+          381.89
+        ],
+        [
+          1017.24,
+          375.12
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "ellipse",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "floor-tom",
+      "name": "Floor Tom",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          1321.5,
+          461.02
+        ],
+        [
+          1580.75,
+          482.53
+        ],
+        [
+          1533,
+          712.63
+        ],
+        [
+          1257.51,
+          669.66
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "ellipse",
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      }
+    }
+  ],
+  "groups": [],
+  "layers": [
+    {
+      "surface": "kick"
+    },
+    {
+      "surface": "snare"
+    },
+    {
+      "surface": "tom-1"
+    },
+    {
+      "surface": "tom-2"
+    },
+    {
+      "surface": "floor-tom"
+    }
+  ]
+}

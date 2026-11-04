@@ -8,6 +8,7 @@
   "packages": {
     ".": {
       "package-name": "obs-mapping",
+      "exclude-paths": ["site"],
       "extra-files": [
         {
           "type": "json",

@@ -1,0 +1,19 @@
+---
+import type { GetStaticPaths } from 'astro';
+import DemoViewer from '../../../components/demo-viewer.astro';
+import { DEMO_SLUGS } from '../../../demos';
+import { messagesFor } from '../../../i18n/messages';
+import Base from '../../../layouts/base.astro';
+import type { DemoSlug } from '../../../scene/spec';
+
+export const getStaticPaths = (() => DEMO_SLUGS.map((slug) => ({ params: { slug }, props: { slug } }))) satisfies GetStaticPaths;
+
+type Props = { slug: DemoSlug };
+
+const { slug } = Astro.props;
+const demo = messagesFor('en').demos[slug];
+---
+
+<Base lang="en" path={`/demo/${slug}/`} title={`${demo.title} | obs-mapping`} description={demo.description}>
+  <DemoViewer lang="en" slug={slug} />
+</Base>
