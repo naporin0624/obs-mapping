@@ -220,5 +220,5 @@
       }
     }
   ],
-  "ignorePatterns": ["dist/**", ".astro/**", "coverage/**"]
+  "ignorePatterns": ["dist/**", ".astro/**", "coverage/**", "styled-system/**"]
 }

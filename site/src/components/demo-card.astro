@@ -1,66 +1,41 @@
 ---
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import { css } from '../../styled-system/css';
+import cubesThumb from '../assets/thumbs/cubes.webp';
+import drumsThumb from '../assets/thumbs/drums.webp';
+import hexagonThumb from '../assets/thumbs/hexagon.webp';
+import stairsThumb from '../assets/thumbs/stairs.webp';
 import { localePath, messagesFor, type Lang } from '../i18n/messages';
 import type { DemoSlug } from '../scene/spec';
-import DemoThumbCubes from './demo-thumb-cubes.astro';
-import DemoThumbDrums from './demo-thumb-drums.astro';
-import DemoThumbHexagon from './demo-thumb-hexagon.astro';
-import DemoThumbStairs from './demo-thumb-stairs.astro';
 
 type Props = { lang: Lang; slug: DemoSlug };
 
 const { lang, slug } = Astro.props;
 const demo = messagesFor(lang).demos[slug];
+// Stills of the finished stage from `pnpm gen:thumbs`; the link text already names the demo.
+const thumbs: Record<DemoSlug, ImageMetadata> = { stairs: stairsThumb, hexagon: hexagonThumb, drums: drumsThumb, cubes: cubesThumb };
+
+const card = css({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '8px',
+  height: '100%',
+  padding: '16px',
+  border: '{borderWidths.default} solid {colors.border.default}',
+  background: 'bg.subtle',
+  color: 'fg.default',
+  textDecoration: 'none',
+  _hover: { borderColor: 'accent.border', background: 'bg.muted', color: 'fg.default' },
+});
+const thumb = css({ display: 'block', width: '100%', height: 'auto', background: 'bg.emphasis' });
+const title = css({ fontSize: '1.25rem', fontWeight: 700, lineHeight: '1.4' });
+const description = css({ color: 'fg.muted', overflowWrap: 'anywhere' });
 ---
 
-<a class="card" href={localePath(lang, `/demo/${slug}/`)}>
-  <span class="thumb">
-    {slug === 'stairs' && <DemoThumbStairs />}
-    {slug === 'hexagon' && <DemoThumbHexagon />}
-    {slug === 'drums' && <DemoThumbDrums />}
-    {slug === 'cubes' && <DemoThumbCubes />}
-  </span>
-  <span class="title">{demo.title}</span>
-  <span class="description">{demo.description}</span>
+<a class={card} href={localePath(lang, `/demo/${slug}/`)}>
+  <Image class={thumb} src={thumbs[slug]} alt="" />
+  <span class={title}>{demo.title}</span>
+  <span class={description}>{demo.description}</span>
 </a>
 
-<style>
-  .card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    height: 100%;
-    padding: 16px;
-    border: var(--border-width-default) solid var(--color-border-default);
-    background: var(--color-bg-subtle);
-    color: var(--color-fg-default);
-    text-decoration: none;
-  }
-
-  .card:hover {
-    border-color: var(--color-accent-border);
-    background: var(--color-bg-muted);
-    color: var(--color-fg-default);
-  }
-
-  .thumb {
-    display: block;
-    color: var(--color-accent-text);
-  }
-
-  .thumb :global(svg) {
-    display: block;
-    width: 100%;
-    height: auto;
-  }
-
-  .title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1.4;
-  }
-
-  .description {
-    color: var(--color-fg-muted);
-    overflow-wrap: anywhere;
-  }
-</style>

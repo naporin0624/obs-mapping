@@ -1,4 +1,5 @@
 ---
+import { css } from '../../styled-system/css';
 import { DEMO_SLUGS } from '../demos';
 import { messagesFor, type Lang } from '../i18n/messages';
 import DemoCard from './demo-card.astro';
@@ -7,39 +8,24 @@ type Props = { lang: Lang };
 
 const { lang } = Astro.props;
 const t = messagesFor(lang);
+
+const index = css({ maxWidth: '64rem', margin: '0 auto', padding: '32px 16px', '& h1': { margin: 0, fontSize: '2rem', lineHeight: '1.3' } });
+const lead = css({ color: 'fg.muted' });
+const grid = css({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 16rem), 1fr))',
+  gap: '16px',
+  margin: '24px 0 0',
+  padding: 0,
+  listStyle: 'none',
+});
 ---
 
-<div class="index">
+<div class={index}>
   <h1>{t.demoIndex.title}</h1>
-  <p class="lead">{t.demoIndex.description}</p>
-  <ul class="grid">
+  <p class={lead}>{t.demoIndex.description}</p>
+  <ul class={grid}>
     {DEMO_SLUGS.map((slug) => <li><DemoCard lang={lang} slug={slug} /></li>)}
   </ul>
 </div>
 
-<style>
-  .index {
-    max-width: 64rem;
-    margin: 0 auto;
-    padding: 32px 16px;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: 2rem;
-    line-height: 1.3;
-  }
-
-  .lead {
-    color: var(--color-fg-muted);
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-    gap: 16px;
-    margin: 24px 0 0;
-    padding: 0;
-    list-style: none;
-  }
-</style>

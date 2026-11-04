@@ -1,5 +1,6 @@
 ---
-import '../styles/base.css';
+import '../styles/layers.css';
+import { css } from '../../styled-system/css';
 import { localePath, messagesFor, type Lang } from '../i18n/messages';
 
 // Without a path the page has no counterpart in the other language and is kept out of search.
@@ -8,6 +9,19 @@ type Props = { lang: Lang; path?: string; title: string; description: string };
 const { lang, path, title, description } = Astro.props;
 const t = messagesFor(lang);
 const other: Lang = lang === 'ja' ? 'en' : 'ja';
+
+const header = css({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '8px 24px',
+  padding: '12px 16px',
+  borderBottom: '{borderWidths.default} solid {colors.border.subtle}',
+  '& a': { display: 'inline-flex', alignItems: 'center', minHeight: 'target-min' },
+});
+const siteName = css({ color: 'fg.default', fontWeight: 700, textDecoration: 'none' });
+const nav = css({ display: 'flex', gap: '16px' });
 ---
 
 <html lang={t.htmlLang}>
@@ -28,9 +42,9 @@ const other: Lang = lang === 'ja' ? 'en' : 'ja';
     }
   </head>
   <body>
-    <header class="site-header">
-      <a class="site-name" href={localePath(lang, '/')}>{t.root.title}</a>
-      <nav class="site-nav" aria-label={t.langSwitch.label}>
+    <header class={header}>
+      <a class={siteName} href={localePath(lang, '/')}>{t.root.title}</a>
+      <nav class={nav} aria-label={t.langSwitch.label}>
         <a href={localePath(lang, '/demo/')}>{t.demoIndex.title}</a>
         {
           path !== undefined && (
@@ -47,31 +61,3 @@ const other: Lang = lang === 'ja' ? 'en' : 'ja';
   </body>
 </html>
 
-<style>
-  .site-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 24px;
-    padding: 12px 16px;
-    border-bottom: var(--border-width-default) solid var(--color-border-subtle);
-  }
-
-  .site-name {
-    color: var(--color-fg-default);
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  .site-nav {
-    display: flex;
-    gap: 16px;
-  }
-
-  .site-header a {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--size-target-min);
-  }
-</style>

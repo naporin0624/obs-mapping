@@ -10,6 +10,7 @@ node_modules/
 data/ui/
 ui/node_modules/
 ui/styled-system/
+site/styled-system/
 .claude/worktrees/
 site/node_modules/
 site/dist/

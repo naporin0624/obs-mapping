@@ -7,7 +7,8 @@ const SLUGS = ['stairs', 'hexagon', 'drums', 'cubes'] as const;
 
 const page = (path: string): string => readFileSync(fileURLToPath(new URL(`../../dist/${path}`, import.meta.url)), 'utf8');
 
-const tagsOf = (html: string, tag: string): string[] => html.match(new RegExp(`<${tag}\\b[^>]*>`, 'g')) ?? [];
+// Quoted values may hold '>' (Panda class names such as `[@media_(width_>=_900px)]:h_100%`).
+const tagsOf = (html: string, tag: string): string[] => html.match(new RegExp(`<${tag}\\b(?:[^>"']|"[^"]*"|'[^']*')*>`, 'g')) ?? [];
 const attr = (tagSource: string, name: string): string | undefined => new RegExp(`\\s${name}="([^"]*)"`).exec(tagSource)?.[1];
 const hrefs = (html: string): string[] => tagsOf(html, 'a').flatMap((a) => attr(a, 'href') ?? []);
 // Inline styles plus every stylesheet the page links, as Astro may emit either.
@@ -46,9 +47,20 @@ describe('demo index', () => {
     expect(alternates(page('en/demo/index.html'))).toEqual({ ja: '/demo/', en: '/en/demo/', 'x-default': '/demo/' });
   });
 
-  it('cards are single links with an accessible name and decorative thumbnails', () => {
-    const html = page('demo/index.html');
-    expect(html.match(/<svg\b[^>]*aria-hidden="true"/g)).toHaveLength(SLUGS.length);
+  it('cards show a decorative, lazily loaded still of each demo room with its size reserved', () => {
+    for (const path of ['demo/index.html', 'en/demo/index.html']) {
+      const imgs = tagsOf(page(path), 'img');
+      for (const slug of SLUGS) {
+        const thumbs = imgs.filter((img) => new RegExp(`^/_astro/${slug}\\.[\\w-]+\\.webp$`).test(attr(img, 'src') ?? ''));
+        expect(thumbs).toHaveLength(1);
+        const [thumb = ''] = thumbs;
+        expect(Number(attr(thumb, 'width'))).toBeGreaterThan(0);
+        expect(Number(attr(thumb, 'height'))).toBeGreaterThan(0);
+        // Astro prints an empty alt as the bare attribute, which HTML reads as alt="".
+        expect(thumb).toMatch(/\salt(=""|[\s>])/);
+        expect(attr(thumb, 'loading')).toBe('lazy');
+      }
+    }
   });
 });
 
