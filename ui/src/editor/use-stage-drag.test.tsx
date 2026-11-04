@@ -2,9 +2,9 @@
 import { act, renderHook } from '@testing-library/react';
 import type { PointerEvent as ReactPointerEvent, RefObject } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { gn, groupOf, mapOf, sn, surf } from '../geometry/fixtures';
-import type { Mapping } from '../model/mapping';
-import { reducer, type Action } from './reducer';
+import { gn, groupOf, mapOf, sn, surf, withMask } from '../geometry/fixtures';
+import type { EllipseMask, Mapping, Mask, PolygonMask } from '../model/mapping';
+import { reducer, type Action, type UiAction } from './reducer';
 import { emptySelection, initialEditorState, type Selection } from './state';
 import { useStageDrag } from './use-stage-drag';
 
@@ -217,5 +217,140 @@ describe('useStageDrag group drag snapping and selection', () => {
     const { hook, dispatch } = run({ ...emptySelection(), groupIds: ['g2'] }, nested);
     act(() => hook.result.current.onSurfaceDown(pointer(50, 50), 's1'));
     expect(types(dispatch)).not.toContain('dragStart');
+  });
+});
+
+const ellipse: Mask = { type: 'ellipse', x: 0.25, y: 0.25, width: 0.5, height: 0.5 };
+const square: PolygonMask = {
+  type: 'polygon',
+  points: [
+    [0.2, 0.2],
+    [0.8, 0.2],
+    [0.8, 0.8],
+    [0.2, 0.8],
+  ],
+};
+
+/** Runs the hook against the real reducer so consecutive gestures see each other's state. */
+const live = (mapping: Mapping, ...setup: Action[]) => {
+  const box = { state: setup.reduce(reducer, initialEditorState(mapping)) };
+  const dispatch = vi.fn((a: UiAction) => {
+    box.state = reducer(box.state, a as Action);
+  });
+  const ref: RefObject<SVGSVGElement | null> = { current: svg() };
+  const hook = renderHook(() => useStageDrag({ state: box.state, dispatch, svgRef: ref, scale: 1 }));
+  const step = (f: (d: ReturnType<typeof useStageDrag>) => void) => {
+    act(() => f(hook.result.current));
+    hook.rerender();
+  };
+  return { box, dispatch, step };
+};
+
+const editing = (mask: Mask) =>
+  live(
+    mapOf(withMask(surf('a', 0, 0, 100, 100), mask), surf('b', 500, 0, 100, 100)),
+    { type: 'select', selection: { ...emptySelection(), surfaceIds: ['a'] } },
+    { type: 'enterShapeEdit', surfaceId: 'a' },
+  );
+
+const actionsOf = (d: ReturnType<typeof vi.fn>, type: string): unknown[] => d.mock.calls.map((c) => c[0] as { type: string }).filter((a) => a.type === type);
+
+describe('useStageDrag entering shape edit', () => {
+  const maskedGroup = (): Mapping => {
+    const base = grouped();
+    return { ...base, surfaces: base.surfaces.map((s) => (s.id === 's1' ? withMask(s, ellipse) : s)) };
+  };
+  it('drills twice into the grouped surface, then the next double click enters shape edit', () => {
+    const { box, dispatch, step } = live(maskedGroup());
+    step((d) => d.onDoubleClick(pointer(50, 50) as never));
+    expect(box.state.selection.groupIds).toEqual(['g1']);
+    step((d) => d.onDoubleClick(pointer(50, 50) as never));
+    expect(box.state.selection.surfaceIds).toEqual(['s1']);
+    expect(types(dispatch)).not.toContain('enterShapeEdit');
+    step((d) => d.onDoubleClick(pointer(50, 50) as never));
+    expect(actionsOf(dispatch, 'enterShapeEdit')).toEqual([{ type: 'enterShapeEdit', surfaceId: 's1' }]);
+    expect(box.state.shapeEdit).toEqual({ surfaceId: 's1', vertex: null });
+  });
+  it('enters shape edit for an unselected top-level surface after a press and a double click', () => {
+    const { box, step } = live(mapOf(withMask(surf('a', 0, 0, 100, 100), ellipse)));
+    step((d) => d.onSurfaceDown(pointer(50, 50), 'a'));
+    step((d) => d.onUp(pointer(50, 50)));
+    step((d) => d.onDoubleClick(pointer(50, 50) as never));
+    expect(box.state.selection.surfaceIds).toEqual(['a']);
+    expect(box.state.shapeEdit).toEqual({ surfaceId: 'a', vertex: null });
+  });
+  it('keeps drilling while a group is selected', () => {
+    const { dispatch, step } = live(maskedGroup(), { type: 'select', selection: { ...emptySelection(), groupIds: ['g1'] } });
+    step((d) => d.onDoubleClick(pointer(50, 50) as never));
+    expect(types(dispatch)).toEqual(['select']);
+  });
+});
+
+describe('useStageDrag leaving shape edit', () => {
+  it('exits when the background outside the edited quad is pressed', () => {
+    const { box, dispatch, step } = editing(ellipse);
+    step((d) => d.onBackgroundDown(pointer(300, 300)));
+    expect(types(dispatch)).toEqual(['exitShapeEdit']);
+    expect(box.state.shapeEdit).toBeNull();
+    expect(box.state.selection.surfaceIds).toEqual(['a']);
+  });
+  it('stays when the background inside the edited quad is pressed', () => {
+    const { box, step } = editing(ellipse);
+    step((d) => d.onBackgroundDown(pointer(5, 5)));
+    expect(box.state.shapeEdit).not.toBeNull();
+    expect(box.state.selection.surfaceIds).toEqual(['a']);
+  });
+  it('exits and selects another surface when it is pressed', () => {
+    const { box, dispatch, step } = editing(ellipse);
+    step((d) => d.onSurfaceDown(pointer(550, 50), 'b'));
+    expect(types(dispatch).slice(0, 2)).toEqual(['exitShapeEdit', 'select']);
+    expect(box.state.shapeEdit).toBeNull();
+    expect(box.state.selection.surfaceIds).toEqual(['b']);
+  });
+  it('ignores double clicks while editing', () => {
+    const { box, dispatch, step } = editing(ellipse);
+    step((d) => d.onDoubleClick(pointer(50, 50) as never));
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(box.state.shapeEdit).not.toBeNull();
+  });
+});
+
+describe('useStageDrag mask drags', () => {
+  it('drags the right edge of an ellipse in one undo step', () => {
+    const { box, dispatch, step } = editing(ellipse);
+    step((d) => d.onMaskHandleDown(pointer(75, 50), 'a', 'right'));
+    step((d) => d.onMove(pointer(90, 50)));
+    step((d) => d.onUp(pointer(90, 50)));
+    expect(types(dispatch)).toEqual(['dragStart', 'dragMask', 'dragEnd']);
+    const [moved] = actionsOf(dispatch, 'dragMask') as { mask: EllipseMask }[];
+    expect(moved?.mask.width).toBeCloseTo(0.65);
+    expect(moved?.mask.x).toBeCloseTo(0.25);
+    expect(box.state.past).toHaveLength(1);
+  });
+  it('moves the whole mask from its origin by the unit delta', () => {
+    const { dispatch, step } = editing(ellipse);
+    step((d) => d.onMaskHandleDown(pointer(50, 50), 'a', 'body'));
+    step((d) => d.onMove(pointer(60, 50)));
+    step((d) => d.onMove(pointer(70, 40)));
+    const last = actionsOf(dispatch, 'dragMask').at(-1) as { mask: EllipseMask };
+    expect([last.mask.x, last.mask.y]).toEqual([expect.closeTo(0.45), expect.closeTo(0.15)]);
+  });
+  it('selects and drags a polygon vertex', () => {
+    const { box, dispatch, step } = editing(square);
+    step((d) => d.onMaskHandleDown(pointer(80, 80), 'a', { vertex: 2 }));
+    expect(box.state.shapeEdit).toEqual({ surfaceId: 'a', vertex: 2 });
+    step((d) => d.onMove(pointer(90, 95)));
+    const [moved] = actionsOf(dispatch, 'dragMask') as { mask: PolygonMask }[];
+    expect(moved?.mask.points[2]?.[0]).toBeCloseTo(0.9);
+    expect(moved?.mask.points[2]?.[1]).toBeCloseTo(0.95);
+  });
+  it('inserts a vertex where an edge is pressed and selects it', () => {
+    const { box, dispatch, step } = editing(square);
+    step((d) => d.onMaskEdgeDown(pointer(50, 20), 'a', 0));
+    const [set] = actionsOf(dispatch, 'setMask') as { mask: PolygonMask }[];
+    expect(set?.mask.points).toHaveLength(5);
+    expect(set?.mask.points[1]?.[0]).toBeCloseTo(0.5);
+    expect(set?.mask.points[1]?.[1]).toBeCloseTo(0.2);
+    expect(box.state.shapeEdit).toEqual({ surfaceId: 'a', vertex: 1 });
   });
 });

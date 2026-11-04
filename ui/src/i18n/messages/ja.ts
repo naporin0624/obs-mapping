@@ -89,6 +89,13 @@ export const ja = {
   cornerHeading: (n: number) => `角 ${String(n)}`,
   boundsHeading: '位置とサイズ',
   cropHeading: '切り抜き',
+  maskHeading: '形',
+  maskNone: 'なし',
+  maskEllipse: '円',
+  maskPolygon: '多角形',
+  maskEdit: '形を編集',
+  maskEditDone: '編集を終える',
+  maskVertexHeading: (n: number) => `頂点 ${String(n)}`,
 
   groupHeading: 'グループ',
   groupDirection: '方向',

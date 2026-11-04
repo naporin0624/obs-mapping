@@ -1,3 +1,5 @@
+import { quadToUnit } from '../geometry/homography';
+import { maskContains, polygonContains } from '../geometry/mask';
 import { effectiveVisibleIds } from '../model/visibility';
 import { findNode, isGroupNode, nodeId } from '../model/layers';
 import type { LayerNode, Mapping, Point, Surface } from '../model/mapping';
@@ -44,12 +46,15 @@ export const drillTarget = (path: readonly string[], sel: Selection): string => 
 
 export const deepTarget = (path: readonly string[]): string => path.at(-1) ?? '';
 
-const crosses = (p: Point, a: Point, b: Point): boolean => a[1] > p[1] !== b[1] > p[1] && p[0] < ((b[0] - a[0]) * (p[1] - a[1])) / (b[1] - a[1]) + a[0];
-
-const inQuad = (s: Surface, p: Point): boolean => s.corners.filter((c, i) => crosses(p, c, s.corners[(i + 1) % 4] ?? c)).length % 2 === 1;
+export const surfaceContains = (s: Surface, p: Point): boolean => {
+  if (!polygonContains(s.corners, p)) return false;
+  if (s.mask === undefined) return true;
+  const unit = quadToUnit(s.corners, p);
+  return unit !== null && maskContains(s.mask, unit);
+};
 
 /** Frontmost drawn surface containing the point. */
 export const surfaceAt = (m: Mapping, p: Point): string | null => {
   const drawn = effectiveVisibleIds(m);
-  return m.surfaces.findLast((s) => drawn.has(s.id) && inQuad(s, p))?.id ?? null;
+  return m.surfaces.findLast((s) => drawn.has(s.id) && surfaceContains(s, p))?.id ?? null;
 };

@@ -11,6 +11,9 @@ export type Selection = {
 /** json is kept only to match echoes from a plugin that does not return requestId. */
 export type InFlightEntry = { requestId: string; json: string };
 
+/** Editor-only mode (never part of Mapping): which masked surface, and which vertex, is being edited. */
+export type ShapeEdit = { surfaceId: string; vertex: number | null };
+
 export type EditorState = {
   mapping: Mapping;
   selection: Selection;
@@ -22,6 +25,7 @@ export type EditorState = {
   pendingRemote: Mapping | null;
   /** A foreign remote replaced local while own sends were in flight: the plugin may hold something else. */
   needsResync: boolean;
+  shapeEdit: ShapeEdit | null;
 };
 
 export const emptySelection = (): Selection => ({ surfaceIds: [], groupIds: [], corner: null });
@@ -51,4 +55,5 @@ export const initialEditorState = (mapping: Mapping): EditorState => ({
   inFlight: [],
   pendingRemote: null,
   needsResync: false,
+  shapeEdit: null,
 });

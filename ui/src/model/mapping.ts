@@ -1,6 +1,12 @@
 // Same shape as the plugin's JSON v2 (see plan-globals).
 export type Point = readonly [number, number];
 
+export type EllipseMask = { type: 'ellipse'; x: number; y: number; width: number; height: number };
+export type PolygonMask = { type: 'polygon'; points: readonly Point[] };
+export type Mask = EllipseMask | PolygonMask;
+export const MASK_MIN_POINTS = 3;
+export const MASK_MAX_POINTS = 64;
+
 export type Surface = {
   id: string;
   name: string;
@@ -9,6 +15,7 @@ export type Surface = {
   crop: { x: number; y: number; width: number; height: number };
   corners: readonly [Point, Point, Point, Point];
   visible: boolean;
+  mask?: Mask;
 };
 
 export type Direction = 'row' | 'column';

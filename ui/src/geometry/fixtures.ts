@@ -1,5 +1,5 @@
 import { flatLayers } from '../model/layers';
-import type { Group, GroupNode, LayerNode, Mapping, Surface, SurfaceNode } from '../model/mapping';
+import type { Group, GroupNode, LayerNode, Mapping, Mask, Surface, SurfaceNode } from '../model/mapping';
 import { rectCorners } from './rect';
 
 export const surf = (id: string, x: number, y: number, w = 10, h = 10): Surface => ({
@@ -11,6 +11,8 @@ export const surf = (id: string, x: number, y: number, w = 10, h = 10): Surface 
   corners: rectCorners({ x, y, width: w, height: h }),
   visible: true,
 });
+
+export const withMask = (s: Surface, mask: Mask): Surface => ({ ...s, mask });
 
 export const sn = (id: string): SurfaceNode => ({ surface: id });
 

@@ -1,5 +1,5 @@
 import { fitsDepth, moveNodes, sortSurfacesByLayers, type NodeTarget } from '../model/layers';
-import type { Group, Mapping, Point, Surface } from '../model/mapping';
+import type { Group, Mapping, Mask, Point, Surface } from '../model/mapping';
 import { MAX_SPACING } from '../model/validate-tree';
 import { alignDeltas, distributeDeltas, itemsReference, translateSurface, type AlignMode } from '../geometry/align';
 import { rectCorners, type Bounds } from '../geometry/rect';
@@ -11,8 +11,9 @@ import { freshId, idNumber } from './ids';
 import { isLaidOut, movableItems, moveItem, tileableSurfaceIds } from './items';
 import type { Naming } from './naming';
 import { duplicateItems, removeItems } from './structure';
+import { removeVertex } from './mask-edit';
 import { tiledGroup } from './tile-group';
-import { canonicalJson, emptySelection, initialEditorState, type CornerIndex, type EditorState, type InFlightEntry, type Selection } from './state';
+import { canonicalJson, emptySelection, initialEditorState, type CornerIndex, type EditorState, type InFlightEntry, type Selection, type ShapeEdit } from './state';
 
 type NamedType = 'addSurface' | 'duplicateSelected' | 'group';
 
@@ -43,6 +44,11 @@ export type Action =
   | { type: 'patchGroup'; groupId: string; patch: Partial<Pick<Group, 'name' | 'visible' | 'layout'>> }
   | { type: 'patchSurface'; surfaceId: string; patch: Partial<Pick<Surface, 'name' | 'source' | 'crop' | 'visible'>> }
   | { type: 'setGrid'; size: number }
+  | { type: 'setMask'; surfaceId: string; mask: Mask | null }
+  | { type: 'dragMask'; surfaceId: string; mask: Mask }
+  | { type: 'enterShapeEdit'; surfaceId: string }
+  | { type: 'exitShapeEdit' }
+  | { type: 'selectVertex'; index: number | null }
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'sent'; requestId: string; json: string }
@@ -72,6 +78,9 @@ const DRAG_BLOCKED: ReadonlySet<Action['type']> = new Set([
   'patchGroup',
   'patchSurface',
   'setGrid',
+  'setMask',
+  'enterShapeEdit',
+  'exitShapeEdit',
 ]);
 
 // ---- helpers -------------------------------------------------------------
@@ -104,6 +113,50 @@ const pruneSelection = (sel: Selection, m: Mapping): Selection => {
     groupIds: sel.groupIds.filter((id) => groups.has(id)),
     corner: sel.corner !== null && ids.has(sel.corner.surfaceId) ? sel.corner : null,
   };
+};
+
+const withMask = (s: Surface, mask: Mask | null): Surface => {
+  const { mask: _previous, ...rest } = s;
+  return mask === null ? rest : { ...rest, mask };
+};
+
+const isSoleSelection = (sel: Selection, surfaceId: string): boolean => sel.groupIds.length === 0 && sel.surfaceIds.length === 1 && sel.surfaceIds[0] === surfaceId;
+
+const vertexCount = (mask: Mask | undefined): number => (mask?.type === 'polygon' ? mask.points.length : 0);
+
+/** Drops the shape edit (or just its vertex) once the surface, mask or selection no longer supports it. */
+const pruneShapeEdit = (s: EditorState): EditorState => {
+  const edit = s.shapeEdit;
+  if (edit === null) return s;
+  const mask = s.mapping.surfaces.find((x) => x.id === edit.surfaceId)?.mask;
+  if (mask === undefined || !isSoleSelection(s.selection, edit.surfaceId)) return { ...s, shapeEdit: null };
+  const vertexValid = edit.vertex === null || (Number.isInteger(edit.vertex) && edit.vertex >= 0 && edit.vertex < vertexCount(mask));
+  return vertexValid ? s : { ...s, shapeEdit: { ...edit, vertex: null } };
+};
+
+const enteredShapeEdit = (s: EditorState, surfaceId: string): EditorState => {
+  const pruned = pruneShapeEdit({ ...s, shapeEdit: { surfaceId, vertex: null } });
+  return pruned.shapeEdit === null ? s : { ...pruned, selection: { ...pruned.selection, corner: null } };
+};
+
+const withVertex = (s: EditorState, vertex: number | null): EditorState => (s.shapeEdit === null ? s : { ...s, shapeEdit: { ...s.shapeEdit, vertex } });
+
+const verticesRemoved = (s: EditorState, edit: ShapeEdit & { vertex: number }): EditorState => {
+  const mask = s.mapping.surfaces.find((x) => x.id === edit.surfaceId)?.mask;
+  const committed =
+    mask?.type === 'polygon'
+      ? commit(
+          s,
+          mapSurface(s.mapping, edit.surfaceId, (x) => withMask(x, removeVertex(mask, edit.vertex))),
+        )
+      : s;
+  return { ...committed, shapeEdit: { ...edit, vertex: null } };
+};
+
+const removedSelected = (s: EditorState): EditorState => {
+  if (s.shapeEdit !== null) return s.shapeEdit.vertex === null ? s : verticesRemoved(s, { ...s.shapeEdit, vertex: s.shapeEdit.vertex });
+  const next = commit(s, removeItems(s.mapping, selectedItemIds(s.selection)));
+  return next === s ? s : { ...next, selection: emptySelection() };
 };
 
 const moveAll = (m: Mapping, deltas: ReadonlyMap<string, Point>): Mapping => [...deltas].reduce((acc, [id, d]) => moveItem(acc, id, d), m);
@@ -258,10 +311,7 @@ const handlers: Handlers = {
     const next = commit(s, withAppendedSurface(s.mapping, created));
     return { ...next, selection: { surfaceIds: [created.id], groupIds: [], corner: null } };
   },
-  removeSelected: (s) => {
-    const next = commit(s, removeItems(s.mapping, selectedItemIds(s.selection)));
-    return next === s ? s : { ...next, selection: emptySelection() };
-  },
+  removeSelected: removedSelected,
   duplicateSelected: (s, a) => {
     const { mapping, newSurfaceIds, newGroupIds } = duplicateItems(s.mapping, selectedItemIds(s.selection), a.naming.copy);
     const next = commit(s, mapping);
@@ -277,6 +327,19 @@ const handlers: Handlers = {
       mapSurface(s.mapping, a.surfaceId, (x) => ({ ...x, ...a.patch })),
     ),
   setGrid: (s, a) => (Number.isFinite(a.size) && a.size > 0 && a.size <= GRID_MAX ? commit(s, { ...s.mapping, grid: { size: a.size } }) : s),
+  setMask: (s, a) =>
+    commit(
+      s,
+      mapSurface(s.mapping, a.surfaceId, (x) => withMask(x, a.mask)),
+    ),
+  dragMask: (s, a) =>
+    replaceLive(
+      s,
+      mapSurface(s.mapping, a.surfaceId, (x) => withMask(x, a.mask)),
+    ),
+  enterShapeEdit: (s, a) => enteredShapeEdit(s, a.surfaceId),
+  exitShapeEdit: (s) => (s.shapeEdit === null ? s : { ...s, shapeEdit: null }),
+  selectVertex: (s, a) => withVertex(s, a.index),
   undo: (s) => travel(s, 'past'),
   redo: (s) => travel(s, 'future'),
   sent: (s, a) => ({ ...s, inFlight: [...s.inFlight, { requestId: a.requestId, json: a.json }].slice(-IN_FLIGHT_LIMIT) }),
@@ -292,4 +355,6 @@ const handlers: Handlers = {
   staleEcho: (s) => ({ ...s, needsResync: true }),
 };
 
-export const reducer = (s: EditorState, a: Action): EditorState => (s.dragging && DRAG_BLOCKED.has(a.type) ? s : (handlers[a.type] as (s: EditorState, a: Action) => EditorState)(s, a));
+const handle = (s: EditorState, a: Action): EditorState => (handlers[a.type] as (s: EditorState, a: Action) => EditorState)(s, a);
+
+export const reducer = (s: EditorState, a: Action): EditorState => (s.dragging && DRAG_BLOCKED.has(a.type) ? s : pruneShapeEdit(handle(s, a)));

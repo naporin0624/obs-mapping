@@ -94,6 +94,13 @@ export const en: Messages = {
   cornerHeading: (n) => `Corner ${String(n)}`,
   boundsHeading: 'Bounds',
   cropHeading: 'Crop',
+  maskHeading: 'Shape',
+  maskNone: 'None',
+  maskEllipse: 'Ellipse',
+  maskPolygon: 'Polygon',
+  maskEdit: 'Edit shape',
+  maskEditDone: 'Done',
+  maskVertexHeading: (n) => `Vertex ${String(n)}`,
 
   groupHeading: 'Group',
   groupDirection: 'Direction',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Surface } from '../model/mapping';
-import { cssMatrix3d, unitSquareToQuad } from './homography';
+import { applyH, cssMatrix3d, invert3, quadToUnit, unitSquareToQuad, unitToQuad, type Mat3 } from './homography';
 
 // Parse matrix3d(...) (column-major) and apply to (x, y, 0, 1) with homogeneous divide.
 const apply = (css: string, x: number, y: number): readonly [number, number] => {
@@ -80,5 +80,65 @@ describe('cssMatrix3d', () => {
         [1, 1],
       ]),
     ).toBeNull();
+  });
+});
+
+describe('invert3 / applyH', () => {
+  it('inverts a matrix so that m * inv = identity', () => {
+    const m: Mat3 = [2, 0, 1, 0, 3, 2, 0.1, 0.2, 1];
+    const inv = invert3(m) as Mat3;
+    const p = applyH(m, [0.3, 0.7]) as readonly [number, number];
+    const back = applyH(inv, p) as readonly [number, number];
+    expect(back[0]).toBeCloseTo(0.3, 9);
+    expect(back[1]).toBeCloseTo(0.7, 9);
+  });
+
+  it('returns null for a singular matrix', () => {
+    expect(invert3([1, 2, 3, 2, 4, 6, 0, 0, 1])).toBeNull();
+  });
+
+  it('returns null when w <= 0', () => {
+    expect(applyH([1, 0, 0, 0, 1, 0, 0, 0, -1], [1, 1])).toBeNull();
+    expect(applyH([1, 0, 0, 0, 1, 0, 0, 0, 0], [1, 1])).toBeNull();
+  });
+});
+
+describe('quadToUnit / unitToQuad', () => {
+  const trapezoid: Surface['corners'] = [
+    [30, 10],
+    [90, 10],
+    [110, 80],
+    [10, 80],
+  ];
+
+  it('round-trips on a trapezoid', () => {
+    for (const p of [
+      [0, 0],
+      [1, 1],
+      [0.25, 0.75],
+      [0.5, 0.5],
+    ] as const) {
+      const q = unitToQuad(trapezoid, p) as readonly [number, number];
+      const u = quadToUnit(trapezoid, q) as readonly [number, number];
+      expect(u[0]).toBeCloseTo(p[0], 9);
+      expect(u[1]).toBeCloseTo(p[1], 9);
+    }
+  });
+
+  it('maps unit corners to quad corners', () => {
+    const q = unitToQuad(trapezoid, [1, 0]) as readonly [number, number];
+    expect(q[0]).toBeCloseTo(90, 9);
+    expect(q[1]).toBeCloseTo(10, 9);
+  });
+
+  it('returns null for a degenerate quad', () => {
+    const flat: Surface['corners'] = [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+    ];
+    expect(quadToUnit(flat, [0.5, 0])).toBeNull();
+    expect(unitToQuad(flat, [0.5, 0])).toBeNull();
   });
 });

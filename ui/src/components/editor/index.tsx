@@ -70,7 +70,7 @@ const EditorBody = () => {
         </div>
         <aside className={sideCls}>
           <SurfaceList mapping={editor.mapping} selection={editor.selection} inputs={inputs} dispatch={dispatch} onReloadInputs={() => void reloadInputs()} />
-          <Inspector mapping={editor.mapping} selection={editor.selection} inputs={inputs} dispatch={dispatch} />
+          <Inspector mapping={editor.mapping} selection={editor.selection} shapeEdit={editor.shapeEdit} inputs={inputs} dispatch={dispatch} />
         </aside>
       </div>
     </>

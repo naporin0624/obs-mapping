@@ -36,3 +36,9 @@ describe('keyAction', () => {
     expect(keyAction(key('g', { metaKey: true, shiftKey: true, repeat: true }))).toBeNull();
   });
 });
+
+describe('Escape', () => {
+  it('exits shape edit', () => {
+    expect(keyAction({ key: 'Escape', shiftKey: false, metaKey: false, ctrlKey: false })).toEqual({ type: 'exitShapeEdit' });
+  });
+});

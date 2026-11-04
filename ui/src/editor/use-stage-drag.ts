@@ -10,6 +10,9 @@ import type { Bounds } from '../geometry/rect';
 import { isLaidOut, isTopLevel, movableItems } from './items';
 import type { UiAction } from './reducer';
 import { clickTarget, deepTarget, drillTarget, pickPath, surfaceAt } from './stage-pick';
+import { quadToUnit } from '../geometry/homography';
+import { polygonContains } from '../geometry/mask';
+import { draggedMask, edgeInserted, type MaskDrag, type MaskHandle } from './mask-drag';
 import { emptySelection, type CornerIndex, type EditorState, type Selection } from './state';
 
 /** Snap radius in stage (screen) px; converted to canvas px with the current scale. */
@@ -17,7 +20,7 @@ const SNAP_STAGE_PX = 8;
 
 type ItemsDrag = { kind: 'items'; ids: readonly string[]; ownIds: readonly string[]; frame: Bounds; start: Point; applied: Point };
 
-type Drag = { kind: 'corner'; surfaceId: string; index: CornerIndex } | { kind: 'surface'; ids: readonly string[]; primary: Surface; start: Point; applied: Point } | ItemsDrag;
+type Drag = { kind: 'corner'; surfaceId: string; index: CornerIndex } | { kind: 'surface'; ids: readonly string[]; primary: Surface; start: Point; applied: Point } | ItemsDrag | MaskDrag;
 
 type Pointer = ReactPointerEvent<SVGElement>;
 type Click = ReactMouseEvent<SVGElement>;
@@ -25,10 +28,12 @@ type Click = ReactMouseEvent<SVGElement>;
 export type StageDrag = {
   /** Extended edge lines the current drag is snapped to; empty when idle. Transient, never persisted. */
   guides: readonly GuideLine[];
-  onBackgroundDown: () => void;
+  onBackgroundDown: (e: Pointer) => void;
   onCornerDown: (e: Pointer, surfaceId: string, index: CornerIndex) => void;
   onSurfaceDown: (e: Pointer, surfaceId: string) => void;
   onGroupDown: (e: Pointer, groupId: string) => void;
+  onMaskHandleDown: (e: Pointer, surfaceId: string, handle: MaskHandle) => void;
+  onMaskEdgeDown: (e: Pointer, surfaceId: string, edge: number) => void;
   onDoubleClick: (e: Click) => void;
   onMove: (e: Pointer) => void;
   onUp: (e: Pointer) => void;
@@ -98,10 +103,17 @@ const moveItems = (geo: Geometry, dispatch: Dispatch<UiAction>, e: Pointer, d: I
   return { drag: { ...d, applied: hit.point }, guides: hit.guides };
 };
 
+const moveMaskHandle = (dispatch: Dispatch<UiAction>, d: MaskDrag, p: Point): Moved => {
+  const unit = quadToUnit(d.corners, p);
+  if (unit !== null) dispatch({ type: 'dragMask', surfaceId: d.surfaceId, mask: draggedMask(d, unit) });
+  return { drag: d, guides: NO_GUIDES };
+};
+
 /** Applies one pointer move and returns the updated drag state with the active snap guides. */
 const applyMove = (geo: Geometry, dispatch: Dispatch<UiAction>, e: Pointer, d: Drag): Moved => {
   const p = geo.toCanvas(e);
   if (d.kind === 'items') return moveItems(geo, dispatch, e, d, p);
+  if (d.kind === 'mask') return moveMaskHandle(dispatch, d, p);
   if (d.kind === 'corner') {
     const hit = roundedCornerHit(p, geo.snapOptions(e, [d.surfaceId]));
     dispatch({ type: 'dragCorner', surfaceId: d.surfaceId, index: d.index, to: hit.point });
@@ -147,14 +159,90 @@ const pressGroup = (ctx: Ctx, e: Pointer, groupId: string, at: Point): Drag | nu
   return startItems(ctx.mapping, sel, at);
 };
 
+const isSoleSurface = (sel: Selection, id: string): boolean => sel.groupIds.length === 0 && sel.surfaceIds.length === 1 && sel.surfaceIds[0] === id;
+
+/** Drills one level deeper; once the selected surface is the deepest level, enters its shape edit. */
 const drill = ({ mapping, selection, dispatch }: Ctx, at: Point): void => {
   const surfaceId = surfaceAt(mapping, at);
   if (surfaceId === null) return;
   const target = drillTarget(pickPath(mapping, surfaceId), selection);
-  dispatch({ type: 'select', selection: selectionOf(mapping, [target]) });
+  if (isSoleSurface(selection, target)) dispatch({ type: 'enterShapeEdit', surfaceId: target });
+  else dispatch({ type: 'select', selection: selectionOf(mapping, [target]) });
 };
 
-/** Pointer interaction for the stage: picking, drilling, and corner, surface, and group drags, with snapping (Option/Alt disables it). */
+const editedSurface = (s: EditorState): Surface | null => {
+  const id = s.shapeEdit?.surfaceId;
+  return s.mapping.surfaces.find((x) => x.id === id) ?? null;
+};
+
+/** Mask drags start from the unit-space press point and the mask as it was at the press. */
+const startMaskDrag = (s: EditorState, surfaceId: string, handle: MaskHandle, p: Point): MaskDrag | null => {
+  const surface = s.mapping.surfaces.find((x) => x.id === surfaceId);
+  const start = surface === undefined ? null : quadToUnit(surface.corners, p);
+  if (surface?.mask === undefined || start === null) return null;
+  return { kind: 'mask', surfaceId, corners: surface.corners, handle, start, origin: surface.mask };
+};
+
+const insertAtEdge = (s: EditorState, dispatch: Dispatch<UiAction>, surfaceId: string, edge: number, p: Point): void => {
+  const surface = s.mapping.surfaces.find((x) => x.id === surfaceId);
+  const at = surface === undefined ? null : quadToUnit(surface.corners, p);
+  const next = surface?.mask?.type === 'polygon' && at !== null ? edgeInserted(surface.mask, edge, at) : null;
+  if (next === null) return;
+  dispatch({ type: 'setMask', surfaceId, mask: next });
+  dispatch({ type: 'selectVertex', index: edge + 1 });
+};
+
+// Presses inside the edited quad are swallowed so shape edit stays on.
+const insideEditedQuad = (s: EditorState, p: Point): boolean => {
+  const edited = editedSurface(s);
+  return edited !== null && polygonContains(edited.corners, p);
+};
+
+// While shape-editing, the background only leaves the edit; the surface stays selected.
+const backgroundPress = (s: EditorState, dispatch: Dispatch<UiAction>, p: Point): void => {
+  if (s.shapeEdit === null) dispatch({ type: 'select', selection: emptySelection() });
+  else if (!insideEditedQuad(s, p)) dispatch({ type: 'exitShapeEdit' });
+};
+
+type Begin = (e: Pointer, d: Drag) => void;
+
+const nodePresses = (s: EditorState, dispatch: Dispatch<UiAction>, toCanvas: Geometry['toCanvas'], begin: Begin): Pick<StageDrag, 'onSurfaceDown' | 'onGroupDown'> => {
+  const ctx: Ctx = { mapping: s.mapping, selection: s.selection, dispatch };
+  return {
+    onSurfaceDown: (e, surfaceId) => {
+      e.stopPropagation();
+      const at = toCanvas(e);
+      if (insideEditedQuad(s, at)) return;
+      if (s.shapeEdit !== null) dispatch({ type: 'exitShapeEdit' });
+      const started = pressSurface(ctx, e, surfaceId, at);
+      if (started !== null) begin(e, started);
+    },
+    onGroupDown: (e, groupId) => {
+      e.stopPropagation();
+      const at = toCanvas(e);
+      if (insideEditedQuad(s, at)) return;
+      if (s.shapeEdit !== null) dispatch({ type: 'exitShapeEdit' });
+      const started = pressGroup(ctx, e, groupId, at);
+      if (started !== null) begin(e, started);
+    },
+  };
+};
+
+const maskPresses = (s: EditorState, dispatch: Dispatch<UiAction>, toCanvas: Geometry['toCanvas'], begin: Begin): Pick<StageDrag, 'onMaskHandleDown' | 'onMaskEdgeDown'> => ({
+  onMaskHandleDown: (e, surfaceId, handle) => {
+    e.stopPropagation();
+    const started = startMaskDrag(s, surfaceId, handle, toCanvas(e));
+    if (started === null) return;
+    if (typeof handle === 'object') dispatch({ type: 'selectVertex', index: handle.vertex });
+    begin(e, started);
+  },
+  onMaskEdgeDown: (e, surfaceId, edge) => {
+    e.stopPropagation();
+    insertAtEdge(s, dispatch, surfaceId, edge, toCanvas(e));
+  },
+});
+
+/** Pointer interaction for the stage: picking, drilling, shape edit, and corner, surface, group and mask drags, with snapping (Option/Alt disables it). */
 export const useStageDrag = ({ state, dispatch, svgRef, scale }: Args): StageDrag => {
   const drag = useRef<Drag | null>(null);
   const [guides, setGuides] = useState<readonly GuideLine[]>(NO_GUIDES);
@@ -171,23 +259,17 @@ export const useStageDrag = ({ state, dispatch, svgRef, scale }: Args): StageDra
 
   return {
     guides,
-    onBackgroundDown: () => dispatch({ type: 'select', selection: emptySelection() }),
+    onBackgroundDown: (e) => backgroundPress(state, dispatch, toCanvas(e)),
     onCornerDown: (e, surfaceId, index) => {
       e.stopPropagation();
       dispatch({ type: 'select', selection: { surfaceIds: [surfaceId], groupIds: [], corner: { surfaceId, index } } });
       begin(e, { kind: 'corner', surfaceId, index });
     },
-    onSurfaceDown: (e, surfaceId) => {
-      e.stopPropagation();
-      const started = pressSurface({ mapping, selection, dispatch }, e, surfaceId, toCanvas(e));
-      if (started !== null) begin(e, started);
+    ...nodePresses(state, dispatch, toCanvas, begin),
+    ...maskPresses(state, dispatch, toCanvas, begin),
+    onDoubleClick: (e) => {
+      if (state.shapeEdit === null) drill({ mapping, selection, dispatch }, toCanvas(e));
     },
-    onGroupDown: (e, groupId) => {
-      e.stopPropagation();
-      const started = pressGroup({ mapping, selection, dispatch }, e, groupId, toCanvas(e));
-      if (started !== null) begin(e, started);
-    },
-    onDoubleClick: (e) => drill({ mapping, selection, dispatch }, toCanvas(e)),
     onMove: (e) => {
       const d = drag.current;
       if (d === null) return;

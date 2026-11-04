@@ -1,4 +1,5 @@
 import { cssMatrix3d } from '../../geometry/homography';
+import { maskClipPath } from '../../geometry/mask';
 import type { Surface } from '../../model/mapping';
 import { cropCls, imgCls } from './styles.css';
 
@@ -10,14 +11,14 @@ type Props = { surface: Surface; image: string | undefined; scale: number; visib
 
 /** One surface: the screenshot of its source, cropped, projected onto the quad with CSS matrix3d. */
 export const StageSurface = ({ surface, image, scale, visible }: Props) => {
-  const { crop, corners } = surface;
+  const { crop, corners, mask } = surface;
   const w = crop.width * UNIT;
   const h = crop.height * UNIT;
   const scaled = corners.map((p) => [p[0] * scale, p[1] * scale] as const) as unknown as Surface['corners'];
   const matrix = cssMatrix3d(w, h, scaled);
   if (matrix === null || image === undefined || !visible) return null;
   return (
-    <div className={cropCls} style={{ width: w, height: h, transform: matrix }}>
+    <div className={cropCls} style={{ width: w, height: h, transform: matrix, clipPath: mask === undefined ? undefined : maskClipPath(mask, w, h) }}>
       <img className={imgCls} src={image} alt="" draggable={false} style={{ width: UNIT, height: UNIT, left: -crop.x * UNIT, top: -crop.y * UNIT }} />
     </div>
   );
