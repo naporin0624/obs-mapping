@@ -37,7 +37,7 @@ describe('Inspector', () => {
   });
   it('switches to bulk source editing for two or more selected items', () => {
     mount({ surfaceIds: ['b'], groupIds: ['g-1'] });
-    expect(screen.getByText('2 レイヤーを選択中')).toBeTruthy();
+    expect(screen.getByText('2 レイヤーを変更')).toBeTruthy();
     expect(screen.queryByLabelText('名前')).toBeNull();
   });
   it('tells that empty groups hold no layer to change', () => {

@@ -26,7 +26,7 @@ describe('surfaceCount', () => {
 
 describe('bulk source', () => {
   it('counts the selected layers, singular for one in English', () => {
-    expect([ja.bulkHeading(1), en.bulkHeading(1), ja.bulkHeading(5), en.bulkHeading(5)]).toEqual(['1 レイヤーを選択中', '1 layer selected', '5 レイヤーを選択中', '5 layers selected']);
+    expect([ja.bulkHeading(1), en.bulkHeading(1), ja.bulkHeading(5), en.bulkHeading(5)]).toEqual(['1 レイヤーを変更', 'Change 1 layer', '5 レイヤーを変更', 'Change 5 layers']);
   });
   it('shows how many kinds of source are mixed', () => {
     expect([ja.bulkMixed(2), en.bulkMixed(2)]).toEqual(['混在 (2種)', 'Mixed (2)']);

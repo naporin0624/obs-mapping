@@ -22,7 +22,7 @@ const trigger = (): HTMLElement => screen.getByRole('button', { name: /ソース
 describe('BulkSourceFields', () => {
   it('heads the panel with the number of target layers', () => {
     mount(mixed);
-    expect(screen.getByText('2 レイヤーを選択中')).toBeTruthy();
+    expect(screen.getByText('2 レイヤーを変更')).toBeTruthy();
   });
   it('shows the shared source when every target uses it', () => {
     mount([layer('a', 'A', 'cam-A'), layer('b', 'B', 'cam-A')]);
