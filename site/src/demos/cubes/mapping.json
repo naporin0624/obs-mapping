@@ -1,0 +1,624 @@
+{
+  "version": 2,
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "grid": {
+    "size": 20
+  },
+  "surfaces": [
+    {
+      "id": "large-left",
+      "name": "Large Left",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          707.96,
+          505.32
+        ],
+        [
+          1003.08,
+          618
+        ],
+        [
+          998.01,
+          928.43
+        ],
+        [
+          734.24,
+          792.24
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "polygon",
+        "points": [
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0.3,
+            0.5
+          ],
+          [
+            0.3,
+            0.3
+          ],
+          [
+            0.7,
+            0.3
+          ],
+          [
+            0.7,
+            0.7
+          ],
+          [
+            0.3,
+            0.7
+          ],
+          [
+            0.3,
+            0.5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "large-right",
+      "name": "Large Right",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          1003.08,
+          618
+        ],
+        [
+          1201.3,
+          472.27
+        ],
+        [
+          1177.1,
+          751.5
+        ],
+        [
+          998.01,
+          928.43
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "polygon",
+        "points": [
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0.3,
+            0.5
+          ],
+          [
+            0.3068,
+            0.4482
+          ],
+          [
+            0.3268,
+            0.4
+          ],
+          [
+            0.3586,
+            0.3586
+          ],
+          [
+            0.4,
+            0.3268
+          ],
+          [
+            0.4482,
+            0.3068
+          ],
+          [
+            0.5,
+            0.3
+          ],
+          [
+            0.5518,
+            0.3068
+          ],
+          [
+            0.6,
+            0.3268
+          ],
+          [
+            0.6414,
+            0.3586
+          ],
+          [
+            0.6732,
+            0.4
+          ],
+          [
+            0.6932,
+            0.4482
+          ],
+          [
+            0.7,
+            0.5
+          ],
+          [
+            0.6932,
+            0.5518
+          ],
+          [
+            0.6732,
+            0.6
+          ],
+          [
+            0.6414,
+            0.6414
+          ],
+          [
+            0.6,
+            0.6732
+          ],
+          [
+            0.5518,
+            0.6932
+          ],
+          [
+            0.5,
+            0.7
+          ],
+          [
+            0.4482,
+            0.6932
+          ],
+          [
+            0.4,
+            0.6732
+          ],
+          [
+            0.3586,
+            0.6414
+          ],
+          [
+            0.3268,
+            0.6
+          ],
+          [
+            0.3068,
+            0.5518
+          ],
+          [
+            0.3,
+            0.5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "large-top-left",
+      "name": "Large Top Left",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.058036,
+        "y": 0,
+        "width": 0.883929,
+        "height": 1
+      },
+      "corners": [
+        [
+          801.88,
+          456.86
+        ],
+        [
+          968.45,
+          513.85
+        ],
+        [
+          878.67,
+          570.49
+        ],
+        [
+          707.96,
+          505.32
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "large-top-right",
+      "name": "Large Top Right",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.390625,
+        "y": 0,
+        "width": 0.21875,
+        "height": 1
+      },
+      "corners": [
+        [
+          1087.44,
+          438.78
+        ],
+        [
+          1201.3,
+          472.27
+        ],
+        [
+          1003.08,
+          618
+        ],
+        [
+          878.67,
+          570.49
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "medium-left",
+      "name": "Medium Left",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          790.58,
+          256.75
+        ],
+        [
+          969.11,
+          301.26
+        ],
+        [
+          968.45,
+          513.85
+        ],
+        [
+          801.88,
+          456.86
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "medium-right",
+      "name": "Medium Right",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          969.11,
+          301.26
+        ],
+        [
+          1096.31,
+          242.73
+        ],
+        [
+          1087.44,
+          438.78
+        ],
+        [
+          968.45,
+          513.85
+        ]
+      ],
+      "visible": true,
+      "mask": {
+        "type": "polygon",
+        "points": [
+          [
+            0,
+            0.5
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            0.5
+          ],
+          [
+            0.3,
+            0.5
+          ],
+          [
+            0.3,
+            0.3
+          ],
+          [
+            0.7,
+            0.3
+          ],
+          [
+            0.7,
+            0.7
+          ],
+          [
+            0.3,
+            0.7
+          ],
+          [
+            0.3,
+            0.5
+          ]
+        ]
+      }
+    },
+    {
+      "id": "medium-top-left",
+      "name": "Medium Top Left",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.108696,
+        "y": 0,
+        "width": 0.782609,
+        "height": 1
+      },
+      "corners": [
+        [
+          850.44,
+          234.54
+        ],
+        [
+          949.07,
+          257.45
+        ],
+        [
+          890.91,
+          281.76
+        ],
+        [
+          790.58,
+          256.75
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "medium-top-right",
+      "name": "Medium Top Right",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.382386,
+        "y": 0,
+        "width": 0.235227,
+        "height": 1
+      },
+      "corners": [
+        [
+          1021.96,
+          226.97
+        ],
+        [
+          1096.31,
+          242.73
+        ],
+        [
+          969.11,
+          301.26
+        ],
+        [
+          890.91,
+          281.76
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "small-left",
+      "name": "Small Left",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          845.9,
+          109.17
+        ],
+        [
+          948.59,
+          127.13
+        ],
+        [
+          949.07,
+          257.45
+        ],
+        [
+          850.44,
+          234.54
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "small-right",
+      "name": "Small Right",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          948.59,
+          127.13
+        ],
+        [
+          1024.49,
+          103.25
+        ],
+        [
+          1021.96,
+          226.97
+        ],
+        [
+          949.07,
+          257.45
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "small-top",
+      "name": "Small Top",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0.21875,
+        "y": 0,
+        "width": 0.5625,
+        "height": 1
+      },
+      "corners": [
+        [
+          924.47,
+          87.33
+        ],
+        [
+          1024.49,
+          103.25
+        ],
+        [
+          948.59,
+          127.13
+        ],
+        [
+          845.9,
+          109.17
+        ]
+      ],
+      "visible": true
+    }
+  ],
+  "groups": [],
+  "layers": [
+    {
+      "surface": "large-left"
+    },
+    {
+      "surface": "large-right"
+    },
+    {
+      "surface": "large-top-left"
+    },
+    {
+      "surface": "large-top-right"
+    },
+    {
+      "surface": "medium-left"
+    },
+    {
+      "surface": "medium-right"
+    },
+    {
+      "surface": "medium-top-left"
+    },
+    {
+      "surface": "medium-top-right"
+    },
+    {
+      "surface": "small-left"
+    },
+    {
+      "surface": "small-right"
+    },
+    {
+      "surface": "small-top"
+    }
+  ]
+}

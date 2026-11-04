@@ -1,0 +1,411 @@
+---
+import { localePath, messagesFor, type Lang } from '../i18n/messages';
+import type { DemoSlug } from '../scene/spec';
+import { scenes } from '../demos';
+
+type Props = { lang: Lang; slug: DemoSlug };
+
+const { lang, slug } = Astro.props;
+const t = messagesFor(lang);
+const demo = t.demos[slug];
+const { steps } = scenes[slug];
+const stepNumber = (i: number): string => String(i + 1).padStart(2, '0');
+const finalStep = steps.at(-1);
+---
+
+<div class="viewer" data-demo-viewer={slug}>
+  <div class="stage" data-stage tabindex="0" role="group" aria-label={t.viewer.stage} aria-describedby="viewer-hint">
+    <canvas data-stage-canvas role="img" aria-label={`${demo.title}: ${demo.description}`}></canvas>
+    <p class="fallback" data-webgl-fallback hidden>{t.webglFallback}</p>
+    <p class="hint" id="viewer-hint" data-hint>
+      {t.viewer.hint}<span class="visually-hidden">{t.viewer.keys}</span>
+    </p>
+  </div>
+
+  <aside class="panel">
+    <header class="intro">
+      <p class="crumb"><a href={localePath(lang, '/demo/')}>{t.demoIndex.title}</a></p>
+      <h1>{demo.title}</h1>
+      <p class="lead">{demo.description}</p>
+    </header>
+
+    <fieldset class="group" data-input>
+      <legend><h2>{t.viewer.input.heading}</h2></legend>
+      <div class="seg">
+        <label><input type="radio" name="source" value="sample" checked data-source-radio />{t.viewer.input.sample}</label>
+        <label><input type="radio" name="source" value="obs" data-source-radio />{t.viewer.input.obs}</label>
+      </div>
+      <label class="device" data-device-field hidden>
+        <span>{t.viewer.input.device}</span>
+        <select data-device></select>
+      </label>
+      <p
+        class="status"
+        role="status"
+        aria-live="polite"
+        data-camera-status
+        data-join={t.camera.join}
+        data-switch-failed={t.camera.switchFailed}
+        data-unnamed={t.viewer.input.unnamed}
+        data-sample={t.camera.sample}
+        data-requesting={t.camera.requesting}
+        data-waiting={t.camera.waiting}
+        data-obs={t.camera.obs}
+        data-other={t.camera.other}
+        data-letterbox={t.camera.letterbox}
+        data-denied={t.camera.denied}
+        data-unavailable={t.camera.unavailable}
+        data-busy={t.camera.busy}
+        data-disconnected={t.camera.disconnected}
+      >
+        {t.camera.sample}
+      </p>
+      <button type="button" class="secondary" data-sample-toggle data-pause={t.sample.pause} data-play={t.sample.play}>{t.sample.pause}</button>
+    </fieldset>
+
+    <fieldset class="group" data-steps>
+      <legend><h2>{t.viewer.steps.heading}</h2></legend>
+      <p class="note" data-steps-locked hidden>{t.viewer.steps.locked}</p>
+      <ol class="steps">
+        {
+          steps.map((id, i) => {
+            const copy = t.step(slug, id);
+            return (
+              <li>
+                <label>
+                  <input type="radio" name="step" value={id} checked={id === finalStep} data-step-radio />
+                  <span class="step-number" aria-hidden="true">
+                    {stepNumber(i)}
+                  </span>
+                  <span>{copy.title}</span>
+                </label>
+                <p class="step-body">{copy.body}</p>
+              </li>
+            );
+          })
+        }
+      </ol>
+    </fieldset>
+
+    <section class="group" aria-labelledby="view-heading">
+      <h2 id="view-heading">{t.viewer.view.heading}</h2>
+      <label class="check"><input type="checkbox" checked data-beam />{t.viewer.view.beam}</label>
+      <button type="button" class="secondary" data-reset-view>{t.viewer.view.reset}</button>
+    </section>
+
+    <section class="group" aria-labelledby="connect-heading">
+      <h2 id="connect-heading">{t.viewer.connect.heading}</h2>
+      <ol class="connect">
+        <li>
+          <a class="button" href={`/demo/${slug}.mapping.json`} download={`obs-mapping-demo-${slug}.json`}>{t.download.label}</a>
+          <p class="note">{t.download.note}</p>
+        </li>
+        <li>{t.viewer.connect.importIt}</li>
+        <li>{t.viewer.connect.startCamera}</li>
+        <li>{t.viewer.connect.chooseHere}</li>
+      </ol>
+    </section>
+  </aside>
+</div>
+
+<script>
+  import { mountDemoViewer } from './demo-viewer.client';
+
+  mountDemoViewer(document);
+</script>
+
+<style>
+  .viewer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stage {
+    position: relative;
+    height: 56dvh;
+    min-height: 240px;
+    background: var(--color-bg-emphasis);
+  }
+
+  .stage:focus-visible {
+    outline-offset: -2px;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+
+  .fallback {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    margin: 0;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    max-width: calc(100% - 16px);
+    margin: 0;
+    padding: 2px 8px;
+    background: var(--color-bg-canvas);
+    color: var(--color-fg-muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  .panel {
+    display: grid;
+    align-content: start;
+    gap: 24px;
+    padding: 20px 16px 32px;
+    background: var(--color-bg-subtle);
+    border-top: var(--border-width-default) solid var(--color-border-subtle);
+    overflow-wrap: anywhere;
+  }
+
+  .intro h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .crumb {
+    margin: 0 0 4px;
+  }
+
+  .crumb a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--size-target-min);
+  }
+
+  .lead {
+    margin: 4px 0 0;
+    color: var(--color-fg-muted);
+    font-size: 0.875rem;
+  }
+
+  .group {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  legend {
+    padding: 0;
+  }
+
+  h2 {
+    margin: 0 0 2px;
+    color: var(--color-fg-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+  }
+
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: var(--border-width-default) solid var(--color-border-default);
+  }
+
+  .seg label {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 40px;
+    padding: 4px 8px;
+    text-align: center;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .seg label + label {
+    border-left: var(--border-width-default) solid var(--color-border-default);
+  }
+
+  .seg input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .seg label:has(input:checked) {
+    background: var(--color-fg-default);
+    color: var(--color-bg-canvas);
+    font-weight: 700;
+  }
+
+  .seg label:has(input:focus-visible) {
+    outline: var(--border-width-strong) solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
+
+  .group:disabled .seg label {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+  }
+
+  .device {
+    display: grid;
+    gap: 4px;
+    font-size: 0.875rem;
+  }
+
+  select {
+    min-height: var(--size-target-min);
+    padding: 6px 8px;
+    border: var(--border-width-default) solid var(--color-border-default);
+    background: var(--color-bg-canvas);
+    color: var(--color-fg-default);
+    font: inherit;
+  }
+
+  .status,
+  .note {
+    margin: 0;
+    color: var(--color-fg-muted);
+    font-size: 0.8125rem;
+  }
+
+  .secondary {
+    justify-self: start;
+    background: transparent;
+    color: var(--color-accent-text);
+  }
+
+  .secondary:hover {
+    background: var(--color-bg-muted);
+    color: var(--color-accent-text);
+  }
+
+  .steps,
+  .connect {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .steps {
+    list-style: none;
+  }
+
+  .steps label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    cursor: pointer;
+  }
+
+  .steps input,
+  .check input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--color-accent-solid);
+  }
+
+  .step-number {
+    color: var(--color-fg-subtle);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+  }
+
+  .steps li:has(input:checked) label {
+    font-weight: 700;
+  }
+
+  .step-body {
+    margin: 0 0 4px 24px;
+    padding-left: 12px;
+    border-left: var(--border-width-strong) solid var(--color-accent-border);
+    color: var(--color-fg-muted);
+    font-size: 0.8125rem;
+  }
+
+  .steps li:not(:has(input:checked)) .step-body {
+    display: none;
+  }
+
+  .group:disabled .steps label {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--size-target-min);
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+
+  .connect {
+    gap: 10px;
+    padding-left: 1.4em;
+    color: var(--color-fg-muted);
+    font-size: 0.875rem;
+  }
+
+  .connect .button {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  @media (width >= 900px) {
+    :global(body:has([data-demo-viewer])) {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    :global(body:has([data-demo-viewer]) > main) {
+      min-height: 0;
+    }
+
+    .viewer {
+      grid-template-columns: minmax(0, 1fr) 360px;
+      height: 100%;
+    }
+
+    .stage {
+      height: 100%;
+    }
+
+    .panel {
+      overflow-y: auto;
+      border-top: 0;
+      border-left: var(--border-width-default) solid var(--color-border-subtle);
+    }
+  }
+</style>

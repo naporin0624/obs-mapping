@@ -1,0 +1,185 @@
+{
+  "version": 2,
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "grid": {
+    "size": 20
+  },
+  "surfaces": [
+    {
+      "id": "riser-1",
+      "name": "Riser 1",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0,
+        "y": 0.055556,
+        "width": 1,
+        "height": 0.177778
+      },
+      "corners": [
+        [
+          438.71,
+          318.34
+        ],
+        [
+          1481.29,
+          318.34
+        ],
+        [
+          1487.55,
+          419.66
+        ],
+        [
+          432.45,
+          419.66
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "riser-2",
+      "name": "Riser 2",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0,
+        "y": 0.233333,
+        "width": 1,
+        "height": 0.177778
+      },
+      "corners": [
+        [
+          392.68,
+          391.42
+        ],
+        [
+          1527.32,
+          391.42
+        ],
+        [
+          1534.74,
+          502.77
+        ],
+        [
+          385.26,
+          502.77
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "riser-3",
+      "name": "Riser 3",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0,
+        "y": 0.411111,
+        "width": 1,
+        "height": 0.177778
+      },
+      "corners": [
+        [
+          337.74,
+          478.67
+        ],
+        [
+          1582.26,
+          478.67
+        ],
+        [
+          1591.21,
+          602.21
+        ],
+        [
+          328.79,
+          602.21
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "riser-4",
+      "name": "Riser 4",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0,
+        "y": 0.588889,
+        "width": 1,
+        "height": 0.177778
+      },
+      "corners": [
+        [
+          271.01,
+          584.63
+        ],
+        [
+          1648.99,
+          584.63
+        ],
+        [
+          1659.98,
+          723.32
+        ],
+        [
+          260.02,
+          723.32
+        ]
+      ],
+      "visible": true
+    },
+    {
+      "id": "riser-5",
+      "name": "Riser 5",
+      "type": "quad",
+      "source": "Demo Camera",
+      "crop": {
+        "x": 0,
+        "y": 0.766667,
+        "width": 1,
+        "height": 0.177778
+      },
+      "corners": [
+        [
+          188.25,
+          716.04
+        ],
+        [
+          1731.75,
+          716.04
+        ],
+        [
+          1745.56,
+          874.04
+        ],
+        [
+          174.44,
+          874.04
+        ]
+      ],
+      "visible": true
+    }
+  ],
+  "groups": [],
+  "layers": [
+    {
+      "surface": "riser-1"
+    },
+    {
+      "surface": "riser-2"
+    },
+    {
+      "surface": "riser-3"
+    },
+    {
+      "surface": "riser-4"
+    },
+    {
+      "surface": "riser-5"
+    }
+  ]
+}

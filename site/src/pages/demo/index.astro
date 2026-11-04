@@ -1,0 +1,11 @@
+---
+import DemoIndex from '../../components/demo-index.astro';
+import { messagesFor } from '../../i18n/messages';
+import Base from '../../layouts/base.astro';
+
+const t = messagesFor('ja');
+---
+
+<Base lang="ja" path="/demo/" title={`${t.demoIndex.title} | obs-mapping`} description={t.demoIndex.description}>
+  <DemoIndex lang="ja" />
+</Base>

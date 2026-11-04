@@ -1,0 +1,66 @@
+---
+import { localePath, messagesFor, type Lang } from '../i18n/messages';
+import type { DemoSlug } from '../scene/spec';
+import DemoThumbCubes from './demo-thumb-cubes.astro';
+import DemoThumbDrums from './demo-thumb-drums.astro';
+import DemoThumbHexagon from './demo-thumb-hexagon.astro';
+import DemoThumbStairs from './demo-thumb-stairs.astro';
+
+type Props = { lang: Lang; slug: DemoSlug };
+
+const { lang, slug } = Astro.props;
+const demo = messagesFor(lang).demos[slug];
+---
+
+<a class="card" href={localePath(lang, `/demo/${slug}/`)}>
+  <span class="thumb">
+    {slug === 'stairs' && <DemoThumbStairs />}
+    {slug === 'hexagon' && <DemoThumbHexagon />}
+    {slug === 'drums' && <DemoThumbDrums />}
+    {slug === 'cubes' && <DemoThumbCubes />}
+  </span>
+  <span class="title">{demo.title}</span>
+  <span class="description">{demo.description}</span>
+</a>
+
+<style>
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    padding: 16px;
+    border: var(--border-width-default) solid var(--color-border-default);
+    background: var(--color-bg-subtle);
+    color: var(--color-fg-default);
+    text-decoration: none;
+  }
+
+  .card:hover {
+    border-color: var(--color-accent-border);
+    background: var(--color-bg-muted);
+    color: var(--color-fg-default);
+  }
+
+  .thumb {
+    display: block;
+    color: var(--color-accent-text);
+  }
+
+  .thumb :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .description {
+    color: var(--color-fg-muted);
+    overflow-wrap: anywhere;
+  }
+</style>

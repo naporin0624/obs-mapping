@@ -1,0 +1,11 @@
+---
+import RootPage from '../components/root-page.astro';
+import { messagesFor } from '../i18n/messages';
+import Base from '../layouts/base.astro';
+
+const t = messagesFor('ja');
+---
+
+<Base lang="ja" path="/" title={t.root.title} description={t.root.description}>
+  <RootPage lang="ja" />
+</Base>

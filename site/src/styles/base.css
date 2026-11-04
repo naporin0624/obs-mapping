@@ -1,0 +1,59 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-radius: var(--radius-none);
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--color-bg-canvas);
+  color: var(--color-fg-default);
+  font-family: var(--font-body);
+  line-height: 1.7;
+}
+
+a {
+  color: var(--color-accent-text);
+}
+
+a:hover {
+  color: var(--color-accent-solid-hover);
+}
+
+:focus-visible {
+  outline: var(--border-width-strong) solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+button,
+.button {
+  min-height: var(--size-target-min);
+  padding: 8px 16px;
+  border: var(--border-width-default) solid var(--color-accent-border);
+  background: var(--color-accent-solid);
+  color: var(--color-fg-on-solid);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button:hover,
+.button:hover {
+  background: var(--color-accent-solid-hover);
+  color: var(--color-fg-on-solid);
+}
+
+button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+code {
+  font-family: var(--font-mono);
+  background: var(--color-bg-muted);
+  padding: 0 4px;
+}
