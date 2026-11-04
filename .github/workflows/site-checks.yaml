@@ -1,0 +1,54 @@
+name: Site Checks
+on:
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'ui/src/**'
+      - '.github/workflows/site-checks.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'ui/src/**'
+      - '.github/workflows/site-checks.yaml'
+permissions:
+  contents: read
+jobs:
+  site-checks:
+    name: Site Checks 🌐
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Up pnpm 📦
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: 10.21.0
+
+      - name: Set Up Node.js 🟢
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - name: Install Site Dependencies 📥
+        run: pnpm -C site install --frozen-lockfile
+
+      - name: Lint 🔍
+        run: pnpm -C site lint
+
+      - name: Typecheck 🔎
+        run: pnpm -C site typecheck
+
+      - name: Install Chromium 🌐
+        run: pnpm -C site exec playwright install --with-deps chromium
+
+      - name: Test 🧪
+        run: pnpm -C site test
+
+      - name: Build And Check Output 🧱
+        run: pnpm -C site test:dist

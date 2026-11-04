@@ -6,6 +6,8 @@ on:
       - master
       - main
       - 'release/**'
+    paths-ignore:
+      - 'site/**'
 permissions:
   contents: read
 jobs:
