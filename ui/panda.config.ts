@@ -35,7 +35,7 @@ export default defineConfig({
             '8': { value: 'oklch(0.700 0.013 265)' },
           },
           neon: { blue: { value: 'oklch(0.700 0.235 260)' }, 'blue-hover': { value: 'oklch(0.650 0.235 260)' } },
-          red: { solid: { value: 'oklch(0.520 0.200 25)' }, text: { value: 'oklch(0.650 0.250 25)' } },
+          red: { solid: { value: 'oklch(0.520 0.200 25)' }, 'solid-hover': { value: 'oklch(0.470 0.200 25)' }, text: { value: 'oklch(0.650 0.250 25)' } },
         },
         fonts: {
           body: { value: '"LINE Seed JP", system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif' },
@@ -83,6 +83,7 @@ export default defineConfig({
           },
           danger: {
             solid: { value: '{colors.red.solid}' },
+            'solid-hover': { value: '{colors.red.solid-hover}' },
             text: { value: '{colors.red.text}' },
             border: { value: '{colors.red.text}' },
           },

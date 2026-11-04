@@ -1,6 +1,6 @@
 import { css } from '../../styled-system/css';
 
-// Cannelloni controls: square, 1px border, hover = stepped 3px shift, focus = marching-ants ring.
+// Cannelloni controls: square, 1px border, hover = stepped colour change, focus = marching-ants ring.
 const gradient = 'linear-gradient(90deg, token(colors.border.focus) 50%, transparent 0)';
 const gradientV = 'linear-gradient(0deg, token(colors.border.focus) 50%, transparent 0)';
 
@@ -33,14 +33,26 @@ const buttonBase = {
   borderWidth: 'default',
   borderStyle: 'solid',
   cursor: 'pointer',
-  transition: 'transform 180ms steps(3, end)',
-  _hover: { transform: 'translate(3px, 3px)' },
-  _disabled: { opacity: 'disabled', cursor: 'default', transform: 'none' },
+  transitionProperty: 'background-color, border-color',
+  transitionDuration: '180ms',
+  transitionTimingFunction: 'steps(3, end)',
+  _motionReduce: { transitionProperty: 'none' },
+  _disabled: { opacity: 'disabled', cursor: 'default' },
 } as const;
 
-export const buttonCls = css(buttonBase, { bg: 'transparent', color: 'fg.default', borderColor: 'border.default' });
-export const buttonSolidCls = css(buttonBase, { bg: 'accent.solid', color: 'fg.on-solid', borderColor: 'accent.solid' });
-export const buttonDangerCls = css(buttonBase, { bg: 'danger.solid', color: 'fg.on-danger', borderColor: 'danger.solid' });
+export const buttonCls = css(buttonBase, { bg: 'transparent', color: 'fg.default', borderColor: 'border.default', '&:hover:not(:disabled, [data-disabled])': { bg: 'bg.emphasis' } });
+export const buttonSolidCls = css(buttonBase, {
+  bg: 'accent.solid',
+  color: 'fg.on-solid',
+  borderColor: 'accent.solid',
+  '&:hover:not(:disabled, [data-disabled])': { bg: 'accent.solid-hover', borderColor: 'accent.solid-hover' },
+});
+export const buttonDangerCls = css(buttonBase, {
+  bg: 'danger.solid',
+  color: 'fg.on-danger',
+  borderColor: 'danger.solid',
+  '&:hover:not(:disabled, [data-disabled])': { bg: 'danger.solid-hover', borderColor: 'danger.solid-hover' },
+});
 
 export const inputCls = css({
   // pseudo-elements do not render on <input>, so the ring is a static dashed outline here
