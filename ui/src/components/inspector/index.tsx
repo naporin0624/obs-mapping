@@ -7,6 +7,8 @@ import type { Group, Mapping, Surface } from '../../model/mapping';
 import { useT } from '../../i18n/use-t';
 import { countSurfacesBySource } from '../../model/source-usage';
 import { isLaidOut } from '../../editor/items';
+import { bulkTargets, isBulkSelection } from '../../editor/bulk-source';
+import { BulkSourceFields } from '../bulk-source-fields';
 import { NumField, TextField } from '../field';
 import { GroupInspector } from '../group-inspector';
 import { MaskFields } from '../mask-fields';
@@ -131,6 +133,7 @@ const InspectorBody = ({ mapping, selection, shapeEdit, inputs, dispatch }: Prop
   const t = useT();
   const group = soleGroup(mapping, selection);
   if (group !== undefined) return <GroupInspector key={group.id} group={group} dispatch={dispatch} />;
+  if (isBulkSelection(selection)) return <BulkSourceFields targets={bulkTargets(mapping, selection)} inputs={inputs} counts={countSurfacesBySource(mapping)} dispatch={dispatch} />;
   const surface = selection.surfaceIds.length === 1 ? mapping.surfaces.find((s) => s.id === selection.surfaceIds[0]) : undefined;
   if (surface === undefined) return <div className={hintCls}>{t.inspectorEmpty}</div>;
   return (
@@ -147,7 +150,7 @@ const InspectorBody = ({ mapping, selection, shapeEdit, inputs, dispatch }: Prop
   );
 };
 
-/** Properties of the single selected surface or group. */
+/** Properties of the single selected surface or group, or the shared source of several. */
 export const Inspector = (props: Props) => {
   const t = useT();
   return (

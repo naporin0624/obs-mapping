@@ -43,6 +43,7 @@ export type Action =
   | { type: 'moveNodes'; ids: string[]; target: NodeTarget }
   | { type: 'patchGroup'; groupId: string; patch: Partial<Pick<Group, 'name' | 'visible' | 'layout'>> }
   | { type: 'patchSurface'; surfaceId: string; patch: Partial<Pick<Surface, 'name' | 'source' | 'crop' | 'visible'>> }
+  | { type: 'setSources'; surfaceIds: readonly string[]; source: string }
   | { type: 'setGrid'; size: number }
   | { type: 'setMask'; surfaceId: string; mask: Mask | null }
   | { type: 'dragMask'; surfaceId: string; mask: Mask }
@@ -77,6 +78,7 @@ const DRAG_BLOCKED: ReadonlySet<Action['type']> = new Set([
   'moveNodes',
   'patchGroup',
   'patchSurface',
+  'setSources',
   'setGrid',
   'setMask',
   'enterShapeEdit',
@@ -91,6 +93,12 @@ const mapSurface = (m: Mapping, id: string, f: (s: Surface) => Surface): Mapping
   withSurfaces(
     m,
     m.surfaces.map((s) => (s.id === id ? f(s) : s)),
+  );
+
+const withSources = (m: Mapping, ids: ReadonlySet<string>, source: string): Mapping =>
+  withSurfaces(
+    m,
+    m.surfaces.map((s) => (ids.has(s.id) ? { ...s, source } : s)),
   );
 
 const pushPast = (past: readonly Mapping[], m: Mapping): Mapping[] => [...past, m].slice(-HISTORY_LIMIT);
@@ -326,6 +334,7 @@ const handlers: Handlers = {
       s,
       mapSurface(s.mapping, a.surfaceId, (x) => ({ ...x, ...a.patch })),
     ),
+  setSources: (s, a) => commit(s, withSources(s.mapping, new Set(a.surfaceIds), a.source)),
   setGrid: (s, a) => (Number.isFinite(a.size) && a.size > 0 && a.size <= GRID_MAX ? commit(s, { ...s.mapping, grid: { size: a.size } }) : s),
   setMask: (s, a) =>
     commit(

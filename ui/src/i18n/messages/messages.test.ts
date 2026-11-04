@@ -23,3 +23,12 @@ describe('surfaceCount', () => {
     expect([ja.surfaceCount(3), en.surfaceCount(3)]).toEqual(['3 面', '3 surfaces']);
   });
 });
+
+describe('bulk source', () => {
+  it('counts the selected layers, singular for one in English', () => {
+    expect([ja.bulkHeading(1), en.bulkHeading(1), ja.bulkHeading(5), en.bulkHeading(5)]).toEqual(['1 レイヤーを選択中', '1 layer selected', '5 レイヤーを選択中', '5 layers selected']);
+  });
+  it('shows how many kinds of source are mixed', () => {
+    expect([ja.bulkMixed(2), en.bulkMixed(2)]).toEqual(['混在 (2種)', 'Mixed (2)']);
+  });
+});

@@ -89,6 +89,10 @@ export const en: Messages = {
 
   inspectorHeading: 'Inspector',
   inspectorEmpty: 'Select one surface to edit it.',
+  bulkHeading: (count) => (count === 1 ? '1 layer selected' : `${String(count)} layers selected`),
+  bulkMixed: (count) => `Mixed (${String(count)})`,
+  bulkTargetsHeading: 'Layers to change',
+  bulkEmpty: 'The selected groups have no layers.',
   name: 'Name',
   laidOutHint: 'Position is set by the group',
   cornerHeading: (n) => `Corner ${String(n)}`,
