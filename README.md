@@ -284,7 +284,7 @@ export CLOUDFLARE_ACCOUNT_ID=<自分のアカウント ID>
 pnpm -C site deploy:install
 pnpm -C site/deploy exec cf auth login   # 自分でログインする
 pnpm -C site deploy:dry                  # build して設定を検証する（認証不要）
-pnpm -C site deploy                      # build して公開する
+pnpm -C site deploy:prod                 # build して公開する
 ```
 
 公開先は Worker `obs-mapping-site`、ドメインは `obs-mapping.napochaan.dev` です。

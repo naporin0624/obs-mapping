@@ -18,7 +18,7 @@
     "fmt": "oxlint --type-aware . && oxfmt --write .",
     "deploy:install": "pnpm --dir deploy install --frozen-lockfile",
     "deploy:dry": "pnpm build && pnpm --dir deploy exec cf deploy --dry-run",
-    "deploy": "pnpm build && pnpm --dir deploy exec cf deploy"
+    "deploy:prod": "pnpm build && pnpm --dir deploy exec cf deploy"
   },
   "dependencies": {
     "astro": "^7.4.5",
