@@ -23,6 +23,7 @@ import {
   UngroupIcon,
 } from '../../components/icons';
 import { IconButton } from '../../components/icon-button';
+import { BulkSourceFields } from '../../components/bulk-source-fields';
 import { GroupInspector } from '../../components/group-inspector';
 import { Inspector } from '../../components/inspector';
 import { MaskFields } from '../../components/mask-fields';
@@ -38,7 +39,7 @@ import { initialMask } from '../../editor/mask-edit';
 import { emptySelection } from '../../editor/state';
 import { gn, groupOf, mapOf, sn, surf } from '../../geometry/fixtures';
 import { rectCorners } from '../../geometry/rect';
-import type { Direction, Mapping, Mask } from '../../model/mapping';
+import type { Direction, Mapping, Mask, Surface } from '../../model/mapping';
 import { pageCls, headingCls, caseCls, captionCls, linkCls, frameCls } from './styles.css';
 
 const options: readonly SourceOption[] = [
@@ -143,6 +144,15 @@ const inspectorSample: Mapping = {
 
 const sampleGroup = inspectorSample.groups[0];
 
+const bulkLayer = (id: string, name: string, source: string): Surface => ({ ...surf(id, 0, 0), name, source });
+const bulkInputs = ['cam-A', 'cam-B', 'Mapping'];
+const bulkCounts: ReadonlyMap<string, number> = new Map([
+  ['cam-A', 2],
+  ['cam-B', 1],
+]);
+const bulkMixed = [bulkLayer('a', 'Left wall', 'cam-A'), bulkLayer('b', 'Floor 3', ''), bulkLayer('c', 'Right wall', 'cam-B'), bulkLayer('d', longName, 'cam-A')];
+const bulkUniform = [bulkLayer('a', 'Left wall', 'cam-A'), bulkLayer('b', 'Right wall', 'cam-A')];
+
 const IconCases = () => (
   <>
     <Case title="Icons / Eye, EyeOff, Plus, Trash">
@@ -205,6 +215,15 @@ const InspectorCases = () => (
     <Case title="GroupInspector / row">{sampleGroup === undefined ? null : <GroupInspector group={sampleGroup} dispatch={noop} />}</Case>
     <Case title="Inspector / グループが位置を決めています">
       <Inspector mapping={inspectorSample} selection={{ surfaceIds: ['a'], groupIds: [], corner: null }} shapeEdit={null} inputs={['src']} dispatch={noop} />
+    </Case>
+    <Case title="BulkSourceFields / 混在">
+      <BulkSourceFields targets={bulkMixed} inputs={bulkInputs} counts={bulkCounts} dispatch={noop} />
+    </Case>
+    <Case title="BulkSourceFields / すべて同じソース">
+      <BulkSourceFields targets={bulkUniform} inputs={bulkInputs} counts={bulkCounts} dispatch={noop} />
+    </Case>
+    <Case title="BulkSourceFields / 対象なし">
+      <BulkSourceFields targets={[]} inputs={bulkInputs} counts={bulkCounts} dispatch={noop} />
     </Case>
     <Case title="MaskFields / なし">
       <MaskFields surface={surf('a', 0, 0, 500, 300)} shapeEdit={null} dispatch={noop} />

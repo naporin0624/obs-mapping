@@ -35,8 +35,17 @@ describe('Inspector', () => {
     mount({ groupIds: ['g-1'] });
     expect((screen.getByLabelText('名前') as HTMLInputElement).value).toBe('パネル列');
   });
-  it('keeps the hint for several groups', () => {
-    mount({ groupIds: ['g-1', 'g-2'] });
+  it('switches to bulk source editing for two or more selected items', () => {
+    mount({ surfaceIds: ['b'], groupIds: ['g-1'] });
+    expect(screen.getByText('2 レイヤーを変更')).toBeTruthy();
+    expect(screen.queryByLabelText('名前')).toBeNull();
+  });
+  it('tells that empty groups hold no layer to change', () => {
+    mount({ groupIds: ['g-empty', 'g-gone'] });
+    expect(screen.getByText('選択したグループにレイヤーがありません。')).toBeTruthy();
+  });
+  it('keeps the hint when nothing is selected', () => {
+    mount({});
     expect(screen.getByText('面を 1 つ選択すると編集できます。')).toBeTruthy();
   });
   it('tells that the group decides the position of a grouped surface', () => {

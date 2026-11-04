@@ -842,3 +842,29 @@ describe('shape edit', () => {
     expect(run(d, { type: 'enterShapeEdit', surfaceId: 'a' }).shapeEdit).toBeNull();
   });
 });
+
+describe('setSources', () => {
+  const trio = () => initialEditorState(mk({ ...surf('a', 0, 0), source: 'cam-A' }, { ...surf('b', 20, 0), source: '' }, surf('c', 40, 0)));
+
+  it('sets the source of every listed surface and leaves the others alone', () => {
+    const s = run(trio(), { type: 'setSources', surfaceIds: ['a', 'b'], source: 'cam-B' });
+    expect(s.mapping.surfaces.map((x) => x.source)).toEqual(['cam-B', 'cam-B', 'src']);
+  });
+  it('changes nothing but the source', () => {
+    const s = run(trio(), { type: 'setSources', surfaceIds: ['a'], source: 'cam-B' });
+    expect({ ...s.mapping.surfaces[0], source: 'cam-A' }).toEqual(trio().mapping.surfaces[0]);
+  });
+  it('undoes every surface in one step', () => {
+    const s = run(trio(), { type: 'setSources', surfaceIds: ['a', 'b', 'c'], source: 'cam-B' });
+    expect(s.past).toHaveLength(1);
+    expect(run(s, { type: 'undo' }).mapping).toEqual(trio().mapping);
+  });
+  it('is a no-op when every surface already uses the source', () => {
+    const s = trio();
+    expect(reducer(s, { type: 'setSources', surfaceIds: ['c'], source: 'src' })).toBe(s);
+  });
+  it('is ignored while dragging', () => {
+    const d = run(trio(), { type: 'dragStart' });
+    expect(reducer(d, { type: 'setSources', surfaceIds: ['a'], source: 'cam-B' })).toBe(d);
+  });
+});

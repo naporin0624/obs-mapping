@@ -84,6 +84,10 @@ export const ja = {
 
   inspectorHeading: 'プロパティ',
   inspectorEmpty: '面を 1 つ選択すると編集できます。',
+  bulkHeading: (count: number) => `${String(count)} レイヤーを変更`,
+  bulkMixed: (count: number) => `混在 (${String(count)}種)`,
+  bulkTargetsHeading: '変更されるレイヤー',
+  bulkEmpty: '選択したグループにレイヤーがありません。',
   name: '名前',
   laidOutHint: 'グループが位置を決めています',
   cornerHeading: (n: number) => `角 ${String(n)}`,
