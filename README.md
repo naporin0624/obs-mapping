@@ -245,6 +245,17 @@ OBS の出力では、形を小さなテクスチャ（一辺 16〜1024px の 2 
 
 `selectionJson` を省略すると、選択なしとして扱います。`enabled` を省略すると、現在のオン・オフはそのままで、選択だけを更新します（ドックは選択の変更ではこの形で送ります）。
 
+## Claude Code (plugin)
+
+スクリプトやエージェントからマッピングを扱うための Claude Code 用スキルを、プラグインとして配布しています。obs-websocket のベンダーリクエストの使い方、JSON v2 の書き方、LED のピクセルマップ（チャート）からマッピングを作る手順の 3 つです。
+
+```
+/plugin marketplace add naporin0624/obs-mapping
+/plugin install obs-mapping@obs-mapping
+```
+
+スキルの一覧は [plugins/obs-mapping/README.md](plugins/obs-mapping/README.md) にあります。
+
 ## 今後の予定（未実装）
 
 - macOS 版の署名と公証。CI は、リポジトリのシークレットに `MACOS_SIGNING_*`（公証には `MACOS_NOTARIZATION_*` も）を登録すると、自動で署名するようになっています。
