@@ -1,0 +1,49 @@
+---
+import { css } from '../../styled-system/css';
+import { messagesFor, SKILLS, type Lang } from '../i18n/messages';
+import CommandBlock from './command-block.astro';
+import ExternalLink from './external-link.astro';
+
+type Props = { lang: Lang };
+
+const REPO = 'naporin0624/obs-mapping';
+const { lang } = Astro.props;
+const { skills } = messagesFor(lang).root;
+const pluginCommands = [`/plugin marketplace add ${REPO}`, `/plugin install obs-mapping@obs-mapping`];
+const cliCommands = SKILLS.map((skill) => `npx skills add ${REPO}@${skill}`);
+
+const list = css({
+  display: 'grid',
+  gap: '12px',
+  margin: '16px 0 0',
+  padding: 0,
+  listStyle: 'none',
+  '& code': { overflowWrap: 'anywhere' },
+  '& p': { margin: '2px 0 0', color: 'fg.muted' },
+});
+const install = css({ display: 'grid', gap: '8px', marginTop: '24px', '& p': { margin: 0 } });
+---
+
+<p>{skills.lead}</p>
+<ul class={list}>
+  {
+    SKILLS.map((skill) => (
+      <li>
+        <code>{skill}</code>
+        <p>{skills.list[skill]}</p>
+      </li>
+    ))
+  }
+</ul>
+<div class={install}>
+  <p>{skills.claudeCode}</p>
+  <CommandBlock commands={pluginCommands} />
+</div>
+<div class={install}>
+  <p>
+    {skills.others.before}<ExternalLink lang={lang} href={`https://skills.sh/${REPO}`}>{skills.others.link}</ExternalLink>{skills.others.after}
+  </p>
+  <p>{skills.oneByOne}</p>
+  <CommandBlock commands={cliCommands} />
+  <p>{skills.global.before}<code>-g</code>{skills.global.after}</p>
+</div>

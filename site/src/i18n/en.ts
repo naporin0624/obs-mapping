@@ -15,8 +15,58 @@ export const en: SiteMessages = {
   root: {
     title: 'obs-mapping',
     description: 'An OBS plugin that projection-maps your video onto physical objects.',
+    getPlugin: 'Get the plugin',
     demos: 'See the demos',
-    github: 'GitHub',
+    github: 'GitHub repository',
+    releases: 'Releases (downloads)',
+    external: ' (GitHub)',
+    can: {
+      heading: 'What it does',
+      items: [
+        'Pick an OBS source for each face and warp the video into any four-cornered shape by moving its corners',
+        'Cut faces out with ellipses or polygons, holes included',
+        'Group faces and lay them out with align, distribute and tile',
+        `${dock.exportButton} and ${dock.importButton} the mapping as mapping.json, or read and write it from scripts through obs-websocket vendor requests`,
+      ],
+    },
+    how: {
+      heading: 'How to use it',
+      install: {
+        title: 'Install from Releases',
+        body: 'Quit OBS, then install a package from Releases on GitHub: the .pkg installer or the plugin bundle in a .tar.xz on macOS, or the .zip on Windows.',
+        gatekeeper: 'The macOS build is not signed or notarized by Apple, so Gatekeeper blocks it the first time. Press "Open Anyway" in System Settings > Privacy & Security.',
+        readme: 'The README lists where the files go and how to clear the quarantine attribute.',
+      },
+      connect: {
+        title: 'Turn on obs-websocket and add the dock',
+        body: `Under Tools > WebSocket Server Settings, enable the server and set a password. Add the plugin's UI under Docks > Custom Browser Docks, then enter the URL and password in the dock and press "${dock.connectConnect}".`,
+        readme: 'The README has the URL to give the dock.',
+      },
+      map: {
+        title: 'Add a Mapping source and fit the faces',
+        body: `In OBS, add a Mapping source and choose it in the dock's "${dock.source}". Press "${dock.add}" to create a face, drag its corners onto the corners of the object, and cut it out with an ellipse or polygon under "${dock.maskHeading}".`,
+        demos: 'Walk through it in the demos',
+      },
+    },
+    skills: {
+      heading: 'Skills for Claude Code and other agents',
+      lead: 'Three skills let scripts and agents work with mappings.',
+      list: {
+        'driving-obs-mapping-over-websocket': 'Read and write a Mapping source through obs-websocket vendor requests.',
+        'writing-mapping-json': 'Write and fix mapping.json (v2), including how to read its validation errors.',
+        'mapping-led-pixel-maps': 'Lay out one face per screen on a single canvas from an LED pixel map (chart).',
+      },
+      claudeCode: 'In Claude Code, install them as a plugin.',
+      others: { before: 'For other agents such as Codex, GitHub Copilot and Cursor, install them one at a time with the ', link: 'skills CLI', after: '.' },
+      oneByOne: 'Naming several skills in one command installs only the first.',
+      global: { before: 'Add ', after: ' to install for your user instead of the project.' },
+    },
+    env: {
+      heading: 'Requirements',
+      macos: 'macOS (universal build for Apple Silicon and Intel): tested.',
+      windows: 'Windows (x64): included in the releases, not yet tested on hardware.',
+      obs: 'OBS Studio 28 or later (obs-websocket built in)',
+    },
   },
   demoIndex: {
     title: 'Demos',

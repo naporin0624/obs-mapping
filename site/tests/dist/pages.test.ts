@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const GITHUB = 'https://github.com/naporin0624/obs-mapping';
+const RELEASES = `${GITHUB}/releases/latest`;
+const SKILL_NAMES = ['driving-obs-mapping-over-websocket', 'writing-mapping-json', 'mapping-led-pixel-maps'] as const;
 const SLUGS = ['stairs', 'hexagon', 'drums', 'cubes'] as const;
 
 const page = (path: string): string => readFileSync(fileURLToPath(new URL(`../../dist/${path}`, import.meta.url)), 'utf8');
@@ -82,6 +84,141 @@ describe('root pages', () => {
   it('declares each page language', () => {
     expect(page('index.html')).toContain('<html lang="ja"');
     expect(page('en/index.html')).toContain('<html lang="en"');
+  });
+});
+
+// Element source from its opening tag to the matching close tag; enough for the non-nesting tags tested here.
+const blocksOf = (html: string, tag: string): string[] => html.match(new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`, 'g')) ?? [];
+const decode = (text: string): string => text.replaceAll('&#64;', '@').replaceAll('&amp;', '&');
+
+describe('top page', () => {
+  it.each(['index.html', 'en/index.html'])('%s offers the latest release as the primary action', (path) => {
+    const [primary] = tagsOf(page(path), 'a').filter((a) => attr(a, 'href') === RELEASES);
+    expect(primary).toMatch(/class="[^"]*\bbutton\b/);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s lists the Claude Code and skills CLI commands in pre blocks', (path) => {
+    const pres = blocksOf(page(path), 'pre').map(decode).join('\n');
+    expect(pres).toContain('/plugin marketplace add naporin0624/obs-mapping');
+    expect(pres).toContain('/plugin install obs-mapping@obs-mapping');
+    for (const skill of SKILL_NAMES) expect(pres).toContain(`npx skills add naporin0624/obs-mapping@${skill}`);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s makes the command blocks keyboard scrollable', (path) => {
+    for (const pre of tagsOf(page(path), 'pre')) expect(attr(pre, 'tabindex')).toBe('0');
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s links the skills CLI page and the repository', (path) => {
+    const links = hrefs(page(path));
+    expect(links).toContain('https://skills.sh/naporin0624/obs-mapping');
+    expect(links).toContain(GITHUB);
+  });
+
+  it('links the demos in the reader language', () => {
+    expect(hrefs(page('index.html'))).toContain('/demo/');
+    expect(hrefs(page('en/index.html'))).toContain('/en/demo/');
+  });
+});
+
+describe('language switcher', () => {
+  const switcher = (html: string): string => blocksOf(html, 'details').find((d) => d.includes('hreflang')) ?? '';
+
+  it.each([
+    ['index.html', '/', '/en/', 'en'],
+    ['en/index.html', '/en/', '/', 'ja'],
+    ['demo/stairs/index.html', '/demo/stairs/', '/en/demo/stairs/', 'en'],
+  ])('%s marks the current language and links the other', (path, self, other, otherLang) => {
+    const links = tagsOf(switcher(page(path)), 'a');
+    const current = links.filter((a) => attr(a, 'aria-current') === 'true');
+    expect(current.map((a) => attr(a, 'href'))).toEqual([self]);
+    const [counterpart] = links.filter((a) => attr(a, 'href') === other);
+    expect(counterpart === undefined ? undefined : attr(counterpart, 'hreflang')).toBe(otherLang);
+    expect(counterpart === undefined ? undefined : attr(counterpart, 'lang')).toBe(otherLang);
+  });
+
+  it('keeps the demo link out of the language navigation', () => {
+    const html = page('index.html');
+    const language = blocksOf(html, 'nav').filter((n) => attr(n, 'aria-label') === '言語' || n.includes('<details'));
+    expect(language).toHaveLength(1);
+    expect(hrefs(language[0] ?? '')).not.toContain('/demo/');
+  });
+
+  it('is left out of the not found page', () => {
+    expect(page('404.html')).not.toContain('<details');
+  });
+});
+
+const metaContent = (html: string, key: 'name' | 'property', value: string): string | undefined => {
+  const [meta] = tagsOf(html, 'meta').filter((m) => attr(m, key) === value);
+  return meta === undefined ? undefined : attr(meta, 'content');
+};
+const linksWithRel = (html: string, rel: string): string[] => tagsOf(html, 'link').filter((l) => attr(l, 'rel') === rel);
+
+describe('document head', () => {
+  it('preloads both LINE Seed JP weights that the stylesheet declares', () => {
+    const html = page('index.html');
+    const preloads = linksWithRel(html, 'preload').filter((l) => attr(l, 'as') === 'font');
+    const hrefsOf = preloads.map((l) => attr(l, 'href') ?? '');
+    expect(hrefsOf).toHaveLength(2);
+    for (const l of preloads) {
+      expect(attr(l, 'type')).toBe('font/woff2');
+      expect(l).toMatch(/\scrossorigin[\s>=]/);
+    }
+    const faces = stylesOf(html).match(/@font-face\{[^}]*\}/g) ?? [];
+    for (const weight of ['400', '700']) {
+      const face = faces.find((f) => f.includes(`font-weight:${weight}`)) ?? '';
+      expect(face).toContain('font-display:swap');
+      const [, url] = /url\(([^)]+)\)/.exec(face) ?? [];
+      expect(hrefsOf).toContain(url);
+    }
+  });
+
+  it('ships the font subsets as woff2', () => {
+    const html = page('index.html');
+    for (const l of linksWithRel(html, 'preload')) {
+      const bytes = readFileSync(fileURLToPath(new URL(`../../dist${attr(l, 'href') ?? ''}`, import.meta.url)));
+      expect(bytes.subarray(0, 4).toString('latin1')).toBe('wOF2');
+    }
+  });
+
+  it('links a 32px favicon and a 180px apple touch icon', () => {
+    const html = page('index.html');
+    const [favicon] = linksWithRel(html, 'icon');
+    const [touch] = linksWithRel(html, 'apple-touch-icon');
+    expect(favicon === undefined ? undefined : attr(favicon, 'sizes')).toBe('32x32');
+    expect(favicon === undefined ? undefined : attr(favicon, 'href')).toMatch(/^\/_astro\/icon\.[\w-]+\.png$/);
+    expect(touch === undefined ? undefined : attr(touch, 'sizes')).toBe('180x180');
+  });
+
+  it.each([
+    ['index.html', 'https://obs-mapping.napochaan.dev/', 'ja_JP'],
+    ['en/index.html', 'https://obs-mapping.napochaan.dev/en/', 'en_US'],
+    ['en/demo/stairs/index.html', 'https://obs-mapping.napochaan.dev/en/demo/stairs/', 'en_US'],
+  ])('%s carries Open Graph and Twitter card tags', (path, url, locale) => {
+    const html = page(path);
+    expect(metaContent(html, 'property', 'og:url')).toBe(url);
+    expect(metaContent(html, 'property', 'og:locale')).toBe(locale);
+    expect(metaContent(html, 'property', 'og:type')).toBe('website');
+    expect(metaContent(html, 'property', 'og:title')).not.toBe('');
+    expect(metaContent(html, 'property', 'og:description')).not.toBe('');
+    expect(metaContent(html, 'property', 'og:image')).toMatch(/^https:\/\/obs-mapping\.napochaan\.dev\/_astro\/thumbnail\.[\w-]+\.jpg$/);
+    expect(metaContent(html, 'name', 'twitter:card')).toBe('summary_large_image');
+  });
+
+  it('shows the logo beside the site name without announcing it twice', () => {
+    const [logo] = tagsOf(page('index.html'), 'img').filter((img) => (attr(img, 'src') ?? '').startsWith('/_astro/icon.'));
+    expect(logo).toMatch(/\salt(=""|[\s>])/);
+    expect(logo === undefined ? undefined : attr(logo, 'width')).toBe('28');
+  });
+
+  it('puts an eager, high priority hero picture with avif and webp on the top page', () => {
+    const html = page('index.html');
+    const types = tagsOf(html, 'source').map((s) => attr(s, 'type'));
+    expect(types).toEqual(expect.arrayContaining(['image/avif', 'image/webp']));
+    const [hero] = tagsOf(html, 'img').filter((img) => /thumbnail\./.test(attr(img, 'src') ?? ''));
+    expect(hero === undefined ? undefined : attr(hero, 'loading')).toBe('eager');
+    expect(hero === undefined ? undefined : attr(hero, 'fetchpriority')).toBe('high');
+    expect(Number(hero === undefined ? 0 : attr(hero, 'width'))).toBeGreaterThan(0);
   });
 });
 

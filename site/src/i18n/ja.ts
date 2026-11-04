@@ -15,8 +15,58 @@ export const ja: SiteMessages = {
   root: {
     title: 'obs-mapping',
     description: 'OBS の映像を、立体物に合わせて投影マッピングするプラグインです。',
+    getPlugin: 'プラグインを入手',
     demos: 'デモを見る',
-    github: 'GitHub',
+    github: 'GitHub のリポジトリ',
+    releases: 'Releases（ダウンロード）',
+    external: '（GitHub）',
+    can: {
+      heading: 'できること',
+      items: [
+        '面ごとに OBS のソースを選び、四隅を動かして映像を四角形へワープさせる',
+        '円や多角形で面を切り抜き、穴もあけられる',
+        '面をグループにまとめ、整列・等間隔・敷き詰めで並べる',
+        `マッピングを mapping.json として${dock.exportButton}・${dock.importButton}できる。obs-websocket のベンダーリクエストで、スクリプトからも読み書きできる`,
+      ],
+    },
+    how: {
+      heading: '使い方',
+      install: {
+        title: 'Releases から入れる',
+        body: 'OBS を終了してから、GitHub の Releases にあるパッケージを入れます。macOS はインストーラーの .pkg か、プラグイン本体を固めた .tar.xz、Windows は .zip です。',
+        gatekeeper: 'macOS 版には Apple の署名と公証がないため、初回は Gatekeeper に止められます。「システム設定 > プライバシーとセキュリティ」で「このまま開く」を押してください。',
+        readme: '置き場所と隔離属性の外し方は README にあります。',
+      },
+      connect: {
+        title: 'obs-websocket を有効にし、ドックを登録する',
+        body: `「ツール > WebSocket サーバー設定」でサーバーを有効にし、パスワードを設定します。「ドック > カスタムブラウザドック」にプラグインの UI を登録し、ドックで URL とパスワードを入れて「${dock.connectConnect}」を押します。`,
+        readme: 'ドックに登録する URL は README にあります。',
+      },
+      map: {
+        title: 'Mapping ソースを追加し、面を合わせる',
+        body: `OBS で Mapping ソースを追加し、ドックの「${dock.source}」で選びます。「${dock.add}」で面を作って四隅を物体の角に合わせ、「${dock.maskHeading}」で円や多角形に切り抜きます。`,
+        demos: 'デモで手順を見る',
+      },
+    },
+    skills: {
+      heading: 'Claude Code / エージェント用スキル',
+      lead: 'スクリプトやエージェントからマッピングを扱うためのスキルを 3 つ配布しています。',
+      list: {
+        'driving-obs-mapping-over-websocket': 'obs-websocket のベンダーリクエストで、Mapping ソースのマッピングを読み書きする。',
+        'writing-mapping-json': 'mapping.json（v2）を書く・直す。検証エラーの読み方も含む。',
+        'mapping-led-pixel-maps': 'LED のピクセルマップ（チャート）から、画面ごとの面を 1 つのキャンバスに配置する。',
+      },
+      claudeCode: 'Claude Code では、プラグインとして入れます。',
+      others: { before: 'Codex、GitHub Copilot、Cursor など他のエージェントでは、', link: 'skills CLI', after: ' で 1 つずつ入れます。' },
+      oneByOne: '1 回のコマンドで複数を指定すると、最初の 1 つしか入りません。',
+      global: { before: '', after: ' を付けると、プロジェクトではなくユーザー全体に入ります。' },
+    },
+    env: {
+      heading: '対応環境',
+      macos: 'macOS（Apple Silicon / Intel のユニバーサルビルド）: 動作を確認しています。',
+      windows: 'Windows（x64）: リリースに含めていますが、実機での確認はまだです。',
+      obs: 'OBS Studio 28 以降（obs-websocket が標準で入っている版）',
+    },
   },
   demoIndex: {
     title: 'デモ',

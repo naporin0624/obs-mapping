@@ -1,0 +1,22 @@
+---
+import { css } from '../../styled-system/css';
+
+type Props = { commands: readonly string[] };
+
+const { commands } = Astro.props;
+const text = commands.join('\n');
+
+const block = css({
+  margin: 0,
+  padding: '12px 16px',
+  overflowX: 'auto',
+  border: '{borderWidths.default} solid {colors.border.subtle}',
+  background: 'bg.subtle',
+  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+  fontSize: '0.875rem',
+  lineHeight: '1.6',
+  '& code': { fontFamily: 'inherit', background: 'none', padding: 0 },
+});
+---
+
+<pre class={block} tabindex="0"><code>{text}</code></pre>

@@ -1,0 +1,74 @@
+---
+import { css } from '../../styled-system/css';
+import { localePath, messagesFor, type Lang } from '../i18n/messages';
+
+type Props = { lang: Lang; path: string };
+
+const LANGS: readonly Lang[] = ['ja', 'en'];
+const { lang, path } = Astro.props;
+const t = messagesFor(lang);
+
+const details = css({
+  position: 'relative',
+  '& summary': {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    minHeight: 'target-min',
+    padding: '0 4px',
+    cursor: 'pointer',
+    listStyle: 'none',
+    color: 'accent.text',
+  },
+  '& summary::-webkit-details-marker': { display: 'none' },
+  '& summary:hover': { color: 'accent.solid-hover' },
+  '&[open] [data-chevron]': { transform: 'rotate(180deg)' },
+});
+const panel = css({
+  position: 'absolute',
+  top: 'calc(100% + 4px)',
+  right: 0,
+  zIndex: 10,
+  display: 'grid',
+  minWidth: '10rem',
+  margin: 0,
+  padding: '4px 0',
+  listStyle: 'none',
+  border: '{borderWidths.default} solid {colors.border.default}',
+  background: 'bg.subtle',
+  '& a': { display: 'flex', alignItems: 'center', gap: '8px', minHeight: '40px', padding: '0 12px', textDecoration: 'none' },
+  '& a:hover': { background: 'bg.muted', color: 'accent.text' },
+  '& a[aria-current], & a[aria-current]:hover': { color: 'fg.default' },
+});
+const mark = css({ display: 'inline-block', width: '1em' });
+---
+
+<nav aria-label={t.langSwitch.label}>
+  <details class={details}>
+    <summary>
+      {t.langSwitch[lang]}
+      <span data-chevron aria-hidden="true">▾</span>
+    </summary>
+    <ul class={panel}>
+      {
+        LANGS.map((code) =>
+          code === lang ? (
+            <li>
+              <a href={localePath(code, path)} aria-current="true">
+                <span class={mark} aria-hidden="true">✓</span>
+                {t.langSwitch[code]}
+              </a>
+            </li>
+          ) : (
+            <li>
+              <a href={localePath(code, path)} hreflang={code} lang={code}>
+                <span class={mark} aria-hidden="true" />
+                {t.langSwitch[code]}
+              </a>
+            </li>
+          ),
+        )
+      }
+    </ul>
+  </details>
+</nav>

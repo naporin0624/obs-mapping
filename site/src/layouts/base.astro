@@ -1,14 +1,26 @@
 ---
 import '../styles/layers.css';
+import '../styles/fonts.css';
+import { getImage, Image } from 'astro:assets';
 import { css } from '../../styled-system/css';
+import fontBold from '../assets/fonts/line-seed-jp-700.woff2?url';
+import fontRegular from '../assets/fonts/line-seed-jp-400.woff2?url';
+import icon from '../assets/brand/icon.png';
+import thumbnail from '../assets/brand/thumbnail.png';
+import LangSwitch from '../components/lang-switch.astro';
 import { localePath, messagesFor, type Lang } from '../i18n/messages';
 
 // Without a path the page has no counterpart in the other language and is kept out of search.
 type Props = { lang: Lang; path?: string; title: string; description: string };
 
+const OG_LOCALE: Record<Lang, string> = { ja: 'ja_JP', en: 'en_US' };
 const { lang, path, title, description } = Astro.props;
 const t = messagesFor(lang);
-const other: Lang = lang === 'ja' ? 'en' : 'ja';
+const absolute = (href: string): string => new URL(href, Astro.site).href;
+
+const favicon = await getImage({ src: icon, width: 32, height: 32, format: 'png' });
+const touchIcon = await getImage({ src: icon, width: 180, height: 180, format: 'png' });
+const ogImage = await getImage({ src: thumbnail, width: 1200, height: 630, format: 'jpg', fit: 'cover' });
 
 const header = css({
   display: 'flex',
@@ -20,8 +32,9 @@ const header = css({
   borderBottom: '{borderWidths.default} solid {colors.border.subtle}',
   '& a': { display: 'inline-flex', alignItems: 'center', minHeight: 'target-min' },
 });
-const siteName = css({ color: 'fg.default', fontWeight: 700, textDecoration: 'none' });
-const nav = css({ display: 'flex', gap: '16px' });
+const siteName = css({ gap: '8px', color: 'fg.default', fontWeight: 700, textDecoration: 'none' });
+const logo = css({ display: 'block', width: '28px', height: '28px' });
+const tools = css({ display: 'flex', alignItems: 'center', gap: '16px' });
 ---
 
 <html lang={t.htmlLang}>
@@ -30,10 +43,24 @@ const nav = css({ display: 'flex', gap: '16px' });
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="preload" as="font" type="font/woff2" href={fontRegular} crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href={fontBold} crossorigin />
+    <link rel="icon" type="image/png" sizes="32x32" href={favicon.src} />
+    <link rel="apple-touch-icon" sizes="180x180" href={touchIcon.src} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content={OG_LOCALE[lang]} />
+    <meta property="og:image" content={absolute(ogImage.src)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
     {path === undefined && <meta name="robots" content="noindex" />}
     {
       path !== undefined && (
         <>
+          <meta property="og:url" content={absolute(localePath(lang, path))} />
+          <link rel="canonical" href={absolute(localePath(lang, path))} />
           <link rel="alternate" hreflang="ja" href={localePath('ja', path)} />
           <link rel="alternate" hreflang="en" href={localePath('en', path)} />
           <link rel="alternate" hreflang="x-default" href={localePath('ja', path)} />
@@ -43,21 +70,19 @@ const nav = css({ display: 'flex', gap: '16px' });
   </head>
   <body>
     <header class={header}>
-      <a class={siteName} href={localePath(lang, '/')}>{t.root.title}</a>
-      <nav class={nav} aria-label={t.langSwitch.label}>
-        <a href={localePath(lang, '/demo/')}>{t.demoIndex.title}</a>
-        {
-          path !== undefined && (
-            <a href={localePath(other, path)} hreflang={other} lang={other}>
-              {t.langSwitch[other]}
-            </a>
-          )
-        }
-      </nav>
+      <a class={siteName} href={localePath(lang, '/')}>
+        <Image class={logo} src={icon} width={28} height={28} densities={[1, 2]} loading="eager" alt="" />
+        {t.root.title}
+      </a>
+      <div class={tools}>
+        <nav>
+          <a href={localePath(lang, '/demo/')}>{t.demoIndex.title}</a>
+        </nav>
+        {path !== undefined && <LangSwitch lang={lang} path={path} />}
+      </div>
     </header>
     <main>
       <slot />
     </main>
   </body>
 </html>
-
