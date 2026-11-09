@@ -310,7 +310,7 @@ pnpm -C site dev         # 開発サーバー
 
 Cloudflare Workers（静的アセット）へのデプロイは `cf` CLI で行います。`cf` は Astro プロジェクトから切り離して `site/deploy/` に入れています。
 
-GitHub Actions（`.github/workflows/site-checks.yaml`）が、サイトの検査が通ったあとにデプロイします。
+デプロイは GitHub Actions の `.github/workflows/site-deploy.yaml` が行います。サイトの検査（lint、typecheck、test）は `.github/workflows/site-checks.yaml` が別に実行し、デプロイはその結果を待ちません。
 
 - `main` への push: 本番（`obs-mapping.napochaan.dev`）へ `cf deploy` します。
 - PR: `pr-<番号>` という名前の Preview をデプロイし、URL を PR のコメントに書きます（コメントは 1 つで、push のたびに更新します）。fork からの PR ではデプロイしません。
