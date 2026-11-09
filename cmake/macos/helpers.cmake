@@ -68,6 +68,12 @@ function(set_target_properties_plugin target)
   install(FILES "$<TARGET_BUNDLE_DIR:${target}>.dsym" CONFIGURATIONS Release DESTINATION . OPTIONAL)
 
   configure_file(cmake/macos/resources/distribution.in "${CMAKE_CURRENT_BINARY_DIR}/distribution" @ONLY)
+  configure_file(cmake/macos/resources/preinstall.in "${CMAKE_CURRENT_BINARY_DIR}/pkg-scripts/preinstall" @ONLY)
+  file(
+    CHMOD
+    "${CMAKE_CURRENT_BINARY_DIR}/pkg-scripts/preinstall"
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+  )
   configure_file(cmake/macos/resources/create-package.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/create-package.cmake" @ONLY)
   install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/create-package.cmake")
 endfunction()
