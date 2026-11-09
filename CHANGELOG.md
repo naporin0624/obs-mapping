@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/naporin0624/obs-mapping/compare/0.5.0...0.6.0) (2026-11-09)
+
+
+### Features
+
+* **site:** 導入をインストーラーの流れにし、よくある質問を足す ([8d953a2](https://github.com/naporin0624/obs-mapping/commit/8d953a2e3679916bdfd3b4dfddc05cbe7259a41f))
+
 ## [0.5.0](https://github.com/naporin0624/obs-mapping/compare/0.4.0...0.5.0) (2026-11-09)
 
 
