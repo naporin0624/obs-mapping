@@ -209,3 +209,46 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 - [ ] (h) 形のドラッグ 1 回分が Cmd+Z 1 回で戻る。
 - [ ] (i) 形を変えている間もプロジェクター出力が引っかからない（形が変わるたびに作り直されるだけで、フレームごとには作られない）。
 - [ ] (j) 古い版のプラグインで `mask` 付きの JSON を開いても壊れない（`mask` は無視され、面は形なしで全体が表示される）。
+
+## インストーラーとドック
+
+前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する。手動で登録したカスタムブラウザドックがあれば、区別できるよう先に消しておく。
+
+チェック:
+- [ ] 1-1: OBS を起動すると「ドック」メニューに「OBS Mapping」があり、開くと UI が表示される（空白にならない）。
+- [ ] 1-2: URL とパスワードを入れて接続し、OBS を再起動すると、入力なしで再接続する。
+- [ ] 1-3: `obs-browser` プラグインを一時的に外して起動すると、ログに `obs-browser unavailable; dock disabled` が出る。Mapping ソースは追加でき、OBS は落ちない。
+- [ ] 1-4: ドックを開いたまま OBS を終了しても、クラッシュせず 5 秒以内に終わる。
+- [ ] 1-5: Windows でも 1-1 と 1-2 を確認する（CI の artifact の zip を手で配置する）。
+
+## 初回起動時のドック表示
+
+前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する。フラグファイルは `plugin_config/obs-mapping/dock.json`（macOS では `~/Library/Application Support/obs-studio/plugin_config/obs-mapping/dock.json`）。
+
+チェック:
+- [ ] 2-1: `dock.json` を消して OBS を起動すると、ドックが右側に組み込まれた状態で出ている。
+- [ ] 2-2: ドックを閉じて再起動すると、閉じたまま。
+- [ ] 2-3: ドックを左に移して再起動すると、左のまま。
+- [ ] 2-4: 2-2 の状態で再インストール（アップデート）して起動しても、閉じたまま。
+- [ ] 2-5: OBS を終了したとき、ログに `Tried to call obs_frontend_remove_event_callback with no callbacks!` が出ない。
+- [ ] 2-6: プロフィールのフォルダー名に日本語が含まれる Windows ユーザーで OBS を起動すると、落ちずに起動し、初回起動でドックが出る。再起動してもドックを再表示せず、`dock.json` が書き込まれている。
+
+## Windows インストーラー
+
+前提: OBS を終了してから、CI の artifact にある `obs-mapping-<version>-windows-x64-installer.exe` を Windows 実機で実行する。
+
+チェック:
+- [ ] 3-1: `.exe` を実行し、SmartScreen で「詳細情報 → 実行」→ UAC → 完了まで進む。`C:\ProgramData\obs-studio\plugins\obs-mapping\bin\64bit\obs-mapping.dll` がある。
+- [ ] 3-2: 「アプリと機能」に「OBS Mapping」が 1 件だけ出る。アンインストールすると `C:\ProgramData\obs-studio\plugins\obs-mapping` がフォルダーごと消える。
+- [ ] 3-3: 古い版を入れたフォルダーにダミーファイルを置いてから新しい版を入れると、ダミーファイルが消えている（旧版にしかないファイルが残らない）。
+- [ ] 4-1: OBS を起動したままインストールまたはアンインストールすると、「OBS を閉じてから、もう一度インストーラーを実行してください。」が出て止まる。
+- [ ] 4-2: OBS がない環境（またはレジストリキー `HKLM\SOFTWARE\OBS Studio` を一時的に外した状態）でインストーラーを実行すると警告が出て、「はい」で続行できる。
+- [ ] 4-3: OBS 31.1.1 以降が入っている Windows でインストーラーを実行すると、「OBS Studio 31.1.1 以降が見つかりません」の警告が出ない。
+
+## macOS pkg
+
+前提: OBS を終了してから、CI の artifact にある `obs-mapping-<version>-macos-universal.pkg` を実機で開く。
+
+チェック:
+- [ ] 5-1: 旧版を入れた後、OBS を終了した状態で、`~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` の中にダミーファイルを置いてから新版の pkg を入れると、ダミーファイルが消えている。
+- [ ] 5-2: 署名なしの pkg を開くと止められ、README の手順（Task 6）で入れられる。入れた後の `obs-mapping.plugin` に `com.apple.quarantine` が付いているか（`xattr -l`）を記録する。

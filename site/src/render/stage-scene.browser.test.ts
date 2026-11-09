@@ -42,6 +42,18 @@ const readPixel = (gl: THREE.WebGLRenderer, target: THREE.WebGLRenderTarget, [x,
   return [buf[0] ?? 0, buf[1] ?? 0, buf[2] ?? 0, buf[3] ?? 0];
 };
 
+// One readback for many samples: each readPixels waits for the GPU, which software GL makes slow.
+const readTarget = (gl: THREE.WebGLRenderer, target: THREE.WebGLRenderTarget): ((at: Pixel) => Rgba) => {
+  const buf = new Uint8Array(target.width * target.height * 4);
+  gl.readRenderTargetPixels(target, 0, 0, target.width, target.height, buf);
+  return ([x, y]) => {
+    const [col, row] = [Math.floor(x), target.height - 1 - Math.floor(y)];
+    if (col < 0 || col >= target.width || row < 0 || row >= target.height) return [0, 0, 0, 0];
+    const i = (row * target.width + col) * 4;
+    return [buf[i] ?? 0, buf[i + 1] ?? 0, buf[i + 2] ?? 0, buf[i + 3] ?? 0];
+  };
+};
+
 // Where a world point lands in a view of VIEW size, y down.
 const viewPixel = (camera: THREE.Camera, v: Vec3): Pixel => {
   const ndc = new THREE.Vector3(...v).project(camera);
@@ -76,6 +88,7 @@ describe('createProjectedMaterial', () => {
   afterEach(() => {
     target.dispose();
     gl.dispose();
+    gl.forceContextLoss();
   });
 
   const draw = (map: THREE.Texture, base: number, slabs: readonly Slab[], camera: THREE.Camera): void => {
@@ -183,9 +196,10 @@ describe('createProjectedMaterial', () => {
       ],
       camera,
     );
+    const pixel = readTarget(gl, target);
     const lit = Array.from({ length: 80 }, (_, i) => -0.5 + i * 0.0125)
       .flatMap((y) => [-0.47, -0.45, -0.43, -0.41, 0.41, 0.43, 0.45, 0.47].map((x): Vec3 => [x, y, 0]))
-      .filter((p) => !near(readPixel(gl, target, viewPixel(camera, p)), BASE_RGBA, 3));
+      .filter((p) => !near(pixel(viewPixel(camera, p)), BASE_RGBA, 3));
     expect(lit).toEqual([]);
   });
 
@@ -292,6 +306,7 @@ describe('createStageScene', () => {
   afterEach(() => {
     target.dispose();
     gl.dispose();
+    gl.forceContextLoss();
   });
 
   // The projector body sits on the projector pose, so views from there hide it.

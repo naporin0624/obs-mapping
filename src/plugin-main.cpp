@@ -1,5 +1,6 @@
 #include <obs-module.h>
 
+#include "mapping-dock.hpp"
 #include "mapping-source.hpp"
 #include "plugin-support.h"
 #include "vendor-api.hpp"
@@ -18,10 +19,12 @@ bool obs_module_load(void)
 void obs_module_post_load(void)
 {
 	register_vendor();
+	register_mapping_dock();
 }
 
 void obs_module_unload(void)
 {
+	unregister_mapping_dock();
 	unregister_vendor();
 	obs_log(LOG_INFO, "unloaded");
 }

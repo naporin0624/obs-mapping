@@ -24,6 +24,8 @@ export default defineConfig({
         test: {
           name: 'browser',
           include: ['src/**/*.browser.test.ts'],
+          // Every page shares one GPU process; in parallel, one file's draws stall another's readPixels.
+          fileParallelism: false,
           browser: {
             enabled: true,
             headless: true,

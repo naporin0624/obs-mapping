@@ -1,0 +1,6 @@
+#!/bin/sh
+# $2 is the user's home for this home-domain pkg
+if [ -n "${2:-}" ]; then
+  rm -rf "${2%/}/Library/Application Support/obs-studio/plugins/@CMAKE_PROJECT_NAME@.plugin" || true
+fi
+exit 0

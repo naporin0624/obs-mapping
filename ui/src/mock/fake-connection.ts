@@ -157,6 +157,7 @@ export const createFakeConnection = (log: MockLog, getDelayMs = 800): ObsConnect
       plugin.listeners.overlay.add(cb);
       return () => plugin.listeners.overlay.delete(cb);
     },
+    onInventoryChanged: () => () => undefined,
   };
   const onClose: ObsConnection['onClose'] = (cb) => {
     log.setDrop(() => cb(1006));

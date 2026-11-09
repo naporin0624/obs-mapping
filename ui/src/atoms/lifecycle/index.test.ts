@@ -50,6 +50,29 @@ describe('lifecycleAtom', () => {
     expect(obs.listMappingSources).toHaveBeenCalledTimes(2);
   });
 
+  it('reloads inputs and Mapping sources when the OBS inventory changes', async () => {
+    const obs = fakeObs(mapping(10));
+    const { store } = buildStore(obs);
+    store.sub(lifecycleAtom, noop);
+    await settle();
+    expect(obs.listInputs).toHaveBeenCalledTimes(1);
+    expect(obs.listMappingSources).toHaveBeenCalledTimes(1);
+    obs.changeInventory();
+    await settle();
+    expect(obs.listInputs).toHaveBeenCalledTimes(2);
+    expect(obs.listMappingSources).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops watching the OBS inventory when unmounted', async () => {
+    const obs = fakeObs(mapping(10));
+    const { store } = buildStore(obs);
+    const off = store.sub(lifecycleAtom, noop);
+    await settle();
+    expect(obs.watchingInventory()).toBe(true);
+    off();
+    expect(obs.watchingInventory()).toBe(false);
+  });
+
   it('stops everything when unmounted', async () => {
     const obs = fakeObs(mapping(10));
     const { store, instances } = buildStore(obs);

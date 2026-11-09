@@ -62,7 +62,7 @@ jobs:
             artifacts/*-macos-universal.pkg
             artifacts/*-macos-universal.tar.xz
             artifacts/*-windows-x64.zip
-            artifacts/*-windows-x64.exe
+            artifacts/*-windows-x64-installer.exe
           )
           if (( ${#files[@]} == 0 )); then
             echo '::error::No macOS or Windows packages found in the build artifacts'

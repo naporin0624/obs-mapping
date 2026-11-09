@@ -180,6 +180,22 @@ jobs:
           codesignUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
           codesignPass: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
 
+      - name: Check Preinstall In Package 🔍
+        if: fromJSON(needs.check-event.outputs.package)
+        run: |
+          : Check Preinstall In Package 🔍
+          local pkg=(release/*.pkg(N))
+          if (( ${#pkg} == 0 )) {
+            print "::error::No .pkg found in release/"
+            exit 1
+          }
+          pkgutil --expand ${pkg[1]} ${RUNNER_TEMP}/pkg-expanded
+          local script=(${RUNNER_TEMP}/pkg-expanded/*.pkg/Scripts/preinstall(N))
+          if (( ${#script} == 0 )) || [[ ! -x ${script[1]} ]] {
+            print "::error::preinstall missing or not executable in the pkg"
+            exit 1
+          }
+
       # package-macos emits either .pkg or .tar.xz; ship the bare bundle next to the .pkg as well
       - name: Archive Plugin Bundle 🗜️
         if: fromJSON(needs.check-event.outputs.package)
@@ -366,6 +382,76 @@ jobs:
           $Archive.Dispose()
           if ( -not $Found ) {
             Write-Output "::error::UI missing from the package: ${Zip}"
+            exit 1
+          }
+
+      # Installs for real on the throwaway runner, so {app} mapping and uninstall cleanup are checked too
+      - name: Check Installer 🔍
+        run: |
+          # Check Installer 🔍
+          $Name = "${{ steps.setup.outputs.pluginName }}"
+          $Base = "release/${Name}-${{ steps.setup.outputs.pluginVersion }}-windows-x64"
+          $Installer = "${Base}-installer.exe"
+          if ( -not (Test-Path -Path $Installer -PathType Leaf) ) {
+            Write-Output "::error::installer missing: ${Installer}"
+            exit 1
+          }
+
+          $AppDir = Join-Path $Env:ProgramData "obs-studio\plugins\${Name}"
+          function Invoke-Silently([string] $Exe, [string] $LogName) {
+            $Log = Join-Path $Env:RUNNER_TEMP $LogName
+            $Process = Start-Process -FilePath $Exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=${Log}" -Wait -PassThru
+            if ( $Process.ExitCode -ne 0 ) {
+              if ( Test-Path -Path $Log ) { Get-Content -Path $Log }
+              Write-Output "::error::${Exe} exited with code $($Process.ExitCode)"
+              exit 1
+            }
+          }
+          Invoke-Silently (Resolve-Path -Path $Installer).Path 'install.log'
+
+          foreach ( $Required in @("bin\64bit\${Name}.dll", 'data\ui\index.html') ) {
+            if ( -not (Test-Path -Path (Join-Path $AppDir $Required) -PathType Leaf) ) {
+              Write-Output "::error::installer did not install {app}\${Required}"
+              exit 1
+            }
+          }
+
+          $Unzipped = Join-Path $Env:RUNNER_TEMP 'unzipped'
+          Expand-Archive -Path "${Base}.zip" -DestinationPath $Unzipped -Force
+          function Get-Tree([string] $Root) {
+            Get-ChildItem -Path $Root -Recurse -File |
+              ForEach-Object { [System.IO.Path]::GetRelativePath($Root, $_.FullName) } |
+              Where-Object { $_ -notlike 'unins000.*' } |
+              Sort-Object
+          }
+          $Diff = Compare-Object -ReferenceObject @(Get-Tree (Join-Path $Unzipped $Name)) -DifferenceObject @(Get-Tree $AppDir)
+          if ( $Diff ) {
+            $Diff | Format-Table -AutoSize | Out-String | Write-Output
+            Write-Output "::error::installer contents differ from ${Base}.zip"
+            exit 1
+          }
+
+          $Stale = Join-Path $AppDir 'data\stale.txt'
+          Set-Content -Path $Stale -Value 'left by an older version'
+          Invoke-Silently (Resolve-Path -Path $Installer).Path 'reinstall.log'
+          if ( Test-Path -Path $Stale ) {
+            Write-Output "::error::over-install left ${Stale} behind"
+            exit 1
+          }
+          foreach ( $Uninstaller in @('unins000.exe', 'unins000.dat') ) {
+            if ( -not (Test-Path -Path (Join-Path $AppDir $Uninstaller) -PathType Leaf) ) {
+              Write-Output "::error::over-install lost {app}\${Uninstaller}"
+              exit 1
+            }
+          }
+
+          Invoke-Silently (Join-Path $AppDir 'unins000.exe') 'uninstall.log'
+          $Deadline = (Get-Date).AddSeconds(60)
+          while ( (Test-Path -Path $AppDir) -and ((Get-Date) -lt $Deadline) ) {
+            Start-Sleep -Seconds 1
+          }
+          if ( Test-Path -Path $AppDir ) {
+            Write-Output "::error::uninstaller left ${AppDir} behind"
             exit 1
           }
 
