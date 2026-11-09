@@ -2,6 +2,7 @@
 import { localePath, messagesFor, type Lang } from '../../i18n/messages';
 import ExternalLink from '../external-link.astro';
 import HeroVideo from '../hero-video/index.astro';
+import RootFaq from '../root-faq/index.astro';
 import RootInstall from '../root-install/index.astro';
 import RootSkills from '../root-skills.astro';
 import RootSteps from '../root-steps.astro';
@@ -37,6 +38,11 @@ const t = messagesFor(lang);
   <section class={sectionCls} aria-labelledby="how">
     <h2 id="how">{t.root.how.heading}</h2>
     <RootSteps lang={lang} />
+  </section>
+
+  <section class={sectionCls} aria-labelledby="faq">
+    <h2 id="faq">{t.root.faq.heading}</h2>
+    <RootFaq lang={lang} />
   </section>
 
   <section class={sectionCls} aria-labelledby="skills">

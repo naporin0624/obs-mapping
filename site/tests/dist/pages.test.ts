@@ -168,6 +168,38 @@ const HERO_PAGES = Object.keys(HERO_COPY) as (keyof typeof HERO_COPY)[];
 const hasFlag = (tagSource: string, name: string): boolean => new RegExp(`\\s${name}(=""|[\\s>])`).test(tagSource);
 const heroVideo = (html: string): string => blocksOf(html, 'video')[0] ?? '';
 
+describe('top page FAQ', () => {
+  it.each(['index.html', 'en/index.html'])('%s groups ten questions under four headings', (path) => {
+    const section = sectionById(page(path), 'faq');
+    expect(blocksOf(section, 'h3')).toHaveLength(4);
+    const details = tagsOf(section, 'details');
+    expect(details).toHaveLength(10);
+    expect(details.map((d) => /\sopen[\s>=]/.test(d))).toEqual([true, true, true, false, false, false, false, false, false, false]);
+    expect(blocksOf(section, 'summary')).toHaveLength(10);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s places the FAQ after how and before skills', (path) => {
+    const html = page(path);
+    expect(html.indexOf('id="how"')).toBeLessThan(html.indexOf('id="faq"'));
+    expect(html.indexOf('id="faq"')).toBeLessThan(html.indexOf('id="skills"'));
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s links the warning answer to the install step', (path) => {
+    expect(hrefs(sectionById(page(path), 'faq'))).toContain('#install-run');
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s links the install step to the dock answer', (path) => {
+    expect(hrefs(sectionById(page(path), 'install'))).toContain('#faq-dock');
+    expect(sectionById(page(path), 'faq')).toContain('id="faq-dock"');
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s links the README sections by their GitHub anchors', (path) => {
+    const links = hrefs(sectionById(page(path), 'faq'));
+    expect(links).toContain(`${GITHUB}#macosインストーラー`);
+    expect(links).toContain(`${GITHUB}#ドックが出ない場合カスタムブラウザドックに登録する`);
+  });
+});
+
 describe('top page demo video', () => {
   it.each(HERO_PAGES)('%s loops a muted inline video with its size reserved and no autoplay attribute', (path) => {
     const [video = ''] = tagsOf(heroVideo(page(path)), 'video');

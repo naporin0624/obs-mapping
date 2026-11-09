@@ -2,6 +2,7 @@ import { ja as dock } from '../../../ui/src/i18n/messages/ja';
 import { DEMO_SOURCE } from '../scene/spec';
 import type { SiteMessages, StepCopy } from './messages';
 
+const GITHUB_URL = 'https://github.com/naporin0624/obs-mapping';
 const target = { stairs: '階段', hexagon: '六角形のパネル', drums: '太鼓', cubes: '積み重ねた立方体' } as const;
 
 const holeStep: StepCopy = {
@@ -46,6 +47,7 @@ export const ja: SiteMessages = {
       open: {
         title: 'OBS を開く',
         body: '右側に「OBS Mapping」ドックが出ています。ドックが自動で出るのは初回だけです。',
+        faq: 'ドックが出てこないとき',
       },
       connect: {
         title: 'WebSocket を有効にして接続する',
@@ -59,6 +61,86 @@ export const ja: SiteMessages = {
         body: `OBS で Mapping ソースを追加し、ドックの「${dock.source}」で選びます。「${dock.add}」で面を作って四隅を物体の角に合わせ、「${dock.maskHeading}」で円や多角形に切り抜きます。`,
         demos: 'デモで手順を見る',
       },
+    },
+    faq: {
+      heading: 'よくある質問',
+      groups: [
+        {
+          heading: '配布と差し替え',
+          open: true,
+          items: [
+            {
+              q: '参加者それぞれの環境で、同じマッピングを出すには？',
+              a: [
+                `プラグインと mapping.json を配ります。受け取った人は、ドックの「${dock.importButton}」で mapping.json を読み込みます。`,
+                `解像度が違うときは、${dock.importButton}で「${dock.importScale}」を選ぶと、点を比率で伸縮して合わせます。読み込みは元に戻せません。`,
+              ],
+            },
+            {
+              q: '映像だけ差し替えたいときは？',
+              a: ['面は OBS のソースを名前で指しています。ソースの中身（メディアファイルやシーン）を替えれば、そのソースを使う面がまとめて替わります。マッピングを作り直す必要はありません。'],
+            },
+            {
+              q: '受け取った json のソース名が、自分の OBS にないときは？',
+              a: ['その面には何も映りません。json にあるのと同じ名前でソースを作れば、インポートし直さなくてもそのまま映ります。ドックで面ごとにソースを選び直してもかまいません。'],
+            },
+          ],
+        },
+        {
+          heading: '導入',
+          open: false,
+          items: [
+            {
+              q: 'インストーラーで警告が出る',
+              a: [
+                'インストーラーに Apple と Microsoft の署名がないためです。越え方は、導入の ② にあります。',
+                'macOS で、入れたあとに OBS がプラグインを読み込まないときは、隔離属性を外す方法が README にあります。',
+              ],
+              links: [
+                { href: '#install-run', label: '導入の ② を見る' },
+                { href: `${GITHUB_URL}#macosインストーラー`, label: 'README の「macOS（インストーラー）」を見る' },
+              ],
+            },
+            {
+              id: 'faq-dock',
+              q: 'ドックが出てこない',
+              a: ['obs-browser のない OBS では、ドックは自動で出ません。ドックが出ないときや中が空白のときは、カスタムブラウザドックに手で登録する方法が README の「ドックが出ない場合」にあります。'],
+              links: [{ href: `${GITHUB_URL}#ドックが出ない場合カスタムブラウザドックに登録する`, label: 'README の「ドックが出ない場合」を見る' }],
+            },
+            { q: 'Windows でも動く？', a: ['リリースには含めていますが、実機での確認はまだです。'] },
+          ],
+        },
+        {
+          heading: '本番の運用',
+          open: false,
+          items: [
+            {
+              q: '編集用の輪郭が配信に映る？',
+              a: ['映ります。輪郭とハンドルは Mapping ソースの出力に直接描かれるので、本番中はオーバーレイをオフにしてください。OBS を起動した時点で、オーバーレイは必ずオフに戻ります。'],
+            },
+            {
+              q: 'プロジェクターにはどう出す？',
+              a: [
+                'OBS のプロジェクター出力（全画面プロジェクター）で、Mapping ソースか、それを含むシーンをプロジェクターの画面に出します。ドックのステージはブラウザ上で合成した表示なので、最終的な見え方はプロジェクター出力で確かめてください。',
+              ],
+            },
+          ],
+        },
+        {
+          heading: 'ほか',
+          open: false,
+          items: [
+            {
+              q: 'スクリプトや AI エージェントから操作できる？',
+              a: [
+                'obs-websocket のベンダーリクエスト（ListMappingSources、GetMapping、SetMapping）で、マッピングを読み書きできます。エージェント向けのスキルは、ページ下のセクションで案内しています。',
+              ],
+              links: [{ href: '#skills', label: 'ページ下のスキルを見る' }],
+            },
+            { q: '料金とライセンスは？', a: ['GPL-2.0 のオープンソースで、無料です。'] },
+          ],
+        },
+      ],
     },
     skills: {
       heading: 'Claude Code / エージェント用スキル',

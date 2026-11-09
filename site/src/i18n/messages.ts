@@ -11,6 +11,11 @@ export type Skill = (typeof SKILLS)[number];
 /** Copy that wraps one inline element (a link or a code span) between two runs of text. */
 export type AroundCopy = { before: string; after: string };
 type StepBody = { title: string; body: string };
+/** `href` starting with http is an external link; anything else is an in-page anchor. */
+export type FaqLink = { href: string; label: string };
+/** `a` is one paragraph per entry. */
+export type FaqItem = { q: string; a: readonly string[]; links?: readonly FaqLink[]; id?: string };
+export type FaqGroup = { heading: string; open: boolean; items: readonly FaqItem[] };
 
 export type RootCopy = {
   title: string;
@@ -27,10 +32,12 @@ export type RootCopy = {
     download: StepBody & { link: string };
     /** `macos` and `macosOld` are the two macOS warnings; each reads on from the OS name shown before it. */
     run: StepBody & { macos: string; macosOld: string; windows: string };
-    open: StepBody;
+    /** `faq` is the label of the link from this step to the dock answer in the FAQ. */
+    open: StepBody & { faq: string };
     connect: StepBody;
   };
   how: { heading: string; map: StepBody & { demos: string } };
+  faq: { heading: string; groups: readonly FaqGroup[] };
   skills: {
     heading: string;
     lead: string;

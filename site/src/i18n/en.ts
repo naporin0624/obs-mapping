@@ -2,6 +2,7 @@ import { en as dock } from '../../../ui/src/i18n/messages/en';
 import { DEMO_SOURCE } from '../scene/spec';
 import type { SiteMessages, StepCopy } from './messages';
 
+const GITHUB_URL = 'https://github.com/naporin0624/obs-mapping';
 const target = { stairs: 'the stairs', hexagon: 'the hexagon panels', drums: 'the drums', cubes: 'the stacked cubes' } as const;
 
 const holeStep: StepCopy = {
@@ -46,6 +47,7 @@ export const en: SiteMessages = {
       open: {
         title: 'Open OBS',
         body: 'The "OBS Mapping" dock is already on the right. It appears on its own only the first time.',
+        faq: 'If the dock does not appear',
       },
       connect: {
         title: 'Turn on WebSocket and connect',
@@ -59,6 +61,92 @@ export const en: SiteMessages = {
         body: `In OBS, add a Mapping source and choose it in the dock's "${dock.source}". Press "${dock.add}" to create a face, drag its corners onto the corners of the object, and cut it out with an ellipse or polygon under "${dock.maskHeading}".`,
         demos: 'Walk through it in the demos',
       },
+    },
+    faq: {
+      heading: 'FAQ',
+      groups: [
+        {
+          heading: 'Distribution and swapping',
+          open: true,
+          items: [
+            {
+              q: "How do I show the same mapping in every participant's setup?",
+              a: [
+                `Hand out the plugin and mapping.json. Each person loads mapping.json with "${dock.importButton}" in the dock.`,
+                `If the resolution differs, choose "${dock.importScale}" when you ${dock.importButton.toLowerCase()}, and the points are scaled by ratio to fit. Loading cannot be undone.`,
+              ],
+            },
+            {
+              q: 'How do I swap only the video?',
+              a: [
+                'A face points to an OBS source by name. Change what is inside the source (the media file or the scene) and every face that uses that source changes together. You do not need to rebuild the mapping.',
+              ],
+            },
+            {
+              q: 'What if a source name in the json I received is not in my OBS?',
+              a: [
+                'That face shows nothing. Create a source with the same name as in the json and it shows right away, without importing again. You can also pick the source again for each face in the dock.',
+              ],
+            },
+          ],
+        },
+        {
+          heading: 'Installing',
+          open: false,
+          items: [
+            {
+              q: 'The installer shows a warning',
+              a: [
+                'The installer is not signed by Apple or Microsoft. How to get past the warning is in step 2 of Install.',
+                'On macOS, if OBS does not load the plugin after you install it, the README describes how to remove the quarantine attribute.',
+              ],
+              links: [
+                { href: '#install-run', label: 'See step 2 of Install' },
+                { href: `${GITHUB_URL}#macosインストーラー`, label: 'See "macOS (installer)" in the README' },
+              ],
+            },
+            {
+              id: 'faq-dock',
+              q: 'The dock does not appear',
+              a: [
+                'In an OBS without obs-browser, the dock does not appear on its own. If it does not appear, or if it is blank inside, the README\'s "If the dock does not appear" describes how to register it by hand as a custom browser dock.',
+              ],
+              links: [{ href: `${GITHUB_URL}#ドックが出ない場合カスタムブラウザドックに登録する`, label: 'See "If the dock does not appear" in the README' }],
+            },
+            { q: 'Does it also work on Windows?', a: ['It is included in the release, but it has not been checked on a real machine yet.'] },
+          ],
+        },
+        {
+          heading: 'Running it live',
+          open: false,
+          items: [
+            {
+              q: 'Do the editing outlines show up in the stream?',
+              a: ["Yes. The outlines and handles are drawn directly into the Mapping source's output, so turn the overlay off during the show. Whenever OBS starts, the overlay is always back off."],
+            },
+            {
+              q: 'How do I send it to a projector?',
+              a: [
+                "Use OBS's projector output (a fullscreen projector) and put the Mapping source, or a scene that contains it, on the projector's screen. The dock's Stage is composited in the browser, so check the final look on the projector output.",
+              ],
+            },
+          ],
+        },
+        {
+          heading: 'Other',
+          open: false,
+          items: [
+            {
+              q: 'Can I drive it from scripts or AI agents?',
+              a: [
+                'Yes. You can read and write the mapping with the obs-websocket vendor requests (ListMappingSources, GetMapping, SetMapping). The skills for agents are covered in the section lower on the page.',
+              ],
+              links: [{ href: '#skills', label: 'See the skills below' }],
+            },
+            { q: 'What about price and license?', a: ['It is open source under GPL-2.0, and free.'] },
+          ],
+        },
+      ],
     },
     skills: {
       heading: 'Skills for Claude Code and other agents',
