@@ -42,7 +42,7 @@ export const ja: SiteMessages = {
         body: 'インストールの前に、OBS を終了しておきます。Windows のインストーラーは、OBS が起動していると先へ進めません。',
         macos: '15 以降で警告に止められたら、「システム設定 > プライバシーとセキュリティ」を開き、「このまま開く」を押します。',
         macosOld: '14 以前で警告に止められたら、pkg を右クリックして「開く」を選びます。',
-        windows: 'SmartScreen の警告が出たら、「詳細情報」を押して「実行」を選びます。',
+        windows: 'SmartScreen の警告が出たら、「詳細情報」を押して「実行」を選びます。管理者権限の確認（UAC）が出たら、許可します。',
       },
       open: {
         title: 'OBS を開く',
@@ -87,7 +87,7 @@ export const ja: SiteMessages = {
           ],
         },
         {
-          heading: '導入',
+          heading: 'インストールの困りごと',
           open: false,
           items: [
             {

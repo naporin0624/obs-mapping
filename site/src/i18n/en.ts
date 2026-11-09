@@ -42,7 +42,7 @@ export const en: SiteMessages = {
         body: 'Quit OBS before you install. The Windows installer will not continue while OBS is running.',
         macos: 'On 15 or later, if a warning stops you, open System Settings > Privacy & Security and press "Open Anyway".',
         macosOld: 'On 14 or earlier, if a warning stops you, right-click the pkg and choose "Open".',
-        windows: 'If SmartScreen shows a warning, press "More info", then "Run anyway".',
+        windows: 'If SmartScreen shows a warning, press "More info", then "Run anyway". If a User Account Control (UAC) prompt asks for administrator permission, allow it.',
       },
       open: {
         title: 'Open OBS',
@@ -91,7 +91,7 @@ export const en: SiteMessages = {
           ],
         },
         {
-          heading: 'Installing',
+          heading: 'Trouble installing',
           open: false,
           items: [
             {
@@ -102,16 +102,16 @@ export const en: SiteMessages = {
               ],
               links: [
                 { href: '#install-run', label: 'See step 2 of Install' },
-                { href: `${GITHUB_URL}#macosインストーラー`, label: 'See "macOS (installer)" in the README' },
+                { href: `${GITHUB_URL}#macosインストーラー`, label: 'See the macOS installer section of the README (in Japanese)' },
               ],
             },
             {
               id: 'faq-dock',
               q: 'The dock does not appear',
               a: [
-                'In an OBS without obs-browser, the dock does not appear on its own. If it does not appear, or if it is blank inside, the README\'s "If the dock does not appear" describes how to register it by hand as a custom browser dock.',
+                'In an OBS without obs-browser, the dock does not appear on its own. If it does not appear, or if it is blank inside, the README (in Japanese) describes how to register it by hand as a custom browser dock.',
               ],
-              links: [{ href: `${GITHUB_URL}#ドックが出ない場合カスタムブラウザドックに登録する`, label: 'See "If the dock does not appear" in the README' }],
+              links: [{ href: `${GITHUB_URL}#ドックが出ない場合カスタムブラウザドックに登録する`, label: 'See the section on the dock not appearing in the README (in Japanese)' }],
             },
             { q: 'Does it also work on Windows?', a: ['It is included in the release, but it has not been checked on a real machine yet.'] },
           ],

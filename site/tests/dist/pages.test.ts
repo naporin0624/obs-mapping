@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { en } from '../../src/i18n/en';
+import { ja } from '../../src/i18n/ja';
 
 const GITHUB = 'https://github.com/naporin0624/obs-mapping';
 const RELEASES = `${GITHUB}/releases/latest`;
@@ -124,8 +126,14 @@ describe('top page', () => {
 const sectionById = (html: string, id: string): string => blocksOf(html, 'section').find((s) => new RegExp(`<section\\b[^>]*\\saria-labelledby="${id}"`).test(s)) ?? '';
 
 describe('top page install steps', () => {
-  it.each(['index.html', 'en/index.html'])('%s shows the four install steps in order', (path) => {
+  it.each([
+    ['index.html', ja],
+    ['en/index.html', en],
+  ] as const)('%s shows the four install steps in order', (path, copy) => {
     const section = sectionById(page(path), 'install');
+    const { download, run, open, connect } = copy.root.install;
+    const titles = blocksOf(section, 'h3').map((h) => decode(h.replace(/<[^>]*>/g, '')));
+    expect(titles).toEqual([download.title, run.title, open.title, connect.title]);
     expect(blocksOf(section, 'li')).toHaveLength(4);
     expect(hrefs(section)).toContain(RELEASES);
     expect(section).toMatch(/\.pkg/);
