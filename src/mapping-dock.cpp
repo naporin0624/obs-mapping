@@ -12,7 +12,6 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -56,24 +55,31 @@ bool ensure_browser_initialized()
 	return g_cef->init_browser() || g_cef->wait_for_browser_init();
 }
 
-void attach_browser()
+bool attach_browser()
 {
-	if (!g_container || g_browser)
-		return;
+	if (!g_container)
+		return false;
+	if (g_browser)
+		return true;
 	const auto url = ui_url();
 	if (!url) {
 		obs_log(LOG_WARNING, "ui/index.html not found; dock left empty");
-		return;
+		return false;
 	}
 	if (!ensure_browser_initialized()) {
 		obs_log(LOG_WARNING, "browser init failed; dock left empty");
-		return;
+		return false;
 	}
 	g_cookies = g_cef->create_cookie_manager(kCookieStoragePath, true);
 	if (!g_cookies)
 		obs_log(LOG_WARNING, "cookie manager unavailable; dock settings will not persist");
 	g_browser = g_cef->create_widget(g_container, *url, g_cookies);
+	if (!g_browser) {
+		obs_log(LOG_WARNING, "browser widget creation failed; dock left empty");
+		return false;
+	}
 	g_container->layout()->addWidget(g_browser);
+	return true;
 }
 
 // Mirrors OBSBasic's shutdown: close the browser, flush and drop cookies, then drop QCef.
@@ -102,8 +108,9 @@ bool is_already_revealed(const char *flag_path)
 
 void save_revealed_flag(const char *flag_path)
 {
-	const auto dir = std::filesystem::path(flag_path).parent_path().string();
-	os_mkdirs(dir.c_str());
+	BPtr<char> dir = obs_module_config_path("");
+	if (dir)
+		os_mkdirs(dir.Get());
 	OBSDataAutoRelease flag = obs_data_create();
 	obs_data_set_bool(flag, kRevealedKey, true);
 	if (!obs_data_save_json_safe(flag, flag_path, "tmp", "bak"))
@@ -144,8 +151,8 @@ void on_frontend_event(enum obs_frontend_event event, void *)
 {
 	switch (event) {
 	case OBS_FRONTEND_EVENT_FINISHED_LOADING:
-		attach_browser();
-		reveal_dock_on_first_run();
+		if (attach_browser())
+			reveal_dock_on_first_run();
 		break;
 	case OBS_FRONTEND_EVENT_EXIT:
 		release_browser();
