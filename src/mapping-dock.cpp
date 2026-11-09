@@ -2,14 +2,17 @@
 
 #include <obs-frontend-api.h>
 #include <obs-module.h>
+#include <obs.hpp>
 #include <util/util.hpp>
 
 #include <QDockWidget>
+#include <QMainWindow>
 #include <QString>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -23,11 +26,14 @@ constexpr const char *kDockId = "obs-mapping";
 constexpr const char *kDockTitle = "OBS Mapping";
 // Relative to obs-browser's cookie root, like OBS's own "obs_profile_cookies/<id>".
 constexpr const char *kCookieStoragePath = "obs_mapping_dock";
+constexpr const char *kRevealFlagFile = "dock.json";
+constexpr const char *kRevealedKey = "revealed";
 
 QCef *g_cef = nullptr;
 QWidget *g_container = nullptr;
 QCefCookieManager *g_cookies = nullptr;
 QCefWidget *g_browser = nullptr;
+bool g_event_callback_registered = false;
 
 QWidget *create_container()
 {
@@ -88,6 +94,52 @@ void release_browser()
 	g_container = nullptr;
 }
 
+void on_frontend_event(enum obs_frontend_event event, void *);
+
+bool is_already_revealed(const char *flag_path)
+{
+	OBSDataAutoRelease flag = obs_data_create_from_json_file_safe(flag_path, "bak");
+	return flag && obs_data_get_bool(flag, kRevealedKey);
+}
+
+void save_revealed_flag(const char *flag_path)
+{
+	const auto dir = std::filesystem::path(flag_path).parent_path().string();
+	os_mkdirs(dir.c_str());
+	OBSDataAutoRelease flag = obs_data_create();
+	obs_data_set_bool(flag, kRevealedKey, true);
+	if (!obs_data_save_json_safe(flag, flag_path, "tmp", "bak"))
+		obs_log(LOG_WARNING, "could not save %s; the dock will be revealed again next launch", flag_path);
+}
+
+void dock_on_right_side(QDockWidget *dock)
+{
+	auto *main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	main_window->addDockWidget(Qt::RightDockWidgetArea, dock);
+	dock->setFloating(false);
+	dock->show();
+}
+
+void reveal_dock_on_first_run()
+{
+	QDockWidget *dock = mapping_dock_widget();
+	if (!dock)
+		return;
+	BPtr<char> flag_path = obs_module_config_path(kRevealFlagFile);
+	if (!flag_path || is_already_revealed(flag_path.Get()))
+		return;
+	dock_on_right_side(dock);
+	save_revealed_flag(flag_path.Get());
+}
+
+void remove_event_callback()
+{
+	if (!g_event_callback_registered)
+		return;
+	g_event_callback_registered = false;
+	obs_frontend_remove_event_callback(on_frontend_event, nullptr);
+}
+
 void on_frontend_event(enum obs_frontend_event event, void *)
 {
 	switch (event) {
@@ -120,12 +172,15 @@ void register_mapping_dock()
 		return;
 	}
 	g_container = container;
+	if (QDockWidget *dock = mapping_dock_widget())
+		dock->setAttribute(Qt::WA_NativeWindow);
 	obs_frontend_add_event_callback(on_frontend_event, nullptr);
+	g_event_callback_registered = true;
 }
 
 void unregister_mapping_dock()
 {
-	obs_frontend_remove_event_callback(on_frontend_event, nullptr);
+	remove_event_callback();
 }
 
 QDockWidget *mapping_dock_widget()

@@ -220,3 +220,14 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 - [ ] 1-3: `obs-browser` プラグインを一時的に外して起動すると、ログに `obs-browser unavailable; dock disabled` が出る。Mapping ソースは追加でき、OBS は落ちない。
 - [ ] 1-4: ドックを開いたまま OBS を終了しても、クラッシュせず 5 秒以内に終わる。
 - [ ] 1-5: Windows でも 1-1 と 1-2 を確認する（CI の artifact の zip を手で配置する）。
+
+## 初回起動時のドック表示
+
+前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する。フラグファイルは `plugin_config/obs-mapping/dock.json`（macOS では `~/Library/Application Support/obs-studio/plugin_config/obs-mapping/dock.json`）。
+
+チェック:
+- [ ] 2-1: `dock.json` を消して OBS を起動すると、ドックが右側に組み込まれた状態で出ている。
+- [ ] 2-2: ドックを閉じて再起動すると、閉じたまま。
+- [ ] 2-3: ドックを左に移して再起動すると、左のまま。
+- [ ] 2-4: 2-2 の状態で再インストール（アップデート）して起動しても、閉じたまま。
+- [ ] 2-5: OBS を終了したとき、ログに `Tried to call obs_frontend_remove_event_callback with no callbacks!` が出ない。
