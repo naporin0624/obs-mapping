@@ -2,8 +2,10 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { reloadSourcesAtom, selectedSourceAtom, selectSourceAtom, sourcesAtom, sourcesErrorAtom } from '../../atoms/session';
 import { localizeError } from '../../i18n/localize-error';
 import { useT } from '../../i18n/use-t';
+import { IconButton } from '../icon-button';
+import { ReloadIcon } from '../icons';
 import { SourceSelect } from '../source-select';
-import { buttonCls, barCls, rowCls } from '../styles.css';
+import { barCls, rowCls } from '../styles.css';
 import { errorCls, emptyCls } from './styles.css';
 
 export const SourcePicker = () => {
@@ -23,9 +25,7 @@ export const SourcePicker = () => {
         value={selected}
         onChange={select}
       />
-      <button type="button" className={buttonCls} onClick={() => void reload()}>
-        {t.sourceReload}
-      </button>
+      <IconButton label={t.sourceReload} icon={<ReloadIcon />} onClick={() => void reload()} />
       {error === null ? null : (
         <span role="alert" className={errorCls}>
           {localizeError(t, error)}

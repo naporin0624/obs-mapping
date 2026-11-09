@@ -6,5 +6,3 @@ export const statusCls = css({
   '&[data-kind=open]': { color: 'accent.text' },
   '&[data-kind=auth_failed]': { color: 'danger.text' },
 });
-
-export const revealCls = css({ minWidth: '12', fontWeight: 400 });

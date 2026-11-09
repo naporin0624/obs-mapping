@@ -18,6 +18,13 @@ const SvgIcon = ({ name, children }: { name: string; children: ReactNode }) => (
   </svg>
 );
 
+/** Small "opens a menu" mark placed beside a trigger's own icon. */
+export const CaretDownIcon = () => (
+  <svg data-icon="caret-down" width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true" focusable="false">
+    <path d="M1 2.5h6L4 6Z" />
+  </svg>
+);
+
 const EYE_OUTLINE = 'M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8Z';
 
 export const EyeIcon = () => (
@@ -158,5 +165,42 @@ export const ExportIcon = () => (
   <SvgIcon name="export">
     <path d={TRAY} />
     <path d="M8 10V2M5 5l3-3 3 3" />
+  </SvgIcon>
+);
+
+export const ReloadIcon = () => (
+  <SvgIcon name="reload">
+    <path d="M13.5 8A5.5 5.5 0 1 1 11.9 4.1L13.5 5.5" />
+    <path d="M13.5 2v3.5H10" />
+  </SvgIcon>
+);
+
+/** The output screen with a surface outline drawn over it. */
+export const OverlayIcon = () => (
+  <SvgIcon name="overlay">
+    <rect x="1.5" y="2.5" width="13" height="11" />
+    <path d="M4.5 5.5 11.5 5l.5 5.5-7.5.5Z" strokeDasharray="1 2.5" />
+  </SvgIcon>
+);
+
+export const GridIcon = () => (
+  <SvgIcon name="grid">
+    <rect x="2" y="2" width="12" height="12" />
+    <path d="M6 2v12M10 2v12M2 6h12M2 10h12" />
+  </SvgIcon>
+);
+
+const PLUG = 'M3.5 5h9v2.5A3.5 3.5 0 0 1 9 11H7A3.5 3.5 0 0 1 3.5 7.5ZM6 2v3M10 2v3M8 11v3.5';
+
+export const PlugIcon = () => (
+  <SvgIcon name="plug">
+    <path d={PLUG} />
+  </SvgIcon>
+);
+
+export const UnplugIcon = () => (
+  <SvgIcon name="unplug">
+    <path d={PLUG} />
+    <path d="M2 14 14 2" />
   </SvgIcon>
 );

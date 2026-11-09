@@ -64,3 +64,48 @@ describe('ConnectPanel password reveal', () => {
     expect(showBtn()).toBeTruthy();
   });
 });
+
+describe('ConnectPanel icon controls', () => {
+  afterEach(cleanup);
+
+  const withState = (state: ConnState, onConnect: () => void = noop, onDisconnect: () => void = noop) => (
+    <ConnectPanel initial={{ url: 'ws://a:4455', password: 'pw' }} state={state} onConnect={onConnect} onDisconnect={onDisconnect} />
+  );
+  const glyph = (name: string) => screen.getByRole('button', { name }).querySelector('svg')?.getAttribute('data-icon');
+
+  it('shows an eye while hidden and a crossed eye while revealed, with no visible text', async () => {
+    render(withState({ kind: 'idle' }));
+    expect(screen.getByRole('button', { name: '表示' }).textContent).toBe('');
+    expect(glyph('表示')).toBe('eye');
+    await userEvent.click(screen.getByRole('button', { name: '表示' }));
+    expect(glyph('隠す')).toBe('eye-off');
+  });
+
+  it('connects from an icon-only submit button showing a plug', async () => {
+    const onConnect = vi.fn();
+    render(withState({ kind: 'idle' }, onConnect));
+    const button = screen.getByRole('button', { name: '接続' });
+    expect(button.getAttribute('type')).toBe('submit');
+    expect(button.textContent).toBe('');
+    expect(glyph('接続')).toBe('plug');
+    await userEvent.click(button);
+    expect(onConnect).toHaveBeenCalledWith({ url: 'ws://a:4455', password: 'pw' });
+  });
+
+  it('disconnects from the same submit button showing an unplugged plug', async () => {
+    const onDisconnect = vi.fn();
+    render(withState({ kind: 'open' }, noop, onDisconnect));
+    const button = screen.getByRole('button', { name: '切断' });
+    expect(button.getAttribute('type')).toBe('submit');
+    expect(glyph('切断')).toBe('unplug');
+    await userEvent.click(button);
+    expect(onDisconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the current label as a tooltip on keyboard focus', async () => {
+    render(withState({ kind: 'open' }));
+    screen.getByRole('button', { name: '切断' }).focus();
+    await userEvent.keyboard('{Shift>}{Tab}{/Shift}{Tab}');
+    expect(screen.getByRole('tooltip').textContent).toBe('切断');
+  });
+});
