@@ -94,8 +94,6 @@ void release_browser()
 	g_container = nullptr;
 }
 
-void on_frontend_event(enum obs_frontend_event event, void *);
-
 bool is_already_revealed(const char *flag_path)
 {
 	OBSDataAutoRelease flag = obs_data_create_from_json_file_safe(flag_path, "bak");
@@ -132,6 +130,8 @@ void reveal_dock_on_first_run()
 	save_revealed_flag(flag_path.Get());
 }
 
+void on_frontend_event(enum obs_frontend_event event, void *);
+
 void remove_event_callback()
 {
 	if (!g_event_callback_registered)
@@ -145,9 +145,11 @@ void on_frontend_event(enum obs_frontend_event event, void *)
 	switch (event) {
 	case OBS_FRONTEND_EVENT_FINISHED_LOADING:
 		attach_browser();
+		reveal_dock_on_first_run();
 		break;
 	case OBS_FRONTEND_EVENT_EXIT:
 		release_browser();
+		remove_event_callback();
 		break;
 	default:
 		break;
