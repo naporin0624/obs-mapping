@@ -101,6 +101,42 @@ describe('Editor later edits', () => {
   });
 });
 
+describe('Editor history keys', () => {
+  useEnvironment();
+
+  const editGrid = async (store: Awaited<ReturnType<typeof renderEditor>>) => {
+    await act(async () => {
+      store.set(dispatchAtom, { type: 'setGrid', size: 20 });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+  };
+  const undo = (): HTMLButtonElement => screen.getByRole('button', { name: '元に戻す' });
+
+  it('undoes with Cmd+Z while focus is on a button outside the Stage', async () => {
+    const store = await renderEditor(fakeObs(mapping(10)));
+    await editGrid(store);
+    const button = screen.getAllByRole('button').find((b) => !b.closest('[role="application"]') && b !== undo());
+    if (button === undefined) throw new Error('no button');
+    button.focus();
+    act(() => {
+      fireEvent.keyDown(button, { key: 'z', metaKey: true });
+    });
+    expect(undo().disabled).toBe(true);
+  });
+
+  it('leaves Cmd+Z in a number field to the browser', async () => {
+    const store = await renderEditor(fakeObs(mapping(10)));
+    await editGrid(store);
+    const field = screen.getAllByRole('spinbutton')[0];
+    if (field === undefined) throw new Error('no number field');
+    field.focus();
+    act(() => {
+      fireEvent.keyDown(field, { key: 'z', metaKey: true });
+    });
+    expect(undo().disabled).toBe(false);
+  });
+});
+
 describe('Editor reconnect and source switch', () => {
   useEnvironment();
 

@@ -14,11 +14,13 @@ describe('keyAction', () => {
     expect(keyAction(key('Backspace'))).toEqual({ type: 'removeSelected' });
   });
 
-  it('maps Cmd+Z / Cmd+Shift+Z / Cmd+D', () => {
-    expect(keyAction(key('z', { metaKey: true }))).toEqual({ type: 'undo' });
-    expect(keyAction(key('z', { metaKey: true, shiftKey: true }))).toEqual({ type: 'redo' });
-    expect(keyAction(key('Z', { ctrlKey: true, shiftKey: true }))).toEqual({ type: 'redo' });
+  it('maps Cmd+D', () => {
     expect(keyAction(key('d', { metaKey: true }))).toEqual({ type: 'duplicateSelected' });
+  });
+
+  it('leaves Cmd+Z / Cmd+Shift+Z to the document-wide history keys', () => {
+    expect(keyAction(key('z', { metaKey: true }))).toBeNull();
+    expect(keyAction(key('Z', { ctrlKey: true, shiftKey: true }))).toBeNull();
   });
 
   it('ignores unrelated keys and modified arrows', () => {
