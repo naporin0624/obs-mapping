@@ -369,6 +369,59 @@ jobs:
             exit 1
           }
 
+      # Installs for real on the throwaway runner, so {app} mapping and uninstall cleanup are checked too
+      - name: Check Installer 🔍
+        run: |
+          # Check Installer 🔍
+          $Name = "${{ steps.setup.outputs.pluginName }}"
+          $Base = "release/${Name}-${{ steps.setup.outputs.pluginVersion }}-windows-x64"
+          $Installer = "${Base}-installer.exe"
+          if ( -not (Test-Path -Path $Installer -PathType Leaf) ) {
+            Write-Output "::error::installer missing: ${Installer}"
+            exit 1
+          }
+
+          $AppDir = Join-Path $Env:ProgramData "obs-studio\plugins\${Name}"
+          $SetupArgs = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$(Join-Path $Env:RUNNER_TEMP 'installer.log')")
+          $Setup = Start-Process -FilePath (Resolve-Path -Path $Installer).Path -ArgumentList $SetupArgs -Wait -PassThru
+          if ( $Setup.ExitCode -ne 0 ) {
+            Get-Content -Path (Join-Path $Env:RUNNER_TEMP 'installer.log')
+            Write-Output "::error::installer exited with code $($Setup.ExitCode)"
+            exit 1
+          }
+
+          foreach ( $Required in @("bin\64bit\${Name}.dll", 'data\ui\index.html') ) {
+            if ( -not (Test-Path -Path (Join-Path $AppDir $Required) -PathType Leaf) ) {
+              Write-Output "::error::installer did not install {app}\${Required}"
+              exit 1
+            }
+          }
+
+          $Unzipped = Join-Path $Env:RUNNER_TEMP 'unzipped'
+          Expand-Archive -Path "${Base}.zip" -DestinationPath $Unzipped -Force
+          function Get-Tree([string] $Root) {
+            Get-ChildItem -Path $Root -Recurse -File |
+              ForEach-Object { [System.IO.Path]::GetRelativePath($Root, $_.FullName) } |
+              Where-Object { $_ -notlike 'unins000.*' } |
+              Sort-Object
+          }
+          $Diff = Compare-Object -ReferenceObject @(Get-Tree (Join-Path $Unzipped $Name)) -DifferenceObject @(Get-Tree $AppDir)
+          if ( $Diff ) {
+            $Diff | Format-Table -AutoSize | Out-String | Write-Output
+            Write-Output "::error::installer contents differ from ${Base}.zip"
+            exit 1
+          }
+
+          Start-Process -FilePath (Join-Path $AppDir 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+          $Deadline = (Get-Date).AddSeconds(60)
+          while ( (Test-Path -Path $AppDir) -and ((Get-Date) -lt $Deadline) ) {
+            Start-Sleep -Seconds 1
+          }
+          if ( Test-Path -Path $AppDir ) {
+            Write-Output "::error::uninstaller left ${AppDir} behind"
+            exit 1
+          }
+
       - name: Upload Artifacts 📡
         uses: actions/upload-artifact@v4
         with:

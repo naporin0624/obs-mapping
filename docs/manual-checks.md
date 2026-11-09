@@ -231,3 +231,12 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 - [ ] 2-3: ドックを左に移して再起動すると、左のまま。
 - [ ] 2-4: 2-2 の状態で再インストール（アップデート）して起動しても、閉じたまま。
 - [ ] 2-5: OBS を終了したとき、ログに `Tried to call obs_frontend_remove_event_callback with no callbacks!` が出ない。
+
+## Windows インストーラー
+
+前提: OBS を終了してから、CI の artifact にある `obs-mapping-<version>-windows-x64-installer.exe` を Windows 実機で実行する。
+
+チェック:
+- [ ] 3-1: `.exe` を実行し、SmartScreen で「詳細情報 → 実行」→ UAC → 完了まで進む。`C:\ProgramData\obs-studio\plugins\obs-mapping\bin\64bit\obs-mapping.dll` がある。
+- [ ] 3-2: 「アプリと機能」に「OBS Mapping」が 1 件だけ出る。アンインストールすると `C:\ProgramData\obs-studio\plugins\obs-mapping` がフォルダーごと消える。
+- [ ] 3-3: 古い版を入れたフォルダーにダミーファイルを置いてから新しい版を入れると、ダミーファイルが消えている（旧版にしかないファイルが残らない）。

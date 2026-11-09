@@ -53,6 +53,7 @@ function Package {
         ErrorAction = 'SilentlyContinue'
         Path = @(
             "${ProjectRoot}/release/${ProductName}-*-windows-*.zip"
+            "${ProjectRoot}/release/${ProductName}-*-windows-*-installer.exe"
         )
     }
 
@@ -66,7 +67,26 @@ function Package {
         Verbose = ($Env:CI -ne $null)
     }
     Compress-Archive -Force @CompressArgs
+
+    Log-Group "Building ${ProductName} installer..."
+    $IsccArgs = @(
+        "/DSourceTree=$(Join-Path $ProjectRoot "release\${Configuration}\${ProductName}")"
+        "/O$(Join-Path $ProjectRoot 'release')"
+        (Join-Path $ProjectRoot "build_${Target}\installer-windows.iss")
+    )
+    Invoke-External (Get-Iscc) @IsccArgs
     Log-Group
+}
+
+function Get-Iscc {
+    $Iscc = "${Env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+
+    if ( ! ( Test-Path -Path $Iscc -PathType Leaf ) ) {
+        Log-Information 'Inno Setup not found, installing with Chocolatey...'
+        Invoke-External choco install innosetup -y --no-progress
+    }
+
+    return $Iscc
 }
 
 Package

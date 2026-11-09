@@ -1,0 +1,36 @@
+; SourceTree is the install tree that Package-Windows.ps1 also zips (release\<config>\@CMAKE_PROJECT_NAME@)
+#ifndef SourceTree
+  #error Pass /DSourceTree=<path to release\<config>\@CMAKE_PROJECT_NAME@> to ISCC
+#endif
+
+[Setup]
+AppId={{4E6186D0-0E11-4A11-9FF7-3E1E7D7298C9}
+AppName=@PLUGIN_DISPLAY_NAME@
+AppVersion=@CMAKE_PROJECT_VERSION@
+AppPublisher=@PLUGIN_AUTHOR@
+AppPublisherURL=@PLUGIN_WEBSITE@
+UninstallDisplayName=@PLUGIN_DISPLAY_NAME@
+DefaultDirName={commonappdata}\obs-studio\plugins\@CMAKE_PROJECT_NAME@
+DisableDirPage=yes
+DisableProgramGroupPage=yes
+PrivilegesRequired=admin
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+OutputBaseFilename=@CMAKE_PROJECT_NAME@-@CMAKE_PROJECT_VERSION@-windows-x64-installer
+Compression=lzma2
+SolidCompression=yes
+WizardStyle=modern
+ShowLanguageDialog=auto
+
+[Languages]
+Name: "en"; MessagesFile: "compiler:Default.isl"
+Name: "ja"; MessagesFile: "compiler:Languages\Japanese.isl"
+
+[InstallDelete]
+Type: filesandordirs; Name: "{app}"
+
+[Files]
+Source: "{#SourceTree}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}"
