@@ -1,7 +1,6 @@
 name: Site Checks
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
     paths:
       - 'site/**'
       - 'ui/src/**'
@@ -17,13 +16,14 @@ permissions:
 jobs:
   site-checks:
     name: Site Checks 🌐
-    if: github.event.action != 'closed'
     runs-on: ubuntu-24.04
     defaults:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Set Up pnpm 📦
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -31,7 +31,7 @@ jobs:
           version: 10.21.0
 
       - name: Set Up Node.js 🟢
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.15.0
           cache: pnpm
@@ -54,161 +54,3 @@ jobs:
 
       - name: Build And Check Output 🧱
         run: pnpm -C site test:dist
-
-  deploy-production:
-    name: Deploy Production 🚀
-    needs: site-checks
-    if: github.event_name == 'push'
-    runs-on: ubuntu-24.04
-    environment:
-      name: production
-      url: https://obs-mapping.napochaan.dev
-    concurrency:
-      group: site-deploy-production
-      cancel-in-progress: false
-    defaults:
-      run:
-        shell: bash
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set Up pnpm 📦
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: 10.21.0
-
-      - name: Set Up Node.js 🟢
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-          cache-dependency-path: |
-            site/pnpm-lock.yaml
-            site/deploy/pnpm-lock.yaml
-
-      - name: Install Dependencies 📥
-        run: |
-          pnpm -C site install --frozen-lockfile
-          pnpm -C site deploy:install
-
-      - name: Build 🧱
-        run: pnpm -C site build
-
-      - name: Deploy 🚀
-        run: pnpm --dir site/deploy exec cf deploy --message "${GITHUB_SHA}"
-
-  deploy-preview:
-    name: Deploy Preview 🔭
-    needs: site-checks
-    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pull-requests: write
-    concurrency:
-      group: site-preview-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
-    defaults:
-      run:
-        shell: bash
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set Up pnpm 📦
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: 10.21.0
-
-      - name: Set Up Node.js 🟢
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-          cache-dependency-path: |
-            site/pnpm-lock.yaml
-            site/deploy/pnpm-lock.yaml
-
-      - name: Install Dependencies 📥
-        run: |
-          pnpm -C site install --frozen-lockfile
-          pnpm -C site deploy:install
-
-      - name: Build 🧱
-        run: pnpm -C site build
-
-      - name: Deploy Preview 🔭
-        id: preview
-        run: |
-          pnpm --dir site/deploy exec cf previews deploy "${PREVIEW_NAME}" > "${RUNNER_TEMP}/preview.json"
-          url="$(jq -r '.preview_urls[0] // empty' "${RUNNER_TEMP}/preview.json")"
-          if [ -z "${url}" ]; then
-            echo "::error::cf previews deploy did not return a preview URL"
-            cat "${RUNNER_TEMP}/preview.json"
-            exit 1
-          fi
-          echo "url=${url}" >> "${GITHUB_OUTPUT}"
-
-      - name: Comment Preview URL 💬
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PREVIEW_URL: ${{ steps.preview.outputs.url }}
-        run: |
-          marker='<!-- obs-mapping-site-preview -->'
-          body="$(printf '%s\n### Site preview\n\n| | |\n|---|---|\n| URL | %s |\n| Commit | %s |\n' "${marker}" "${PREVIEW_URL}" "${HEAD_SHA}")"
-          comment_id="$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"${marker}\"))) | .id" | head -n 1)"
-          payload="$(jq -n --arg body "${body}" '{body: $body}')"
-          if [ -n "${comment_id}" ]; then
-            gh api -X PATCH "repos/${REPO}/issues/comments/${comment_id}" --input - <<< "${payload}" > /dev/null
-          else
-            gh api -X POST "repos/${REPO}/issues/${PR_NUMBER}/comments" --input - <<< "${payload}" > /dev/null
-          fi
-
-  delete-preview:
-    name: Delete Preview 🧹
-    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
-    concurrency:
-      group: site-preview-${{ github.event.pull_request.number }}
-      cancel-in-progress: true
-    defaults:
-      run:
-        shell: bash
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      PREVIEW_NAME: pr-${{ github.event.pull_request.number }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set Up pnpm 📦
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-        with:
-          version: 10.21.0
-
-      - name: Set Up Node.js 🟢
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24.15.0
-          cache: pnpm
-          cache-dependency-path: site/deploy/pnpm-lock.yaml
-
-      - name: Install Deploy Dependencies 📥
-        run: pnpm -C site deploy:install
-
-      - name: Delete Preview 🧹
-        # A PR whose checks never passed has no preview to delete.
-        run: |
-          if ! pnpm --dir site/deploy exec cf previews delete "${PREVIEW_NAME}" --worker obs-mapping-site --force; then
-            echo "::warning::Could not delete preview ${PREVIEW_NAME}; it may never have been deployed."
-          fi
