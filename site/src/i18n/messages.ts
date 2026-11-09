@@ -38,6 +38,8 @@ export type RootCopy = {
     global: AroundCopy;
   };
   env: { heading: string; macos: string; windows: string; obs: string };
+  /** The hero demo video: `description` is its accessible name, `pause`/`play` label its toggle. */
+  video: { description: string; pause: string; play: string };
 };
 
 export type SiteMessages = {

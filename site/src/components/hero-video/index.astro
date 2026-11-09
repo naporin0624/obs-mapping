@@ -1,0 +1,37 @@
+---
+import type { RootCopy } from '../../i18n/messages';
+import { heroCls, toggleCls, videoCls, visuallyHiddenCls } from './styles.css';
+
+type Props = { copy: RootCopy['video'] };
+
+const { copy } = Astro.props;
+---
+
+<div class={heroCls} data-hero-video>
+  <video
+    class={videoCls}
+    muted
+    loop
+    playsinline
+    preload="metadata"
+    poster="/videos/mapping-demo-poster.jpg"
+    width="1920"
+    height="1080"
+    aria-label={copy.description}
+    data-hero-video-media
+  >
+    <source src="/videos/mapping-demo.webm" type="video/webm" />
+    <source src="/videos/mapping-demo.mp4" type="video/mp4" />
+  </video>
+  <button type="button" class={toggleCls} hidden data-hero-video-toggle data-pause={copy.pause} data-play={copy.play}>
+    <svg data-icon="pause" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 2h4v12H3zM9 2h4v12H9z"></path></svg>
+    <svg data-icon="play" viewBox="0 0 16 16" aria-hidden="true" focusable="false" hidden><path d="M4 2l10 6-10 6z"></path></svg>
+    <span class={visuallyHiddenCls} data-hero-video-label>{copy.pause}</span>
+  </button>
+</div>
+
+<script>
+  import { mountHeroVideo } from './client';
+
+  mountHeroVideo(document);
+</script>
