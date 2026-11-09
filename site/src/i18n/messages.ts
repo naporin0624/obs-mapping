@@ -22,12 +22,15 @@ export type RootCopy = {
   /** Read after an external link's text; the visible ↗ is hidden from assistive tech. */
   external: string;
   can: { heading: string; items: readonly string[] };
-  how: {
+  install: {
     heading: string;
-    install: StepBody & { gatekeeper: string; readme: string };
-    connect: StepBody & { readme: string };
-    map: StepBody & { demos: string };
+    download: StepBody & { link: string };
+    /** `macos` and `macosOld` are the two macOS warnings; each reads on from the OS name shown before it. */
+    run: StepBody & { macos: string; macosOld: string; windows: string };
+    open: StepBody;
+    connect: StepBody;
   };
+  how: { heading: string; map: StepBody & { demos: string } };
   skills: {
     heading: string;
     lead: string;

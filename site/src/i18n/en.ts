@@ -29,19 +29,31 @@ export const en: SiteMessages = {
         `${dock.exportButton} and ${dock.importButton} the mapping as mapping.json, or read and write it from scripts through obs-websocket vendor requests`,
       ],
     },
-    how: {
-      heading: 'How to use it',
-      install: {
-        title: 'Install from Releases',
-        body: 'Quit OBS, then install a package from Releases on GitHub: the .pkg installer or the plugin bundle in a .tar.xz on macOS, or the .zip on Windows.',
-        gatekeeper: 'The macOS build is not signed or notarized by Apple, so Gatekeeper blocks it the first time. Press "Open Anyway" in System Settings > Privacy & Security.',
-        readme: 'The README lists where the files go and how to clear the quarantine attribute.',
+    install: {
+      heading: 'Install',
+      download: {
+        title: 'Download',
+        body: 'Pick the file for your OS from Releases: the .pkg on macOS, the .exe on Windows.',
+        link: 'Open Releases',
+      },
+      run: {
+        title: 'Quit OBS and run the installer',
+        body: 'Quit OBS before you install. The Windows installer will not continue while OBS is running.',
+        macos: 'On 15 or later, if a warning stops you, open System Settings > Privacy & Security and press "Open Anyway".',
+        macosOld: 'On 14 or earlier, if a warning stops you, right-click the pkg and choose "Open".',
+        windows: 'If SmartScreen shows a warning, press "More info", then "Run anyway".',
+      },
+      open: {
+        title: 'Open OBS',
+        body: 'The "OBS Mapping" dock is already on the right. It appears on its own only the first time.',
       },
       connect: {
-        title: 'Turn on obs-websocket and add the dock',
-        body: `Under Tools > WebSocket Server Settings, enable the server and set a password. Add the plugin's UI under Docks > Custom Browser Docks, then enter the URL and password in the dock and press "${dock.connectConnect}".`,
-        readme: 'The README has the URL to give the dock.',
+        title: 'Turn on WebSocket and connect',
+        body: `Under Tools > WebSocket Server Settings, enable the server and set a password. Enter that password in the dock and press "${dock.connectConnect}". The URL can stay at the default, ws://127.0.0.1:4455. From the next launch on, the dock reconnects by itself.`,
       },
+    },
+    how: {
+      heading: 'How to use it',
       map: {
         title: 'Add a Mapping source and fit the faces',
         body: `In OBS, add a Mapping source and choose it in the dock's "${dock.source}". Press "${dock.add}" to create a face, drag its corners onto the corners of the object, and cut it out with an ellipse or polygon under "${dock.maskHeading}".`,
@@ -65,7 +77,7 @@ export const en: SiteMessages = {
       heading: 'Requirements',
       macos: 'macOS (universal build for Apple Silicon and Intel): tested.',
       windows: 'Windows (x64): included in the releases, not yet tested on hardware.',
-      obs: 'OBS Studio 28 or later (obs-websocket built in)',
+      obs: 'OBS Studio 31.1.1 or later',
     },
     video: {
       description: "Dragging a surface's four corners in the dock until the video fits the two walls that meet at a room corner",

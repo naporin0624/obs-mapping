@@ -2,6 +2,7 @@
 import { localePath, messagesFor, type Lang } from '../../i18n/messages';
 import ExternalLink from '../external-link.astro';
 import HeroVideo from '../hero-video/index.astro';
+import RootInstall from '../root-install/index.astro';
 import RootSkills from '../root-skills.astro';
 import RootSteps from '../root-steps.astro';
 import { actionsCls, bulletsCls, leadCls, linksCls, rootCls, sectionCls } from './styles.css';
@@ -26,6 +27,11 @@ const t = messagesFor(lang);
   <section class={sectionCls} aria-labelledby="can">
     <h2 id="can">{t.root.can.heading}</h2>
     <ul class={bulletsCls}>{t.root.can.items.map((item) => <li>{item}</li>)}</ul>
+  </section>
+
+  <section class={sectionCls} aria-labelledby="install">
+    <h2 id="install">{t.root.install.heading}</h2>
+    <RootInstall lang={lang} releasesUrl={RELEASES_URL} />
   </section>
 
   <section class={sectionCls} aria-labelledby="how">

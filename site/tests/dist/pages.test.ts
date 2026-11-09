@@ -120,6 +120,38 @@ describe('top page', () => {
   });
 });
 
+// The <section aria-labelledby="id"> element; sections on the top page do not nest.
+const sectionById = (html: string, id: string): string => blocksOf(html, 'section').find((s) => new RegExp(`<section\\b[^>]*\\saria-labelledby="${id}"`).test(s)) ?? '';
+
+describe('top page install steps', () => {
+  it.each(['index.html', 'en/index.html'])('%s shows the four install steps in order', (path) => {
+    const section = sectionById(page(path), 'install');
+    expect(blocksOf(section, 'li')).toHaveLength(4);
+    expect(hrefs(section)).toContain(RELEASES);
+    expect(section).toMatch(/\.pkg/);
+    expect(section).toMatch(/\.exe/);
+    expect(section).toContain('ws://127.0.0.1:4455');
+    expect(section).not.toMatch(/<version>|&lt;version&gt;/);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s no longer asks to register a custom browser dock by hand', (path) => {
+    expect(blocksOf(sectionById(page(path), 'how'), 'li')).toHaveLength(1);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s orders install before how', (path) => {
+    const html = page(path);
+    expect(html.indexOf('id="install"')).toBeLessThan(html.indexOf('id="how"'));
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s states OBS 31.1.1 or later', (path) => {
+    expect(sectionById(page(path), 'env')).toContain('31.1.1');
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s marks the run step so other sections can link to it', (path) => {
+    expect(sectionById(page(path), 'install')).toContain('id="install-run"');
+  });
+});
+
 const HERO_COPY = {
   'index.html': {
     description: 'ドックで面の四隅をドラッグすると、部屋の角にある 2 面の壁に映像がぴったり合っていく様子',

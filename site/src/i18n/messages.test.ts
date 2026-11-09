@@ -135,8 +135,8 @@ describe('root page copy', () => {
     for (const item of messagesFor(lang).root.can.items) expect(item).not.toBe('');
   });
 
-  it.each(langs)('%s: the dock step names the dock connect label', (lang) => {
-    expect(messagesFor(lang).root.how.connect.body).toContain(docks[lang].connectConnect);
+  it.each(langs)('%s: the connect step names the dock connect label', (lang) => {
+    expect(messagesFor(lang).root.install.connect.body).toContain(docks[lang].connectConnect);
   });
 
   it.each(langs)('%s: the mapping step names the dock source, add and shape labels', (lang) => {
@@ -144,10 +144,13 @@ describe('root page copy', () => {
     for (const label of [docks[lang].source, docks[lang].add, docks[lang].maskHeading]) expect(body).toContain(label);
   });
 
-  it.each(langs)('%s: the install step names every release package', (lang) => {
-    const body = messagesFor(lang).root.how.install.body;
-    for (const ext of ['.pkg', '.tar.xz', '.zip']) expect(body).toContain(ext);
-    expect(messagesFor(lang).root.how.install.gatekeeper).toContain('Gatekeeper');
+  it.each(langs)('%s: the download step names both installer extensions', (lang) => {
+    const { body } = messagesFor(lang).root.install.download;
+    for (const ext of ['.pkg', '.exe']) expect(body).toContain(ext);
+  });
+
+  it.each(langs)('%s: the connect step keeps the default URL', (lang) => {
+    expect(messagesFor(lang).root.install.connect.body).toContain('ws://127.0.0.1:4455');
   });
 
   it.each(langs)('%s: describes every published skill', (lang) => {

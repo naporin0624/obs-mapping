@@ -29,19 +29,31 @@ export const ja: SiteMessages = {
         `マッピングを mapping.json として${dock.exportButton}・${dock.importButton}できる。obs-websocket のベンダーリクエストで、スクリプトからも読み書きできる`,
       ],
     },
-    how: {
-      heading: '使い方',
-      install: {
-        title: 'Releases から入れる',
-        body: 'OBS を終了してから、GitHub の Releases にあるパッケージを入れます。macOS はインストーラーの .pkg か、プラグイン本体を固めた .tar.xz、Windows は .zip です。',
-        gatekeeper: 'macOS 版には Apple の署名と公証がないため、初回は Gatekeeper に止められます。「システム設定 > プライバシーとセキュリティ」で「このまま開く」を押してください。',
-        readme: '置き場所と隔離属性の外し方は README にあります。',
+    install: {
+      heading: '導入',
+      download: {
+        title: 'ダウンロードする',
+        body: 'Releases から、自分の OS 用のファイルを選びます。macOS は .pkg、Windows は .exe です。',
+        link: 'Releases を開く',
+      },
+      run: {
+        title: 'OBS を終了して、インストーラーを実行する',
+        body: 'インストールの前に、OBS を終了しておきます。Windows のインストーラーは、OBS が起動していると先へ進めません。',
+        macos: '15 以降で警告に止められたら、「システム設定 > プライバシーとセキュリティ」を開き、「このまま開く」を押します。',
+        macosOld: '14 以前で警告に止められたら、pkg を右クリックして「開く」を選びます。',
+        windows: 'SmartScreen の警告が出たら、「詳細情報」を押して「実行」を選びます。',
+      },
+      open: {
+        title: 'OBS を開く',
+        body: '右側に「OBS Mapping」ドックが出ています。ドックが自動で出るのは初回だけです。',
       },
       connect: {
-        title: 'obs-websocket を有効にし、ドックを登録する',
-        body: `「ツール > WebSocket サーバー設定」でサーバーを有効にし、パスワードを設定します。「ドック > カスタムブラウザドック」にプラグインの UI を登録し、ドックで URL とパスワードを入れて「${dock.connectConnect}」を押します。`,
-        readme: 'ドックに登録する URL は README にあります。',
+        title: 'WebSocket を有効にして接続する',
+        body: `「ツール > WebSocket サーバー設定」でサーバーを有効にし、パスワードを設定します。ドックにそのパスワードを入れて、「${dock.connectConnect}」を押します。URL は既定の ws://127.0.0.1:4455 のままでかまいません。次回からは自動で再接続します。`,
       },
+    },
+    how: {
+      heading: '使い方',
       map: {
         title: 'Mapping ソースを追加し、面を合わせる',
         body: `OBS で Mapping ソースを追加し、ドックの「${dock.source}」で選びます。「${dock.add}」で面を作って四隅を物体の角に合わせ、「${dock.maskHeading}」で円や多角形に切り抜きます。`,
@@ -65,7 +77,7 @@ export const ja: SiteMessages = {
       heading: '対応環境',
       macos: 'macOS（Apple Silicon / Intel のユニバーサルビルド）: 動作を確認しています。',
       windows: 'Windows（x64）: リリースに含めていますが、実機での確認はまだです。',
-      obs: 'OBS Studio 28 以降（obs-websocket が標準で入っている版）',
+      obs: 'OBS Studio 31.1.1 以降',
     },
     video: {
       description: 'ドックで面の四隅をドラッグすると、部屋の角にある 2 面の壁に映像がぴったり合っていく様子',
