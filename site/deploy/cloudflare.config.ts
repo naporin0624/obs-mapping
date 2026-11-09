@@ -12,7 +12,7 @@ export default defineConfig({
     compatibilityDate: '2026-11-04',
     domains: ['obs-mapping.napochaan.dev'],
     workersDev: false,
-    previewUrls: false,
+    previewUrls: true,
     assets: { htmlHandling: 'auto-trailing-slash', notFoundHandling: '404-page' },
   },
 });

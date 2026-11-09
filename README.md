@@ -277,7 +277,17 @@ pnpm -C site test:dist   # build して dist のページを検査
 pnpm -C site dev         # 開発サーバー
 ```
 
-Cloudflare Workers（静的アセット）へのデプロイは `cf` CLI で行います。`cf` は Astro プロジェクトから切り離して `site/deploy/` に入れています。デプロイは手元からだけで、GitHub Actions には載せていません。
+Cloudflare Workers（静的アセット）へのデプロイは `cf` CLI で行います。`cf` は Astro プロジェクトから切り離して `site/deploy/` に入れています。
+
+GitHub Actions（`.github/workflows/site-checks.yaml`）が、サイトの検査が通ったあとにデプロイします。
+
+- `main` への push: 本番（`obs-mapping.napochaan.dev`）へ `cf deploy` します。
+- PR: `pr-<番号>` という名前の Preview をデプロイし、URL を PR のコメントに書きます（コメントは 1 つで、push のたびに更新します）。fork からの PR ではデプロイしません。
+- PR を閉じたとき: その Preview を削除します。
+
+リポジトリのシークレットに `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` が必要です。Preview の URL（`*.workers.dev`）は `site/public/_headers` で `noindex` にしています。
+
+手元からデプロイするときは次のとおりです。
 
 ```sh
 export CLOUDFLARE_ACCOUNT_ID=<自分のアカウント ID>
