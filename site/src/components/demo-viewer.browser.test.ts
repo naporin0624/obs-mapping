@@ -506,6 +506,12 @@ describe('startDemoViewer steps and view', () => {
     };
   };
 
+  // Dozens of real draws on software GL queue seconds of GPU work that the next test's getContext waits for.
+  // The tests that run many frames only check the loop and the camera, so they skip drawing.
+  const skipDraws: Pick<ViewerDeps, 'createRenderer'> = {
+    createRenderer: (canvas) => Object.assign(new THREE.WebGLRenderer({ canvas }), { render: () => undefined }),
+  };
+
   // Simulated frame clock, so damping and the step tween can run to completion.
   const runFrames = (count: number, stepMs = 16): void => {
     const t0 = performance.now();
@@ -513,7 +519,7 @@ describe('startDemoViewer steps and view', () => {
   };
 
   it('stops booking frames once a step tween and a damped glide have settled, with the sample paused', () => {
-    start({ motion: motionQuery(false) });
+    start({ ...skipDraws, motion: motionQuery(false) });
     sampleToggle().click();
     frames.flush();
     stepRadio('fit').click();
@@ -524,7 +530,7 @@ describe('startDemoViewer steps and view', () => {
 
   it('lands exactly on the start pose when reset during a damped glide', () => {
     const recorded = recordControls();
-    start({ ...recorded.deps, motion: motionQuery(false) });
+    start({ ...recorded.deps, ...skipDraws, motion: motionQuery(false) });
     frames.flush();
     const camera = recorded.controls().object;
     const initial = startPose(scenes.stairs.projector, sceneBounds(scenes.stairs)).position;
