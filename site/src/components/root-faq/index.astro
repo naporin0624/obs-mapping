@@ -15,9 +15,9 @@ const isExternal = (href: string): boolean => href.startsWith('http');
     <div class={groupCls}>
       <h3>{group.heading}</h3>
       {group.items.map((item) => (
-        <details class={itemCls} id={item.id} open={group.open}>
+        <details class={itemCls} open={group.open}>
           <summary>{item.q}</summary>
-          <div class={answerCls}>
+          <div class={answerCls} id={item.id}>
             {item.a.map((paragraph) => <p>{paragraph}</p>)}
             {item.links && (
               <p class={linksCls}>

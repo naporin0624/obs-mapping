@@ -190,7 +190,11 @@ describe('top page FAQ', () => {
 
   it.each(['index.html', 'en/index.html'])('%s links the install step to the dock answer', (path) => {
     expect(hrefs(sectionById(page(path), 'install'))).toContain('#faq-dock');
-    expect(sectionById(page(path), 'faq')).toContain('id="faq-dock"');
+    const details = sectionById(page(path), 'faq').match(/<details[^>]*>[\s\S]*?<\/details>/g) ?? [];
+    const owner = details.find((block) => block.includes('id="faq-dock"')) ?? '';
+    expect(owner).not.toBe('');
+    expect(owner).not.toMatch(/^<details[^>]*id="faq-dock"/);
+    expect(owner).not.toMatch(/<summary[^>]*id="faq-dock"/);
   });
 
   it.each(['index.html', 'en/index.html'])('%s links the README sections by their GitHub anchors', (path) => {

@@ -16,12 +16,13 @@ export const itemCls = css({
   },
   '& > summary::marker': { color: 'fg.muted' },
   '& > summary:focus-visible': { outline: '{borderWidths.strong} solid {colors.border.focus}', outlineOffset: '2px' },
-  '&:target > summary': { textDecoration: 'underline' },
+  '&:has(:target) > summary': { textDecoration: 'underline' },
 });
 export const answerCls = css({
   display: 'grid',
   gap: '8px',
   padding: '0 0 16px 1.5em',
+  scrollMarginTop: 'calc(2 * {sizes.target-min} + 16px)',
   '& p': { margin: 0 },
 });
 export const linksCls = css({
