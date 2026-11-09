@@ -1,0 +1,5 @@
+#!/bin/sh
+# $3 is the target volume root; remove only this plugin's old bundle
+set -eu
+rm -rf "${3%/}/Library/Application Support/obs-studio/plugins/@CMAKE_PROJECT_NAME@.plugin"
+exit 0

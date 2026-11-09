@@ -242,3 +242,11 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 - [ ] 3-3: 古い版を入れたフォルダーにダミーファイルを置いてから新しい版を入れると、ダミーファイルが消えている（旧版にしかないファイルが残らない）。
 - [ ] 4-1: OBS を起動したままインストールまたはアンインストールすると、「OBS を閉じてから、もう一度インストーラーを実行してください。」が出て止まる。
 - [ ] 4-2: OBS がない環境（またはレジストリキー `HKLM\SOFTWARE\OBS Studio` を一時的に外した状態）でインストーラーを実行すると警告が出て、「はい」で続行できる。
+
+## macOS pkg
+
+前提: OBS を終了してから、CI の artifact にある `obs-mapping-<version>-macos-universal.pkg` を実機で開く。
+
+チェック:
+- [ ] 5-1: 旧版を入れた後、`/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` の中にダミーファイルを置いてから新版の pkg を入れると、ダミーファイルが消えている。
+- [ ] 5-2: 署名なしの pkg を開くと止められ、README の手順（Task 6）で入れられる。入れた後の `obs-mapping.plugin` に `com.apple.quarantine` が付いているか（`xattr -l`）を記録する。

@@ -180,6 +180,22 @@ jobs:
           codesignUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
           codesignPass: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
 
+      - name: Check Preinstall In Package 🔍
+        if: fromJSON(needs.check-event.outputs.package)
+        run: |
+          : Check Preinstall In Package 🔍
+          local pkg=(release/*.pkg(N))
+          if (( ${#pkg} == 0 )) {
+            print "::error::No .pkg found in release/"
+            exit 1
+          }
+          pkgutil --expand ${pkg[1]} ${RUNNER_TEMP}/pkg-expanded
+          local script=(${RUNNER_TEMP}/pkg-expanded/*.pkg/Scripts/preinstall(N))
+          if (( ${#script} == 0 )) || [[ ! -x ${script[1]} ]] {
+            print "::error::preinstall missing or not executable in the pkg"
+            exit 1
+          }
+
       # package-macos emits either .pkg or .tar.xz; ship the bare bundle next to the .pkg as well
       - name: Archive Plugin Bundle 🗜️
         if: fromJSON(needs.check-event.outputs.package)
