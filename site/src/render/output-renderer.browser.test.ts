@@ -87,6 +87,7 @@ describe('createOutputRenderer', () => {
   afterEach(() => {
     out.dispose();
     gl.dispose();
+    gl.forceContextLoss();
   });
 
   it('renders into a 1920x1080 target', () => {

@@ -133,10 +133,16 @@ const flushUntil = async (check: () => void): Promise<void> =>
     { timeout: 10_000, interval: 20 },
   );
 
+// Dozens of real draws on software GL queue seconds of GPU work that the next test's getContext waits for.
+// The tests that run many frames only check the loop, the camera or the status, so they skip drawing.
+const skipDraws: Pick<ViewerDeps, 'createRenderer'> = {
+  createRenderer: (canvas) => Object.assign(new THREE.WebGLRenderer({ canvas }), { render: () => undefined }),
+};
+
 type Spied = { deps: Partial<ViewerDeps>; stage: () => THREE.Scene; renderer: () => THREE.WebGLRenderer };
 
 // Records the scene drawn to the screen (not a render target), which holds the projector body.
-const spyStage = (options: THREE.WebGLRendererParameters = {}): Spied => {
+const spyStage = ({ draw = true, ...options }: THREE.WebGLRendererParameters & { draw?: boolean } = {}): Spied => {
   let stage: THREE.Scene | null = null;
   let renderer: THREE.WebGLRenderer | null = null;
   return {
@@ -146,7 +152,7 @@ const spyStage = (options: THREE.WebGLRendererParameters = {}): Spied => {
         const original = created.render.bind(created);
         created.render = (scene, camera) => {
           if (scene instanceof THREE.Scene && scene.getObjectByName('projector-body') !== undefined) stage = scene;
-          original(scene, camera);
+          if (draw) original(scene, camera);
         };
         renderer = created;
         return created;
@@ -253,7 +259,7 @@ describe('startDemoViewer OBS camera input', () => {
   });
 
   it('projects the camera texture itself, not the in-page output, and says a 4:3 frame is letterboxed', async () => {
-    const spied = spyStage();
+    const spied = spyStage({ draw: false });
     start({ ...spied.deps, media: media(() => Promise.resolve(repaintingStream()), [device('cam-obs', 'OBS Virtual Camera')]) });
     frames.flush();
     const output = projectedMap(spied.stage());
@@ -270,7 +276,7 @@ describe('startDemoViewer OBS camera input', () => {
   it('names the other camera when there is no OBS camera', async () => {
     const stream = repaintingStream();
     for (const track of stream.getVideoTracks()) track.getSettings = () => ({ deviceId: 'cam-1' });
-    start({ media: media(() => Promise.resolve(stream), [device('cam-1', 'FaceTime HD Camera')]) });
+    start({ ...skipDraws, media: media(() => Promise.resolve(stream), [device('cam-1', 'FaceTime HD Camera')]) });
     obsRadio().click();
     await flushUntil(() => expect(status()).toContain('other FaceTime HD Camera'));
   });
@@ -348,7 +354,7 @@ describe('startDemoViewer OBS camera input', () => {
       return wanted !== undefined && JSON.stringify(wanted).includes('cam-1') ? Promise.reject(new DOMException('busy', 'NotReadableError')) : Promise.resolve(working);
     });
     for (const track of working.getVideoTracks()) track.getSettings = () => ({ deviceId: 'cam-obs' });
-    start({ media: media(getUserMedia, [device('cam-obs', 'OBS Virtual Camera'), device('cam-1', 'FaceTime HD Camera')]) });
+    start({ ...skipDraws, media: media(getUserMedia, [device('cam-obs', 'OBS Virtual Camera'), device('cam-1', 'FaceTime HD Camera')]) });
     obsRadio().click();
     await flushUntil(() => expect(root.dataset['source']).toBe('camera'));
     const select = el('[data-device]', HTMLSelectElement);
@@ -373,7 +379,7 @@ describe('startDemoViewer OBS camera input', () => {
 
   it('joins status sentences with the separator the page language asks for', async () => {
     root.querySelector('[data-camera-status]')?.setAttribute('data-join', '');
-    start({ media: media(() => Promise.resolve(repaintingStream()), [device('cam-obs', 'OBS Virtual Camera')]) });
+    start({ ...skipDraws, media: media(() => Promise.resolve(repaintingStream()), [device('cam-obs', 'OBS Virtual Camera')]) });
     obsRadio().click();
     await flushUntil(() => expect(status()).toBe('obsletterbox'));
   });
@@ -504,12 +510,6 @@ describe('startDemoViewer steps and view', () => {
         return created;
       },
     };
-  };
-
-  // Dozens of real draws on software GL queue seconds of GPU work that the next test's getContext waits for.
-  // The tests that run many frames only check the loop and the camera, so they skip drawing.
-  const skipDraws: Pick<ViewerDeps, 'createRenderer'> = {
-    createRenderer: (canvas) => Object.assign(new THREE.WebGLRenderer({ canvas }), { render: () => undefined }),
   };
 
   // Simulated frame clock, so damping and the step tween can run to completion.
