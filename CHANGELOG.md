@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.5.0](https://github.com/naporin0624/obs-mapping/compare/0.4.0...0.5.0) (2026-11-09)
+
+
+### Features
+
+* **dock:** OBS Mapping ドックを起動時に登録する ([e7cd99d](https://github.com/naporin0624/obs-mapping/commit/e7cd99d655faff374e834d26fa8504d367d56c37))
+* **dock:** 初回起動時にドックを右側に表示する ([b642b1e](https://github.com/naporin0624/obs-mapping/commit/b642b1e5c791497722a0b814ed4bd890114c21d0))
+* **installer:** macOS の pkg で古いバンドルを消してから入れる ([4462fe8](https://github.com/naporin0624/obs-mapping/commit/4462fe88e8a247a69e5b228b9c8513feb65bae05))
+* **installer:** OBS 起動中は止め、OBS が無いか古いときは警告する ([4fdd72f](https://github.com/naporin0624/obs-mapping/commit/4fdd72f7f630dbfb2c5ead1d64d549b843878a7a))
+* **installer:** Windows インストーラーを CI で作り、リリースに添付する ([8712485](https://github.com/naporin0624/obs-mapping/commit/8712485f25b9f2272c321ebdbbb22007688583f0))
+* **site:** トップのヒーローをマッピングのデモ動画にする ([524ef8f](https://github.com/naporin0624/obs-mapping/commit/524ef8f663db596b374a27512294d325588db33b))
+* **ui:** undo/redo のショートカットを dock 全体で効かせる ([02c14aa](https://github.com/naporin0624/obs-mapping/commit/02c14aaeff806ce51ebb8c9152b16684042239ca))
+* **ui:** ツールバーを popover とアイコンで整理し、undo/redo を dock 全体で効かせる ([ffb9d50](https://github.com/naporin0624/obs-mapping/commit/ffb9d50701bae5325136a8fd9a2af96520819536))
+* **ui:** 整列・等間隔を popover にまとめ、操作ボタンをアイコンにする ([d4b40b2](https://github.com/naporin0624/obs-mapping/commit/d4b40b29ba04609507d427239dd7c18283346f7b))
+* Windows / macOS のインストーラー配布と OBS Mapping ドックの自動表示 ([bde8d47](https://github.com/naporin0624/obs-mapping/commit/bde8d47901405dbcb6cd751026bcd0531aef7260))
+
+
+### Bug Fixes
+
+* **dock:** 初回表示の呼び出しと終了時のコールバック解除を接続する ([6c054e5](https://github.com/naporin0624/obs-mapping/commit/6c054e54735008b236006f621d646740368c62e0))
+* **dock:** 設定フォルダーを UTF-8 のまま作り、ブラウザが付いたときだけ初回表示する ([1df2981](https://github.com/naporin0624/obs-mapping/commit/1df2981d69f8dad0e9db1941bb2498b863db0ba1))
+* **installer:** macOS の pkg はホームに入るので、preinstall と案内の場所を直す ([e686d11](https://github.com/naporin0624/obs-mapping/commit/e686d1173a971145b87d28b0144174085ac7f922))
+* **installer:** 上書きインストールでアンインストーラーを消さず、CI で上書きを確かめる ([2d0b890](https://github.com/naporin0624/obs-mapping/commit/2d0b890e9e7a906b86a60afabee65b03ed336aac))
+* **ui:** OBS の入力やシーンコレクションが変わったら入力候補を読み込み直す ([33850ec](https://github.com/naporin0624/obs-mapping/commit/33850ec12bbea7bced5a025cc65b10bf39f8b44e))
+* **ui:** OBS の入力やシーンコレクションが変わったら入力候補を読み込み直す ([40fc97e](https://github.com/naporin0624/obs-mapping/commit/40fc97ef70289e2980d4e2765f8458c686e96bf3))
+* **ui:** モーダル表示中は undo しない、グリッドのアイコンでも tooltip を出す ([ee11218](https://github.com/naporin0624/obs-mapping/commit/ee11218edf7e5e2d3404d4bc3881ec8f17da45d0))
+
 ## [0.4.0](https://github.com/naporin0624/obs-mapping/compare/0.3.0...0.4.0) (2026-11-04)
 
 
