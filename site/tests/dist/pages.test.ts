@@ -249,7 +249,7 @@ describe('document head', () => {
     expect(metaContent(html, 'property', 'og:type')).toBe('website');
     expect(metaContent(html, 'property', 'og:title')).not.toBe('');
     expect(metaContent(html, 'property', 'og:description')).not.toBe('');
-    expect(metaContent(html, 'property', 'og:image')).toMatch(/^https:\/\/obs-mapping\.napochaan\.dev\/_astro\/thumbnail\.[\w-]+\.jpg$/);
+    expect(metaContent(html, 'property', 'og:image')).toMatch(/^https:\/\/obs-mapping\.napochaan\.dev\/_astro\/mapping-demo\.[\w-]+\.jpg$/);
     expect(metaContent(html, 'name', 'twitter:card')).toBe('summary_large_image');
   });
 
