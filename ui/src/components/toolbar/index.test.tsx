@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Provider, createStore } from 'jotai';
@@ -33,25 +33,61 @@ const show = (selectedCount: number, extra: Extra = {}) =>
   );
 
 describe('Toolbar align / distribute', () => {
-  it('enables Align with one selected surface', () => {
+  it('enables 整列 with one selected surface', () => {
     show(1);
-    expect(screen.getByRole('button', { name: '左揃え' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: '整列' }).hasAttribute('disabled')).toBe(false);
     expect(screen.queryByText('面を選択')).toBeNull();
   });
-  it('disables Align with none selected and explains why', () => {
+  it('disables 整列 with none selected and explains why', () => {
     show(0);
-    const left = screen.getByRole('button', { name: '左揃え', description: '面を選択' });
-    expect(left.hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '整列', description: '面を選択' }).hasAttribute('disabled')).toBe(true);
   });
-  it('explains that Distribute needs 3 or more surfaces', () => {
+  it('explains that 等間隔 needs 3 or more surfaces', () => {
     show(2);
-    const h = screen.getByRole('button', { name: '横に等間隔', description: '3面以上を選択' });
-    expect(h.hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: '等間隔', description: '3面以上を選択' }).hasAttribute('disabled')).toBe(true);
   });
-  it('enables Distribute with three and drops the reason', () => {
+  it('enables 等間隔 with three and drops the reason', () => {
     show(3);
-    expect(screen.getByRole('button', { name: '縦に等間隔' }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByRole('button', { name: '等間隔' }).hasAttribute('disabled')).toBe(false);
     expect(screen.queryByText('3面以上を選択')).toBeNull();
+  });
+});
+
+describe('Toolbar align / distribute popovers', () => {
+  it('keeps the six align modes behind 整列, horizontal then vertical', async () => {
+    const user = userEvent.setup();
+    show(1);
+    await user.click(screen.getByRole('button', { name: '整列' }));
+    const dialog = await screen.findByRole('dialog', { name: '整列' });
+    expect(
+      within(dialog)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['左揃え', '左右中央', '右揃え', '上揃え', '上下中央', '下揃え']);
+  });
+  it.each([
+    ['左揃え', 'left'],
+    ['上下中央', 'centerY'],
+  ] as const)('dispatches align from %s and closes the popover', async (name, mode) => {
+    const dispatch = vi.fn();
+    const user = userEvent.setup();
+    show(1, { dispatch });
+    await user.click(screen.getByRole('button', { name: '整列' }));
+    await user.click(await screen.findByRole('button', { name }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'align', mode });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+  it.each([
+    ['横に等間隔', 'x'],
+    ['縦に等間隔', 'y'],
+  ] as const)('dispatches distribute from %s and closes the popover', async (name, axis) => {
+    const dispatch = vi.fn();
+    const user = userEvent.setup();
+    show(3, { dispatch });
+    await user.click(screen.getByRole('button', { name: '等間隔' }));
+    await user.click(await screen.findByRole('button', { name }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'distribute', axis });
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 
@@ -59,8 +95,8 @@ describe('Toolbar immovable selection', () => {
   it('replaces the generic reason when the selection has nothing movable', () => {
     const note = 'グループの中の要素は、グループが位置を決めています';
     show(0, { immovableReason: note });
-    expect(screen.getByRole('button', { name: '左揃え', description: note })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '横に等間隔', description: note })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '整列', description: note })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '等間隔', description: note })).toBeTruthy();
   });
 });
 
@@ -168,15 +204,15 @@ const showIn = (locale: Locale, extra: Extra = {}) => {
 };
 
 const NAMES: Record<Locale, readonly string[]> = {
-  ja: ['元に戻す', 'やり直す', '左揃え', '左右中央', '右揃え', '上揃え', '上下中央', '下揃え', '横に等間隔', '縦に等間隔', '敷き詰め', 'グループ化', 'グループ解除'],
-  en: ['Undo', 'Redo', 'Left', 'Center', 'Right', 'Top', 'Middle', 'Bottom', 'Distribute horizontally', 'Distribute vertically', 'Tile', 'Group selection', 'Ungroup'],
+  ja: ['元に戻す', 'やり直す', '整列', '等間隔', '敷き詰め', 'グループ化', 'グループ解除'],
+  en: ['Undo', 'Redo', 'Align', 'Distribute', 'Tile', 'Group selection', 'Ungroup'],
 };
 
 describe('Toolbar icon buttons', () => {
   it.each(['ja', 'en'] as const)('names every icon button in %s, in keyboard order', (locale) => {
     showIn(locale);
     const names = screen.getAllByRole('button').map((b) => b.getAttribute('aria-label'));
-    expect(names.slice(0, 13)).toEqual([...NAMES[locale]]);
+    expect(names.slice(0, 7)).toEqual([...NAMES[locale]]);
   });
   it('hides the icon glyphs and shows no visible text in icon buttons', () => {
     showIn('ja');
@@ -195,10 +231,10 @@ describe('Toolbar icon buttons', () => {
   });
   it('appends the disabled reason to the tooltip and describes the button with it', () => {
     show(2);
-    const h = screen.getByRole('button', { name: '横に等間隔', description: '3面以上を選択' });
-    expect(h.parentElement?.getAttribute('title')).toBe('横に等間隔 (3面以上を選択)');
+    const h = screen.getByRole('button', { name: '等間隔', description: '3面以上を選択' });
+    expect(h.parentElement?.getAttribute('title')).toBe('等間隔 (3面以上を選択)');
   });
-  it('drops the cluster heading text', () => {
+  it('names the align and distribute triggers without visible text', () => {
     show(0);
     expect(screen.queryByText('整列')).toBeNull();
     expect(screen.queryByText('等間隔')).toBeNull();
@@ -206,6 +242,50 @@ describe('Toolbar icon buttons', () => {
   it('keeps the file actions slot in the first row', () => {
     showIn('ja');
     const buttons = screen.getAllByRole('button');
-    expect(buttons[13]?.textContent).toBe('file');
+    expect(buttons[7]?.textContent).toBe('file');
+  });
+});
+
+const showView = (overlayEnabled: boolean, onToggleOverlay = vi.fn(), dispatch = vi.fn()) =>
+  render(
+    <Toolbar
+      dispatch={dispatch}
+      canUndo={false}
+      canRedo={false}
+      selectedCount={0}
+      immovableReason={null}
+      tile={surfaces(0)}
+      canvas={{ width: 1920, height: 1080 }}
+      canGroup={false}
+      canUngroup={false}
+      onGroup={vi.fn()}
+      gridSize={10}
+      overlayEnabled={overlayEnabled}
+      onToggleOverlay={onToggleOverlay}
+    />,
+  );
+
+describe('Toolbar view row', () => {
+  it('toggles the overlay from an icon-only pressed button', async () => {
+    const onToggle = vi.fn();
+    showView(false, onToggle);
+    const overlay = screen.getByRole('button', { name: 'オーバーレイ' });
+    expect(overlay.getAttribute('aria-pressed')).toBe('false');
+    expect(overlay.textContent).toBe('');
+    await userEvent.click(overlay);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+  it('reports the overlay as pressed while it is on', () => {
+    showView(true);
+    expect(screen.getByRole('button', { name: 'オーバーレイ' }).getAttribute('aria-pressed')).toBe('true');
+  });
+  it('names the grid input by its label without visible text', async () => {
+    const dispatch = vi.fn();
+    showView(false, vi.fn(), dispatch);
+    const grid = screen.getByRole('spinbutton', { name: 'グリッド' });
+    expect(grid.closest('label')?.querySelector('svg[data-icon="grid"]')).not.toBeNull();
+    await userEvent.clear(grid);
+    await userEvent.type(grid, '20{Enter}');
+    expect(dispatch).toHaveBeenCalledWith({ type: 'setGrid', size: 20 });
   });
 });

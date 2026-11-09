@@ -74,3 +74,16 @@ export const rowCls = css({ display: 'flex', alignItems: 'center', gap: '2', fle
 export const labelCls = css({ display: 'flex', alignItems: 'center', gap: '1.5', color: 'fg.muted', fontWeight: 700 });
 
 export const barCls = css({ px: '2', py: '1.5', bg: 'bg.subtle', borderBottomWidth: 'default', borderBottomStyle: 'solid', borderBottomColor: 'border.subtle' });
+
+export const tooltipCls = css({
+  bg: 'bg.emphasis',
+  color: 'fg.default',
+  borderWidth: 'default',
+  borderStyle: 'solid',
+  borderColor: 'border.strong',
+  px: '2',
+  py: '1',
+  fontSize: '12px',
+  zIndex: 10,
+  pointerEvents: 'none',
+});

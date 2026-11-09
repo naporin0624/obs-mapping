@@ -14,8 +14,6 @@ const ARROWS: Readonly<Record<string, readonly [number, number]>> = {
 
 const commandAction = (key: string, shift: boolean): UiAction | null => {
   switch (key.toLowerCase()) {
-    case 'z':
-      return { type: shift ? 'redo' : 'undo' };
     case 'd':
       return shift ? null : { type: 'duplicateSelected' };
     case 'g':

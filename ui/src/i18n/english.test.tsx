@@ -64,8 +64,8 @@ describe('English locale', () => {
   it('renders the toolbar in English', () => {
     inEnglish(toolbar());
     expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Left' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Left', description: 'Select a surface' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Align', description: 'Select a surface' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Distribute', description: 'Select 3 or more surfaces' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Tile', description: 'Select a surface' })).toBeTruthy();
     expect(screen.queryByText('元に戻す')).toBeNull();
   });

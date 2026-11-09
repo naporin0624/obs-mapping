@@ -5,7 +5,9 @@ import { clientAtom, inputsAtom, onlineAtom, reloadInputsAtom } from '../../atom
 import { reportErrorAtom } from '../../atoms/toast';
 import { useT } from '../../i18n/use-t';
 import { movableItems } from '../../editor/items';
+import type { EditorState } from '../../editor/state';
 import { tileTarget } from '../../editor/tile-group';
+import { useHistoryKeys } from '../../editor/use-history-keys';
 import { ImportExport } from '../import-export';
 import { Inspector } from '../inspector';
 import { Stage } from '../stage';
@@ -24,6 +26,11 @@ const useEditorCommands = () => ({
   reportError: useSetAtom(reportErrorAtom),
 });
 
+const selectionCounts = ({ mapping, selection }: EditorState) => ({
+  movable: movableItems(mapping, selection).length,
+  selected: selection.surfaceIds.length + selection.groupIds.length,
+});
+
 const EditorBody = () => {
   const t = useT();
   const view = useAtomValue(mappingViewAtom);
@@ -34,6 +41,7 @@ const EditorBody = () => {
   const activate = useSetAtom(activateMappingAtom);
   const { dispatch, group, setOverlay, applyImport, reloadInputs, reportError } = useEditorCommands();
   const source = view?.source;
+  useHistoryKeys(dispatch);
 
   useEffect(() => {
     // USEEFFECT_JUSTIFICATION: opening the loaded source is a command, so it must not run in a getter.
@@ -42,8 +50,7 @@ const EditorBody = () => {
 
   if (view === null) return null;
   const { editor } = view;
-  const movableCount = movableItems(editor.mapping, editor.selection).length;
-  const selectedCount = editor.selection.surfaceIds.length + editor.selection.groupIds.length;
+  const { movable: movableCount, selected: selectedCount } = selectionCounts(editor);
   return (
     <>
       <Toolbar

@@ -45,3 +45,19 @@ describe('Stage double click', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'select', selection: { surfaceIds: [], groupIds: ['g1'], corner: null } });
   });
 });
+
+describe('Stage keys', () => {
+  it('leaves Cmd+Z to the document-wide history keys so undo is not dispatched twice', () => {
+    const dispatch = vi.fn();
+    const stage = renderStage(dispatch).getByRole('application');
+    fireEvent.keyDown(stage, { key: 'z', metaKey: true });
+    fireEvent.keyDown(stage, { key: 'z', metaKey: true, shiftKey: true });
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('still nudges from the Stage', () => {
+    const dispatch = vi.fn();
+    fireEvent.keyDown(renderStage(dispatch).getByRole('application'), { key: 'ArrowLeft' });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'nudge', dx: -1, dy: 0 });
+  });
+});

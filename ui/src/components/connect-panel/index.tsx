@@ -3,8 +3,10 @@ import type { Messages } from '../../i18n/messages';
 import { useT } from '../../i18n/use-t';
 import type { ConnState } from '../../obs/connection';
 import type { ConnSettings } from '../../app/obs-session';
-import { buttonCls, buttonSolidCls, barCls, inputCls, labelCls, rowCls } from '../styles.css';
-import { revealCls, statusCls } from './styles.css';
+import { IconButton } from '../icon-button';
+import { EyeIcon, EyeOffIcon, PlugIcon, UnplugIcon } from '../icons';
+import { barCls, inputCls, labelCls, rowCls } from '../styles.css';
+import { statusCls } from './styles.css';
 
 const label = (t: Messages, s: ConnState): string => {
   switch (s.kind) {
@@ -67,21 +69,9 @@ export const ConnectPanel = ({ initial, state, onConnect, onDisconnect }: Props)
       <span className={labelCls}>
         <label htmlFor={passwordId}>{t.connectPassword}</label>
         <input id={passwordId} className={inputCls} type={revealed ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} disabled={active} autoComplete="off" />
-        <button
-          type="button"
-          className={`${buttonCls} ${revealCls}`}
-          aria-controls={passwordId}
-          onClick={(e) => {
-            e.currentTarget.focus();
-            toggleReveal();
-          }}
-        >
-          {revealed ? t.connectHide : t.connectReveal}
-        </button>
+        <IconButton label={revealed ? t.connectHide : t.connectReveal} icon={revealed ? <EyeOffIcon /> : <EyeIcon />} controls={passwordId} onClick={toggleReveal} />
       </span>
-      <button type="submit" className={active ? buttonCls : buttonSolidCls}>
-        {active ? t.connectDisconnect : t.connectConnect}
-      </button>
+      <IconButton type="submit" label={active ? t.connectDisconnect : t.connectConnect} icon={active ? <UnplugIcon /> : <PlugIcon />} solid={!active} />
       <span role="status" className={statusCls} data-kind={state.kind}>
         {label(t, state)}
       </span>

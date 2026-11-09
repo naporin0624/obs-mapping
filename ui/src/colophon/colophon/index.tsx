@@ -8,21 +8,29 @@ import {
   AlignLeftIcon,
   AlignRightIcon,
   AlignTopIcon,
+  CaretDownIcon,
   DistributeHIcon,
   DistributeVIcon,
   ExportIcon,
   EyeIcon,
   EyeOffIcon,
+  GridIcon,
   GroupIcon,
   ImportIcon,
+  OverlayIcon,
+  PlugIcon,
   PlusIcon,
   RedoIcon,
+  ReloadIcon,
   TileIcon,
   TrashIcon,
   UndoIcon,
   UngroupIcon,
+  UnplugIcon,
 } from '../../components/icons';
-import { IconButton } from '../../components/icon-button';
+import { IconButton, IconToggleButton } from '../../components/icon-button';
+import { ConnectPanel } from '../../components/connect-panel';
+import { NumField } from '../../components/field';
 import { BulkSourceFields } from '../../components/bulk-source-fields';
 import { GroupInspector } from '../../components/group-inspector';
 import { Inspector } from '../../components/inspector';
@@ -33,6 +41,7 @@ import { StageGroupFrame } from '../../components/stage-group-frame';
 import { StageMaskHandles } from '../../components/stage-mask-handles';
 import { Segmented } from '../../components/segmented';
 import { TilePopover } from '../../components/tile-popover';
+import { ToolPopover, type ToolItem } from '../../components/tool-popover';
 import { UnderlayImage } from '../../components/stage-underlay';
 import { UnderlayControlsView, type UnderlayView } from '../../components/underlay-controls';
 import { initialMask } from '../../editor/mask-edit';
@@ -153,6 +162,38 @@ const bulkCounts: ReadonlyMap<string, number> = new Map([
 const bulkMixed = [bulkLayer('a', 'Left wall', 'cam-A'), bulkLayer('b', 'Floor 3', ''), bulkLayer('c', 'Right wall', 'cam-B'), bulkLayer('d', longName, 'cam-A')];
 const bulkUniform = [bulkLayer('a', 'Left wall', 'cam-A'), bulkLayer('b', 'Right wall', 'cam-A')];
 
+const IconToggleCase = () => {
+  const [on, setOn] = useState(true);
+  return (
+    <Case title="IconToggleButton / overlay on, off (interactive)">
+      <div>
+        <IconToggleButton label="Overlay" icon={<OverlayIcon />} isSelected={on} onChange={setOn} />
+        <IconToggleButton label="Overlay" icon={<OverlayIcon />} isSelected={false} onChange={noop} />
+      </div>
+    </Case>
+  );
+};
+
+const GridFieldCase = () => {
+  const [size, setSize] = useState(10);
+  return (
+    <Case title="NumField / icon in place of the label (interactive)">
+      <NumField label="Grid" icon={<GridIcon />} value={size} onCommit={setSize} />
+    </Case>
+  );
+};
+
+const ConnectCases = () => (
+  <>
+    <Case title="ConnectPanel / idle">
+      <ConnectPanel initial={{ url: 'ws://127.0.0.1:4455', password: 'secret' }} state={{ kind: 'idle' }} onConnect={noop} onDisconnect={noop} />
+    </Case>
+    <Case title="ConnectPanel / connected">
+      <ConnectPanel initial={{ url: 'ws://127.0.0.1:4455', password: 'secret' }} state={{ kind: 'open' }} onConnect={noop} onDisconnect={noop} />
+    </Case>
+  </>
+);
+
 const IconCases = () => (
   <>
     <Case title="Icons / Eye, EyeOff, Plus, Trash">
@@ -163,15 +204,28 @@ const IconCases = () => (
     <Case title="Icons / Toolbar">
       <div>
         <UndoIcon /> <RedoIcon /> <AlignLeftIcon /> <AlignCenterHIcon /> <AlignRightIcon /> <AlignTopIcon /> <AlignCenterVIcon /> <AlignBottomIcon /> <DistributeHIcon /> <DistributeVIcon />{' '}
-        <TileIcon /> <GroupIcon /> <UngroupIcon /> <ImportIcon /> <ExportIcon />
+        <CaretDownIcon /> <TileIcon /> <GroupIcon /> <UngroupIcon /> <ImportIcon /> <ExportIcon />
+      </div>
+    </Case>
+    <Case title="Icons / View, source, connection">
+      <div>
+        <GridIcon /> <OverlayIcon /> <ReloadIcon /> <PlugIcon /> <UnplugIcon />
       </div>
     </Case>
     <Case title="IconButton / enabled, disabled with reason">
       <div>
         <IconButton label="Undo" icon={<UndoIcon />} onClick={noop} />
         <IconButton label="Distribute horizontally" icon={<DistributeHIcon />} unavailable={{ reason: 'Select 3 or more surfaces' }} onClick={noop} />
+        <IconButton label="Reload" icon={<ReloadIcon />} onClick={noop} />
       </div>
     </Case>
+    <Case title="IconButton / solid primary action">
+      <div>
+        <IconButton label="Connect" icon={<PlugIcon />} solid onClick={noop} />
+      </div>
+    </Case>
+    <IconToggleCase />
+    <GridFieldCase />
   </>
 );
 
@@ -191,6 +245,39 @@ const SegmentedCase = () => {
     </Case>
   );
 };
+
+const alignItems: readonly (readonly ToolItem[])[] = [
+  [
+    { id: 'left', label: 'Left', icon: <AlignLeftIcon />, onAction: noop },
+    { id: 'centerX', label: 'Center', icon: <AlignCenterHIcon />, onAction: noop },
+    { id: 'right', label: 'Right', icon: <AlignRightIcon />, onAction: noop },
+  ],
+  [
+    { id: 'top', label: 'Top', icon: <AlignTopIcon />, onAction: noop },
+    { id: 'centerY', label: 'Middle', icon: <AlignCenterVIcon />, onAction: noop },
+    { id: 'bottom', label: 'Bottom', icon: <AlignBottomIcon />, onAction: noop },
+  ],
+];
+const distributeItems: readonly (readonly ToolItem[])[] = [
+  [
+    { id: 'x', label: 'Distribute horizontally', icon: <DistributeHIcon />, onAction: noop },
+    { id: 'y', label: 'Distribute vertically', icon: <DistributeVIcon />, onAction: noop },
+  ],
+];
+
+const ToolPopoverCases = () => (
+  <>
+    <Case title="ToolPopover / align, two rows (interactive)">
+      <ToolPopover label="Align" icon={<AlignLeftIcon />} rows={alignItems} />
+    </Case>
+    <Case title="ToolPopover / distribute (interactive)">
+      <ToolPopover label="Distribute" icon={<DistributeHIcon />} rows={distributeItems} />
+    </Case>
+    <Case title="ToolPopover / disabled with reason">
+      <ToolPopover label="Distribute" icon={<DistributeHIcon />} rows={distributeItems} unavailable={{ reason: 'Select 3 or more surfaces' }} />
+    </Case>
+  </>
+);
 
 const TileCases = () => (
   <>
@@ -260,13 +347,15 @@ export const Colophon = () => {
         LayerTree is built on react-aria-components Tree
       </Link>
       <Link href="https://react-spectrum.adobe.com/react-aria/Popover.html" className={linkCls} onClick={(e) => e.preventDefault()}>
-        TilePopover is built on react-aria-components DialogTrigger + Popover
+        TilePopover and ToolPopover are built on react-aria-components DialogTrigger + Popover
       </Link>
       <LayerTreeCases />
       <FrameCases />
       <MaskHandlesCases />
       <InspectorCases />
       <IconCases />
+      <ConnectCases />
+      <ToolPopoverCases />
       <TileCases />
       <Case title="SourceSelect / placeholder">
         <SourceSelect label="Source" placeholder="Select a source" items={options} value={null} onChange={noop} />

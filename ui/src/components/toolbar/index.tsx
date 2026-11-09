@@ -6,7 +6,8 @@ import { useT } from '../../i18n/use-t';
 import type { Messages } from '../../i18n/messages';
 import { NumField } from '../field';
 import { TilePopover, type TileSubject } from '../tile-popover';
-import { IconButton, type Unavailable } from '../icon-button';
+import { IconButton, IconToggleButton, type Unavailable } from '../icon-button';
+import { ToolPopover, type ToolItem } from '../tool-popover';
 import {
   AlignBottomIcon,
   AlignCenterHIcon,
@@ -16,27 +17,30 @@ import {
   AlignTopIcon,
   DistributeHIcon,
   DistributeVIcon,
+  GridIcon,
   GroupIcon,
+  OverlayIcon,
   RedoIcon,
   UndoIcon,
   UngroupIcon,
 } from '../icons';
-import { barCls, buttonSolidCls, buttonCls, rowCls } from '../styles.css';
+import { barCls, rowCls } from '../styles.css';
 import { groupCls, separatorCls, toolbarCls } from './styles.css';
 
-const alignsOf = (t: Messages): readonly { mode: AlignMode; label: string; icon: ReactNode }[] => [
-  { mode: 'left', label: t.alignLeft, icon: <AlignLeftIcon /> },
-  { mode: 'centerX', label: t.alignCenterX, icon: <AlignCenterHIcon /> },
-  { mode: 'right', label: t.alignRight, icon: <AlignRightIcon /> },
-  { mode: 'top', label: t.alignTop, icon: <AlignTopIcon /> },
-  { mode: 'centerY', label: t.alignCenterY, icon: <AlignCenterVIcon /> },
-  { mode: 'bottom', label: t.alignBottom, icon: <AlignBottomIcon /> },
-];
+type ActionRows = readonly (readonly ToolItem[])[];
 
-const distributesOf = (t: Messages): readonly { axis: 'x' | 'y'; label: string; icon: ReactNode }[] => [
-  { axis: 'x', label: t.distributeHorizontal, icon: <DistributeHIcon /> },
-  { axis: 'y', label: t.distributeVertical, icon: <DistributeVIcon /> },
-];
+const alignRowsOf = (t: Messages, dispatch: Dispatch<UiAction>): ActionRows => {
+  const item = (mode: AlignMode, label: string, icon: ReactNode): ToolItem => ({ id: mode, label, icon, onAction: () => dispatch({ type: 'align', mode }) });
+  return [
+    [item('left', t.alignLeft, <AlignLeftIcon />), item('centerX', t.alignCenterX, <AlignCenterHIcon />), item('right', t.alignRight, <AlignRightIcon />)],
+    [item('top', t.alignTop, <AlignTopIcon />), item('centerY', t.alignCenterY, <AlignCenterVIcon />), item('bottom', t.alignBottom, <AlignBottomIcon />)],
+  ];
+};
+
+const distributeRowsOf = (t: Messages, dispatch: Dispatch<UiAction>): ActionRows => {
+  const item = (axis: 'x' | 'y', label: string, icon: ReactNode): ToolItem => ({ id: axis, label, icon, onAction: () => dispatch({ type: 'distribute', axis }) });
+  return [[item('x', t.distributeHorizontal, <DistributeHIcon />), item('y', t.distributeVertical, <DistributeVIcon />)]];
+};
 
 const Separator = () => <span role="separator" aria-orientation="vertical" className={separatorCls} />;
 
@@ -46,24 +50,12 @@ type GroupProps = { dispatch: Dispatch<UiAction>; blocked: boolean; reason: stri
 
 const AlignGroup = ({ dispatch, blocked, reason }: GroupProps) => {
   const t = useT();
-  return (
-    <div className={groupCls}>
-      {alignsOf(t).map((a) => (
-        <IconButton key={a.mode} label={a.label} icon={a.icon} unavailable={unavailableWhen(blocked, reason)} onClick={() => dispatch({ type: 'align', mode: a.mode })} />
-      ))}
-    </div>
-  );
+  return <ToolPopover label={t.alignAction} icon={<AlignLeftIcon />} rows={alignRowsOf(t, dispatch)} unavailable={unavailableWhen(blocked, reason)} />;
 };
 
 const DistributeGroup = ({ dispatch, blocked, reason }: GroupProps) => {
   const t = useT();
-  return (
-    <div className={groupCls}>
-      {distributesOf(t).map((d) => (
-        <IconButton key={d.axis} label={d.label} icon={d.icon} unavailable={unavailableWhen(blocked, reason)} onClick={() => dispatch({ type: 'distribute', axis: d.axis })} />
-      ))}
-    </div>
-  );
+  return <ToolPopover label={t.distributeAction} icon={<DistributeHIcon />} rows={distributeRowsOf(t, dispatch)} unavailable={unavailableWhen(blocked, reason)} />;
 };
 
 type HistoryProps = { dispatch: Dispatch<UiAction>; canUndo: boolean; canRedo: boolean };
@@ -120,10 +112,8 @@ const ViewRow = ({ dispatch, gridSize, overlayEnabled, onToggleOverlay, children
   const t = useT();
   return (
     <div className={rowCls}>
-      <NumField label={t.toolbarGrid} value={gridSize} onCommit={(size) => dispatch({ type: 'setGrid', size })} />
-      <button type="button" className={overlayEnabled ? buttonSolidCls : buttonCls} aria-pressed={overlayEnabled} onClick={onToggleOverlay}>
-        {t.toolbarOverlay}
-      </button>
+      <NumField label={t.toolbarGrid} icon={<GridIcon />} value={gridSize} onCommit={(size) => dispatch({ type: 'setGrid', size })} />
+      <IconToggleButton label={t.toolbarOverlay} icon={<OverlayIcon />} isSelected={overlayEnabled} onChange={onToggleOverlay} />
       {children !== undefined && (
         <>
           <Separator />
