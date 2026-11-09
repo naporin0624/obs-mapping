@@ -49,7 +49,7 @@ OBS を終了してから行います。パッケージは [Releases](https://gi
 2. SmartScreen の警告が出たら「詳細情報」を押し、「実行」を選ぶ。
 3. 管理者権限の確認（UAC）に許可する。OBS が起動していると、インストーラーは先へ進みません。OBS を終了してからやり直してください。OBS が見つからない場合や 31.1.1 より古い場合は警告が出ます。
 
-インストール先は `C:\ProgramData\obs-studio\plugins\obs-mapping` です。アンインストールは「設定 > アプリ > インストールされているアプリ」から行います。
+インストール先は `C:\ProgramData\obs-studio\plugins\obs-mapping` です。アンインストールは「設定 > アプリ > インストールされているアプリ」から行います。OBS が起動していると、アンインストールも止められます。
 
 ### macOS（インストーラー）
 
@@ -59,12 +59,12 @@ OBS を終了してから行います。パッケージは [Releases](https://gi
    - macOS 14 以前: pkg を右クリックして「開く」を選ぶ。
 3. 画面の案内に従ってインストールする。
 
-インストール先は `/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` です。古いバージョンが入っている場合、インストーラーが先にそのバンドルを消します。
+インストール先は、インストールしたユーザーの `~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` です。古いバージョンが入っている場合、インストーラーが先にそのバンドルを消します。`scripts/install-macos.sh` で入れた人は、そのまま pkg を上から入れられます。
 
 OBS がプラグインを読み込まない場合は、次のコマンドで隔離属性を外してから、OBS を起動し直してください。
 
 ```sh
-sudo xattr -dr com.apple.quarantine "/Library/Application Support/obs-studio/plugins/obs-mapping.plugin"
+xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/obs-mapping.plugin
 ```
 
 ### 手動で入れたい人向け
@@ -95,7 +95,6 @@ bash scripts/install-macos.sh
 ### 以前の手順で入れていた人へ
 
 - カスタムブラウザドックを手動で登録していた場合: OBS Mapping ドックと 2 つ並ぶので、古い方を「ドック > カスタムブラウザドック」から消してください。URL とパスワードは引き継がれないため、新しいドックで一度入れ直します。
-- `scripts/install-macos.sh` やインストーラー以外の方法で `~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` に入れていた場合: そのフォルダーを消してください。pkg が入れる `/Library/Application Support/...` のものと両方あると、プラグインが二重に読み込まれます。
 
 ## 初回の起動とドック
 
@@ -125,12 +124,6 @@ obs-browser のない OBS など、OBS Mapping ドックが出ない場合の代
 
 ```
 file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html
-```
-
-pkg でインストールした場合は、`/Library/Application%20Support/...` から始まる次の URL です。
-
-```
-file:///Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html
 ```
 
 Windows では次の URL です。
