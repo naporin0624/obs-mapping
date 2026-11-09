@@ -1,38 +1,22 @@
 ---
 import { css } from '../../styled-system/css';
 import { localePath, messagesFor, type Lang } from '../i18n/messages';
-import ExternalLink from './external-link.astro';
 
 type Props = { lang: Lang };
 
-const README = 'https://github.com/naporin0624/obs-mapping#readme';
 const { lang } = Astro.props;
 const { how } = messagesFor(lang).root;
 
 const list = css({
-  display: 'grid',
-  gap: '24px',
   margin: 0,
   paddingLeft: '1.5em',
   '& h3': { margin: 0, fontSize: '1.125rem', lineHeight: '1.5' },
   '& p': { margin: '4px 0 0' },
   '& li::marker': { color: 'fg.muted', fontWeight: 700 },
 });
-const note = css({ color: 'fg.muted' });
 ---
 
 <ol class={list}>
-  <li>
-    <h3>{how.install.title}</h3>
-    <p>{how.install.body}</p>
-    <p class={note}>{how.install.gatekeeper}</p>
-    <p><ExternalLink lang={lang} href={README}>{how.install.readme}</ExternalLink></p>
-  </li>
-  <li>
-    <h3>{how.connect.title}</h3>
-    <p>{how.connect.body}</p>
-    <p><ExternalLink lang={lang} href={README}>{how.connect.readme}</ExternalLink></p>
-  </li>
   <li>
     <h3>{how.map.title}</h3>
     <p>{how.map.body}</p>

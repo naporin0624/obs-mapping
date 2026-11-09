@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { en } from '../../src/i18n/en';
+import { ja } from '../../src/i18n/ja';
 
 const GITHUB = 'https://github.com/naporin0624/obs-mapping';
 const RELEASES = `${GITHUB}/releases/latest`;
@@ -120,6 +122,44 @@ describe('top page', () => {
   });
 });
 
+// The <section aria-labelledby="id"> element; sections on the top page do not nest.
+const sectionById = (html: string, id: string): string => blocksOf(html, 'section').find((s) => new RegExp(`<section\\b[^>]*\\saria-labelledby="${id}"`).test(s)) ?? '';
+
+describe('top page install steps', () => {
+  it.each([
+    ['index.html', ja],
+    ['en/index.html', en],
+  ] as const)('%s shows the four install steps in order', (path, copy) => {
+    const section = sectionById(page(path), 'install');
+    const { download, run, open, connect } = copy.root.install;
+    const titles = blocksOf(section, 'h3').map((h) => decode(h.replace(/<[^>]*>/g, '')));
+    expect(titles).toEqual([download.title, run.title, open.title, connect.title]);
+    expect(blocksOf(section, 'li')).toHaveLength(4);
+    expect(hrefs(section)).toContain(RELEASES);
+    expect(section).toMatch(/\.pkg/);
+    expect(section).toMatch(/\.exe/);
+    expect(section).toContain('ws://127.0.0.1:4455');
+    expect(section).not.toMatch(/<version>|&lt;version&gt;/);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s no longer asks to register a custom browser dock by hand', (path) => {
+    expect(blocksOf(sectionById(page(path), 'how'), 'li')).toHaveLength(1);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s orders install before how', (path) => {
+    const html = page(path);
+    expect(html.indexOf('id="install"')).toBeLessThan(html.indexOf('id="how"'));
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s states OBS 31.1.1 or later', (path) => {
+    expect(sectionById(page(path), 'env')).toContain('31.1.1');
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s marks the run step so other sections can link to it', (path) => {
+    expect(sectionById(page(path), 'install')).toContain('id="install-run"');
+  });
+});
+
 const HERO_COPY = {
   'index.html': {
     description: 'ドックで面の四隅をドラッグすると、部屋の角にある 2 面の壁に映像がぴったり合っていく様子',
@@ -135,6 +175,42 @@ const HERO_COPY = {
 const HERO_PAGES = Object.keys(HERO_COPY) as (keyof typeof HERO_COPY)[];
 const hasFlag = (tagSource: string, name: string): boolean => new RegExp(`\\s${name}(=""|[\\s>])`).test(tagSource);
 const heroVideo = (html: string): string => blocksOf(html, 'video')[0] ?? '';
+
+describe('top page FAQ', () => {
+  it.each(['index.html', 'en/index.html'])('%s groups ten questions under four headings', (path) => {
+    const section = sectionById(page(path), 'faq');
+    expect(blocksOf(section, 'h3')).toHaveLength(4);
+    const details = tagsOf(section, 'details');
+    expect(details).toHaveLength(10);
+    expect(details.map((d) => /\sopen[\s>=]/.test(d))).toEqual([true, true, true, false, false, false, false, false, false, false]);
+    expect(blocksOf(section, 'summary')).toHaveLength(10);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s places the FAQ after how and before skills', (path) => {
+    const html = page(path);
+    expect(html.indexOf('id="how"')).toBeLessThan(html.indexOf('id="faq"'));
+    expect(html.indexOf('id="faq"')).toBeLessThan(html.indexOf('id="skills"'));
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s links the warning answer to the install step', (path) => {
+    expect(hrefs(sectionById(page(path), 'faq'))).toContain('#install-run');
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s links the install step to the dock answer', (path) => {
+    expect(hrefs(sectionById(page(path), 'install'))).toContain('#faq-dock');
+    const details = sectionById(page(path), 'faq').match(/<details[^>]*>[\s\S]*?<\/details>/g) ?? [];
+    const owner = details.find((block) => block.includes('id="faq-dock"')) ?? '';
+    expect(owner).not.toBe('');
+    expect(owner).not.toMatch(/^<details[^>]*id="faq-dock"/);
+    expect(owner).not.toMatch(/<summary[^>]*id="faq-dock"/);
+  });
+
+  it.each(['index.html', 'en/index.html'])('%s links the README sections by their GitHub anchors', (path) => {
+    const links = hrefs(sectionById(page(path), 'faq'));
+    expect(links).toContain(`${GITHUB}#macosインストーラー`);
+    expect(links).toContain(`${GITHUB}#ドックが出ない場合カスタムブラウザドックに登録する`);
+  });
+});
 
 describe('top page demo video', () => {
   it.each(HERO_PAGES)('%s loops a muted inline video with its size reserved and no autoplay attribute', (path) => {
@@ -344,5 +420,26 @@ describe('not found page', () => {
         .map((m) => attr(m, 'content')),
     ).toEqual(['noindex']);
     expect(alternates(html)).toEqual({});
+  });
+});
+
+describe('top page backdrop', () => {
+  const backdrop = (html: string): string => /<div\b[^>]*data-page-backdrop[^>]*>[\s\S]*?<\/picture>/.exec(html)?.[0] ?? '';
+
+  it.each([
+    ['ja', 'index.html'],
+    ['en', 'en/index.html'],
+  ])('%s top page holds a decorative backdrop picture', (_lang, path) => {
+    const block = backdrop(page(path));
+    expect(block).toContain('aria-hidden="true"');
+    // Astro serialises an empty alt as the bare attribute.
+    expect(tagsOf(block, 'img').map((img) => /\salt(?:="")?(?=[\s>])/.test(img))).toEqual([true]);
+    expect(block).toMatch(/type="image\/avif"/);
+    expect(block).toMatch(/type="image\/webp"/);
+  });
+
+  it('demo index has no backdrop', () => {
+    expect(page('demo/index.html')).not.toContain('data-page-backdrop');
+    expect(page('en/demo/index.html')).not.toContain('data-page-backdrop');
   });
 });

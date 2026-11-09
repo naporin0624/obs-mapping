@@ -1,0 +1,9 @@
+---
+import { Picture } from 'astro:assets';
+import thumbnail from '../../assets/brand/thumbnail.png';
+import { backdropCls } from './styles.css';
+---
+
+<div class={backdropCls} aria-hidden="true" data-page-backdrop>
+  <Picture src={thumbnail} alt="" formats={['avif', 'webp']} fallbackFormat="webp" widths={[768, 1536]} sizes="100vw" loading="eager" decoding="async" />
+</div>

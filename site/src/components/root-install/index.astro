@@ -1,0 +1,38 @@
+---
+import { messagesFor, type Lang } from '../../i18n/messages';
+import ExternalLink from '../external-link.astro';
+import { listCls, warningsCls } from './styles.css';
+
+type Props = { lang: Lang; releasesUrl: string };
+
+const { lang, releasesUrl } = Astro.props;
+const { download, run, open, connect } = messagesFor(lang).root.install;
+---
+
+<ol class={listCls}>
+  <li>
+    <h3>{download.title}</h3>
+    <p>{download.body}</p>
+    <p><ExternalLink lang={lang} href={releasesUrl}>{download.link}</ExternalLink></p>
+  </li>
+  <li id="install-run">
+    <h3>{run.title}</h3>
+    <p>{run.body}</p>
+    <dl class={warningsCls}>
+      <dt>macOS</dt>
+      <dd>{run.macos}</dd>
+      <dd>{run.macosOld}</dd>
+      <dt>Windows</dt>
+      <dd>{run.windows}</dd>
+    </dl>
+  </li>
+  <li>
+    <h3>{open.title}</h3>
+    <p>{open.body}</p>
+    <p><a href="#faq-dock">{open.faq}</a></p>
+  </li>
+  <li>
+    <h3>{connect.title}</h3>
+    <p>{connect.body}</p>
+  </li>
+</ol>
