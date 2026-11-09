@@ -422,3 +422,24 @@ describe('not found page', () => {
     expect(alternates(html)).toEqual({});
   });
 });
+
+describe('top page backdrop', () => {
+  const backdrop = (html: string): string => /<div\b[^>]*data-page-backdrop[^>]*>[\s\S]*?<\/picture>/.exec(html)?.[0] ?? '';
+
+  it.each([
+    ['ja', 'index.html'],
+    ['en', 'en/index.html'],
+  ])('%s top page holds a decorative backdrop picture', (_lang, path) => {
+    const block = backdrop(page(path));
+    expect(block).toContain('aria-hidden="true"');
+    // Astro serialises an empty alt as the bare attribute.
+    expect(tagsOf(block, 'img').map((img) => /\salt(?:="")?(?=[\s>])/.test(img))).toEqual([true]);
+    expect(block).toMatch(/type="image\/avif"/);
+    expect(block).toMatch(/type="image\/webp"/);
+  });
+
+  it('demo index has no backdrop', () => {
+    expect(page('demo/index.html')).not.toContain('data-page-backdrop');
+    expect(page('en/demo/index.html')).not.toContain('data-page-backdrop');
+  });
+});

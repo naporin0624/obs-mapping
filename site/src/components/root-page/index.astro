@@ -1,6 +1,7 @@
 ---
 import { localePath, messagesFor, type Lang } from '../../i18n/messages';
 import ExternalLink from '../external-link.astro';
+import PageBackdrop from '../page-backdrop/index.astro';
 import HeroVideo from '../hero-video/index.astro';
 import RootFaq from '../root-faq/index.astro';
 import RootInstall from '../root-install/index.astro';
@@ -16,6 +17,7 @@ const { lang } = Astro.props;
 const t = messagesFor(lang);
 ---
 
+<PageBackdrop />
 <div class={rootCls}>
   <HeroVideo copy={t.root.video} />
   <h1>{t.root.title}</h1>

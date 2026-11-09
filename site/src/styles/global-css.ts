@@ -26,6 +26,7 @@ export const globalCss = defineGlobalStyles({
   ':root': { colorScheme: 'dark' },
   '*, *::before, *::after': { boxSizing: 'border-box', borderRadius: 'none' },
   'html, body': { margin: 0, background: 'bg.canvas', color: 'fg.default', fontFamily: 'body', lineHeight: '1.7' },
+  'body:has([data-page-backdrop])': { background: 'transparent' },
   a: { color: 'accent.text', _hover: { color: 'accent.solid-hover' } },
   ':focus-visible': { outline: '{borderWidths.strong} solid {colors.border.focus}', outlineOffset: '2px' },
   'button, .button': button,
