@@ -2,7 +2,7 @@
 
 OBS Studio 用のプロジェクションマッピング・プラグインです。「Mapping ソース」を追加し、OBS 内の別ソース（カメラ、メディア、シーンなど）を四角形の面にワープして貼り付けます。面の配置は、OBS のカスタムブラウザドックで動く専用 UI から、obs-websocket 経由で操作します。
 
-- 動作を確認しているのは macOS（Apple Silicon / Intel のユニバーサルビルド）です。Windows（x64）版もリリースに含めていますが、実機での確認はまだです。
+- 動作を確認しているのは、macOS（Apple Silicon / Intel のユニバーサルビルド）と Windows（x64）です。
 - ドックの UI の見た目は、自作のデザインシステム Cannelloni（Panda CSS）で組んでいます。
 
 仕様と実装計画は [docs/superpowers/](docs/superpowers/) にあります（[spec](docs/superpowers/specs/2026-11-01-obs-mapping-design.md) / [plan](docs/superpowers/plans/2026-11-01-obs-mapping.md)）。OBS の実機でしか確認できない項目は [docs/manual-checks.md](docs/manual-checks.md) のチェックリストにまとめています。
@@ -333,7 +333,6 @@ pnpm -C site deploy:prod                 # build して公開する
 ## 今後の予定（未実装）
 
 - macOS 版の署名と公証。CI は、リポジトリのシークレットに `MACOS_SIGNING_*`（公証には `MACOS_NOTARIZATION_*` も）を登録すると、自動で署名するようになっています。
-- Windows 版の実機での動作確認。
 
 ## 開発
 

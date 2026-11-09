@@ -113,7 +113,7 @@ export const en: SiteMessages = {
               ],
               links: [{ href: `${GITHUB_URL}#ドックが出ない場合カスタムブラウザドックに登録する`, label: 'See the section on the dock not appearing in the README (in Japanese)' }],
             },
-            { q: 'Does it also work on Windows?', a: ['It is included in the release, but it has not been checked on a real machine yet.'] },
+            { q: 'Does it also work on Windows?', a: ['Yes. Since 0.5.0, it has also been tested on a real Windows (x64) machine.'] },
           ],
         },
         {
@@ -164,7 +164,7 @@ export const en: SiteMessages = {
     env: {
       heading: 'Requirements',
       macos: 'macOS (universal build for Apple Silicon and Intel): tested.',
-      windows: 'Windows (x64): included in the releases, not yet tested on hardware.',
+      windows: 'Windows (x64): tested.',
       obs: 'OBS Studio 31.1.1 or later',
     },
     video: {

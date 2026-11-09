@@ -107,7 +107,7 @@ export const ja: SiteMessages = {
               a: ['obs-browser のない OBS では、ドックは自動で出ません。ドックが出ないときや中が空白のときは、カスタムブラウザドックに手で登録する方法が README の「ドックが出ない場合」にあります。'],
               links: [{ href: `${GITHUB_URL}#ドックが出ない場合カスタムブラウザドックに登録する`, label: 'README の「ドックが出ない場合」を見る' }],
             },
-            { q: 'Windows でも動く？', a: ['リリースには含めていますが、実機での確認はまだです。'] },
+            { q: 'Windows でも動く？', a: ['動きます。0.5.0 から、Windows（x64）の実機でも動作を確認しています。'] },
           ],
         },
         {
@@ -158,7 +158,7 @@ export const ja: SiteMessages = {
     env: {
       heading: '対応環境',
       macos: 'macOS（Apple Silicon / Intel のユニバーサルビルド）: 動作を確認しています。',
-      windows: 'Windows（x64）: リリースに含めていますが、実機での確認はまだです。',
+      windows: 'Windows（x64）: 動作を確認しています。',
       obs: 'OBS Studio 31.1.1 以降',
     },
     video: {
