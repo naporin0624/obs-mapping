@@ -68,6 +68,11 @@ export const ja: SiteMessages = {
       windows: 'Windows（x64）: リリースに含めていますが、実機での確認はまだです。',
       obs: 'OBS Studio 28 以降（obs-websocket が標準で入っている版）',
     },
+    video: {
+      description: 'ドックで面の四隅をドラッグすると、部屋の角にある 2 面の壁に映像がぴったり合っていく様子',
+      pause: '動画を一時停止',
+      play: '動画を再生',
+    },
   },
   demoIndex: {
     title: 'デモ',

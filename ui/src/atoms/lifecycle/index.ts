@@ -13,25 +13,29 @@ const followConnection =
       sync.goOffline();
       return;
     }
-    void session.reloadSources();
-    void session.reloadInputs();
+    reloadCatalog(session)();
     void sync.reconnect();
     set(reloadUnopenedMappingAtom);
   };
+
+const reloadCatalog = (session: ObsSession) => (): void => {
+  void session.reloadSources();
+  void session.reloadInputs();
+};
 
 /** The only place that starts anything; returns the cleanup that stops it all. */
 const start = (get: Getter, set: Setter): (() => void) => {
   const { session, sync } = get(instancesAtom);
   session.cancelTerminate();
   sync.cancelTerminate();
-  const stops = [sync.watchRemote(), sync.startResync()];
+  const stops = [sync.watchRemote(), sync.startResync(), session.client.onInventoryChanged(reloadCatalog(session))];
   const offConn = session.subscribe(followConnection(session, sync, set));
   const offErrors = sync.subscribe((e) => e.type === 'error' && set(reportErrorAtom, e.message));
   session.start();
   return (): void => {
     offConn();
     offErrors();
-    stops.forEach((stop) => stop());
+    for (const stop of stops) stop();
     sync.terminate();
     session.terminate();
   };

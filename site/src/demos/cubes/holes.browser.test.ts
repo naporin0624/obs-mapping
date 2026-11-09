@@ -52,6 +52,7 @@ describe('cubes holes in the output', () => {
     source.dispose();
     out.dispose();
     gl.dispose();
+    gl.forceContextLoss();
   });
 
   it.each(holed.map((f) => [f.id, f] as const))('%s: no light inside the hole, full light just outside it', (_id, face) => {

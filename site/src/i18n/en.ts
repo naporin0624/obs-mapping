@@ -68,6 +68,11 @@ export const en: SiteMessages = {
       windows: 'Windows (x64): included in the releases, not yet tested on hardware.',
       obs: 'OBS Studio 28 or later (obs-websocket built in)',
     },
+    video: {
+      description: "Dragging a surface's four corners in the dock until the video fits the two walls that meet at a room corner",
+      pause: 'Pause video',
+      play: 'Play video',
+    },
   },
   demoIndex: {
     title: 'Demos',
