@@ -120,6 +120,54 @@ describe('top page', () => {
   });
 });
 
+const HERO_COPY = {
+  'index.html': {
+    description: 'ドックで面の四隅をドラッグすると、部屋の角にある 2 面の壁に映像がぴったり合っていく様子',
+    pause: '動画を一時停止',
+    play: '動画を再生',
+  },
+  'en/index.html': {
+    description: "Dragging a surface's four corners in the dock until the video fits the two walls that meet at a room corner",
+    pause: 'Pause video',
+    play: 'Play video',
+  },
+} as const;
+const HERO_PAGES = Object.keys(HERO_COPY) as (keyof typeof HERO_COPY)[];
+const hasFlag = (tagSource: string, name: string): boolean => new RegExp(`\\s${name}(=""|[\\s>])`).test(tagSource);
+const heroVideo = (html: string): string => blocksOf(html, 'video')[0] ?? '';
+
+describe('top page demo video', () => {
+  it.each(HERO_PAGES)('%s loops a muted inline video with its size reserved and no autoplay attribute', (path) => {
+    const [video = ''] = tagsOf(heroVideo(page(path)), 'video');
+    for (const flag of ['muted', 'loop', 'playsinline']) expect(hasFlag(video, flag)).toBe(true);
+    expect(video).not.toMatch(/\sautoplay/);
+    expect(attr(video, 'preload')).toBe('metadata');
+    expect(attr(video, 'poster')).toBe('/videos/mapping-demo-poster.jpg');
+    expect(attr(video, 'width')).toBe('1920');
+    expect(attr(video, 'height')).toBe('1080');
+  });
+
+  it.each(HERO_PAGES)('%s offers webm first, then mp4', (path) => {
+    const sources = tagsOf(heroVideo(page(path)), 'source');
+    expect(sources.map((s) => [attr(s, 'src'), attr(s, 'type')])).toEqual([
+      ['/videos/mapping-demo.webm', 'video/webm'],
+      ['/videos/mapping-demo.mp4', 'video/mp4'],
+    ]);
+  });
+
+  it.each(HERO_PAGES)('%s describes the video and ships a hidden pause button labelled in the page language', (path) => {
+    const html = page(path);
+    const copy = HERO_COPY[path];
+    const [video = ''] = tagsOf(heroVideo(html), 'video');
+    expect(attr(video, 'aria-label')).toBe(copy.description);
+    const [toggle = ''] = tagsOf(html, 'button').filter((b) => b.includes('data-hero-video-toggle'));
+    expect(attr(toggle, 'type')).toBe('button');
+    expect(hasFlag(toggle, 'hidden')).toBe(true);
+    expect(attr(toggle, 'data-pause')).toBe(copy.pause);
+    expect(attr(toggle, 'data-play')).toBe(copy.play);
+  });
+});
+
 describe('language switcher', () => {
   const switcher = (html: string): string => blocksOf(html, 'details').find((d) => d.includes('hreflang')) ?? '';
 
@@ -201,7 +249,7 @@ describe('document head', () => {
     expect(metaContent(html, 'property', 'og:type')).toBe('website');
     expect(metaContent(html, 'property', 'og:title')).not.toBe('');
     expect(metaContent(html, 'property', 'og:description')).not.toBe('');
-    expect(metaContent(html, 'property', 'og:image')).toMatch(/^https:\/\/obs-mapping\.napochaan\.dev\/_astro\/thumbnail\.[\w-]+\.jpg$/);
+    expect(metaContent(html, 'property', 'og:image')).toMatch(/^https:\/\/obs-mapping\.napochaan\.dev\/_astro\/mapping-demo\.[\w-]+\.jpg$/);
     expect(metaContent(html, 'name', 'twitter:card')).toBe('summary_large_image');
   });
 
@@ -209,16 +257,6 @@ describe('document head', () => {
     const [logo] = tagsOf(page('index.html'), 'img').filter((img) => (attr(img, 'src') ?? '').startsWith('/_astro/icon.'));
     expect(logo).toMatch(/\salt(=""|[\s>])/);
     expect(logo === undefined ? undefined : attr(logo, 'width')).toBe('28');
-  });
-
-  it('puts an eager, high priority hero picture with avif and webp on the top page', () => {
-    const html = page('index.html');
-    const types = tagsOf(html, 'source').map((s) => attr(s, 'type'));
-    expect(types).toEqual(expect.arrayContaining(['image/avif', 'image/webp']));
-    const [hero] = tagsOf(html, 'img').filter((img) => /thumbnail\./.test(attr(img, 'src') ?? ''));
-    expect(hero === undefined ? undefined : attr(hero, 'loading')).toBe('eager');
-    expect(hero === undefined ? undefined : attr(hero, 'fetchpriority')).toBe('high');
-    expect(Number(hero === undefined ? 0 : attr(hero, 'width'))).toBeGreaterThan(0);
   });
 });
 
