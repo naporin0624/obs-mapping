@@ -1,4 +1,4 @@
-; SourceTree is the install tree that Package-Windows.ps1 also zips (release\<config>\@CMAKE_PROJECT_NAME@)
+﻿; SourceTree is the install tree that Package-Windows.ps1 also zips (release\<config>\@CMAKE_PROJECT_NAME@)
 #ifndef SourceTree
   #error Pass /DSourceTree=<path to release\<config>\@CMAKE_PROJECT_NAME@> to ISCC
 #endif
@@ -37,3 +37,75 @@ Source: "{#SourceTree}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 Type: filesandordirs; Name: "{app}\bin"
 Type: filesandordirs; Name: "{app}\data"
 Type: dirifempty; Name: "{app}"
+
+[CustomMessages]
+en.ObsRunning=Please close OBS Studio and run the installer again.
+ja.ObsRunning=OBS を閉じてから、もう一度インストーラーを実行してください。
+en.ObsMissingOrOld=OBS Studio 31.1.1 or later was not found. Continue anyway?
+ja.ObsMissingOrOld=OBS Studio 31.1.1 以降が見つかりません。このまま続けますか？
+
+[Code]
+const
+  MinObsMajor = 31;
+  MinObsMinor = 1;
+  MinObsPatch = 1;
+
+function IsObsRunning(): Boolean;
+var
+  Locator, Service, Processes: Variant;
+begin
+  Result := False;
+  try
+    Locator := CreateOleObject('WbemScripting.SWbemLocator');
+    Service := Locator.ConnectServer('.', 'root\cimv2');
+    Processes := Service.ExecQuery('SELECT Name FROM Win32_Process WHERE Name = ''obs64.exe''');
+    Result := Processes.Count > 0;
+  except
+    Log('WMI process check failed: ' + GetExceptionMessage);
+  end;
+end;
+
+function IsVersionAtLeast(Ms, Ls: Cardinal): Boolean;
+var
+  Major, Minor, Patch: Cardinal;
+begin
+  Major := Ms shr 16;
+  Minor := Ms and $FFFF;
+  Patch := Ls shr 16;
+  Result := (Major > MinObsMajor)
+    or ((Major = MinObsMajor) and (Minor > MinObsMinor))
+    or ((Major = MinObsMajor) and (Minor = MinObsMinor) and (Patch >= MinObsPatch));
+end;
+
+function IsSupportedObsInstalled(): Boolean;
+var
+  InstallDir: String;
+  Ms, Ls: Cardinal;
+begin
+  Result := False;
+  if not RegQueryStringValue(HKLM64, 'SOFTWARE\OBS Studio', '', InstallDir) then
+    Exit;
+  if not GetVersionNumbers(AddBackslash(InstallDir) + 'bin\64bit\obs64.exe', Ms, Ls) then
+    Exit;
+  Result := IsVersionAtLeast(Ms, Ls);
+end;
+
+function InitializeSetup(): Boolean;
+begin
+  if IsObsRunning() then
+  begin
+    SuppressibleMsgBox(CustomMessage('ObsRunning'), mbError, MB_OK, IDOK);
+    Result := False;
+    Exit;
+  end;
+  Result := True;
+  if not IsSupportedObsInstalled() then
+    Result := SuppressibleMsgBox(CustomMessage('ObsMissingOrOld'), mbConfirmation, MB_YESNO, IDYES) = IDYES;
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  Result := not IsObsRunning();
+  if not Result then
+    SuppressibleMsgBox(CustomMessage('ObsRunning'), mbError, MB_OK, IDOK);
+end;
