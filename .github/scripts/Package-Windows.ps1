@@ -83,7 +83,11 @@ function Get-Iscc {
 
     if ( ! ( Test-Path -Path $Iscc -PathType Leaf ) ) {
         Log-Information 'Inno Setup not found, installing with Chocolatey...'
-        Invoke-External choco install innosetup -y --no-progress
+        Invoke-External choco install innosetup --version 6.4.3 -y --no-progress
+    }
+
+    if ( ! ( Test-Path -Path $Iscc -PathType Leaf ) ) {
+        throw "ISCC.exe not found at ${Iscc} even after installing Inno Setup 6"
     }
 
     return $Iscc

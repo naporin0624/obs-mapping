@@ -27,10 +27,13 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ja"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [InstallDelete]
-Type: filesandordirs; Name: "{app}"
+Type: filesandordirs; Name: "{app}\bin"
+Type: filesandordirs; Name: "{app}\data"
 
 [Files]
 Source: "{#SourceTree}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{app}"
+Type: filesandordirs; Name: "{app}\bin"
+Type: filesandordirs; Name: "{app}\data"
+Type: dirifempty; Name: "{app}"

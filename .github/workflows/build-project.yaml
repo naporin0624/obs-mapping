@@ -382,13 +382,16 @@ jobs:
           }
 
           $AppDir = Join-Path $Env:ProgramData "obs-studio\plugins\${Name}"
-          $SetupArgs = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$(Join-Path $Env:RUNNER_TEMP 'installer.log')")
-          $Setup = Start-Process -FilePath (Resolve-Path -Path $Installer).Path -ArgumentList $SetupArgs -Wait -PassThru
-          if ( $Setup.ExitCode -ne 0 ) {
-            Get-Content -Path (Join-Path $Env:RUNNER_TEMP 'installer.log')
-            Write-Output "::error::installer exited with code $($Setup.ExitCode)"
-            exit 1
+          function Invoke-Silently([string] $Exe, [string] $LogName) {
+            $Log = Join-Path $Env:RUNNER_TEMP $LogName
+            $Process = Start-Process -FilePath $Exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=${Log}" -Wait -PassThru
+            if ( $Process.ExitCode -ne 0 ) {
+              if ( Test-Path -Path $Log ) { Get-Content -Path $Log }
+              Write-Output "::error::${Exe} exited with code $($Process.ExitCode)"
+              exit 1
+            }
           }
+          Invoke-Silently (Resolve-Path -Path $Installer).Path 'install.log'
 
           foreach ( $Required in @("bin\64bit\${Name}.dll", 'data\ui\index.html') ) {
             if ( -not (Test-Path -Path (Join-Path $AppDir $Required) -PathType Leaf) ) {
@@ -412,7 +415,21 @@ jobs:
             exit 1
           }
 
-          Start-Process -FilePath (Join-Path $AppDir 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+          $Stale = Join-Path $AppDir 'data\stale.txt'
+          Set-Content -Path $Stale -Value 'left by an older version'
+          Invoke-Silently (Resolve-Path -Path $Installer).Path 'reinstall.log'
+          if ( Test-Path -Path $Stale ) {
+            Write-Output "::error::over-install left ${Stale} behind"
+            exit 1
+          }
+          foreach ( $Uninstaller in @('unins000.exe', 'unins000.dat') ) {
+            if ( -not (Test-Path -Path (Join-Path $AppDir $Uninstaller) -PathType Leaf) ) {
+              Write-Output "::error::over-install lost {app}\${Uninstaller}"
+              exit 1
+            }
+          }
+
+          Invoke-Silently (Join-Path $AppDir 'unins000.exe') 'uninstall.log'
           $Deadline = (Get-Date).AddSeconds(60)
           while ( (Test-Path -Path $AppDir) -and ((Get-Date) -lt $Deadline) ) {
             Start-Sleep -Seconds 1
