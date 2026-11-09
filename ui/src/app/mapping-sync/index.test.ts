@@ -50,6 +50,7 @@ const fake = (initial: Mapping): Fake => {
     listInputs: async () => [],
     onMappingChanged,
     onOverlayChanged,
+    onInventoryChanged: () => () => undefined,
   };
   return {
     client,

@@ -9,21 +9,25 @@ type VendorHandler = (ev: { vendorName: string; eventType: string; eventData: un
 
 const fakeSocket = () => {
   const call = vi.fn<(type: string, data?: { requestType?: string; requestData?: Record<string, unknown> }) => Promise<unknown>>();
-  const handlers = new Set<VendorHandler>();
+  const handlers = new Map<string, Set<(data: unknown) => void>>();
   const socket = {
     call,
-    on: (_event: string, h: VendorHandler): void => {
-      handlers.add(h);
+    on: (event: string, h: (data: unknown) => void): void => {
+      handlers.set(event, (handlers.get(event) ?? new Set()).add(h));
     },
-    off: (_event: string, h: VendorHandler): void => {
-      handlers.delete(h);
+    off: (event: string, h: (data: unknown) => void): void => {
+      handlers.get(event)?.delete(h);
     },
   } as unknown as ObsSocket;
-  const fire = (ev: Parameters<VendorHandler>[0]): void => handlers.forEach((h) => h(ev));
+  const emit = (event: string, data: unknown): void => {
+    for (const h of handlers.get(event) ?? []) h(data);
+  };
+  const fire = (ev: Parameters<VendorHandler>[0]): void => emit('VendorEvent', ev);
+  const listenerCount = (): number => [...handlers.values()].reduce((n, set) => n + set.size, 0);
   const reply = (responseData: unknown): void => {
     call.mockResolvedValueOnce({ responseData });
   };
-  return { socket, call, handlers, fire, reply };
+  return { socket, call, emit, fire, listenerCount, reply };
 };
 
 const vendorEvent = (eventType: string, eventData: unknown, vendorName = 'obs-mapping') => ({ vendorName, eventType, eventData });
@@ -141,7 +145,7 @@ describe('obs client', () => {
       ['Map', mapping, true, null],
     ]);
     off();
-    expect(f.handlers.size).toBe(0);
+    expect(f.listenerCount()).toBe(0);
   });
 
   it('onOverlayChanged only accepts well-formed OverlayChanged events', () => {
@@ -157,6 +161,31 @@ describe('obs client', () => {
     f.fire(vendorEvent('OverlayChanged', { sourceName: 'Map', enabled: false }));
     expect(cb).toHaveBeenCalledExactlyOnceWith('Map', false);
     off();
-    expect(f.handlers.size).toBe(0);
+    expect(f.listenerCount()).toBe(0);
+  });
+
+  it.each([
+    ['InputCreated', { inputName: 'Spout2 Capture', inputUuid: 'u1', inputKind: 'spout_capture' }],
+    ['InputRemoved', { inputName: 'Camera', inputUuid: 'u2' }],
+    ['InputNameChanged', { inputUuid: 'u3', oldInputName: 'Cam', inputName: 'Camera' }],
+    ['CurrentSceneCollectionChanged', { sceneCollectionName: 'obs-mapping' }],
+  ])('onInventoryChanged fires on %s', (event, data) => {
+    const f = fakeSocket();
+    const cb = vi.fn();
+    createClient(f.socket).onInventoryChanged(cb);
+    f.emit(event, data);
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+
+  it('onInventoryChanged ignores other events and stops after unsubscribe', () => {
+    const f = fakeSocket();
+    const cb = vi.fn();
+    const off = createClient(f.socket).onInventoryChanged(cb);
+    f.emit('InputSettingsChanged', { inputName: 'Camera', inputUuid: 'u1', inputSettings: {} });
+    expect(cb).not.toHaveBeenCalled();
+    off();
+    f.emit('InputCreated', { inputName: 'Camera', inputUuid: 'u1', inputKind: 'dshow_input' });
+    expect(cb).not.toHaveBeenCalled();
+    expect(f.listenerCount()).toBe(0);
   });
 });
