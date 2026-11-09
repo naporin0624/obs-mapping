@@ -12,9 +12,13 @@ export const isTextEntry = (target: EventTarget | null): boolean => {
   return target.isContentEditable || target.closest('[contenteditable]:not([contenteditable="false"])') !== null;
 };
 
-/** Maps Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z to undo / redo; null outside those keys or inside text entry. */
+/** True while a modal blocks the mapping: an open native dialog makes the whole page inert, so focus may sit on body. */
+export const isInModal = (target: EventTarget | null): boolean =>
+  target instanceof Element && (target.ownerDocument.querySelector('dialog[open]') !== null || target.closest('[role="dialog"][aria-modal="true"]') !== null);
+
+/** Maps Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z to undo / redo; null outside those keys, inside text entry or inside a modal. */
 export const historyAction = (e: HistoryKeyInput): UiAction | null => {
   if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return null;
-  if (isTextEntry(e.target)) return null;
+  if (isTextEntry(e.target) || isInModal(e.target)) return null;
   return { type: e.shiftKey ? 'redo' : 'undo' };
 };

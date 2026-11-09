@@ -48,6 +48,21 @@ describe('useHistoryKeys', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
+  it('leaves the mapping alone while a modal dialog is open', () => {
+    const dispatch = vi.fn();
+    render(
+      <>
+        <Harness dispatch={dispatch} />
+        <dialog open>
+          <button type="button">cancel</button>
+        </dialog>
+      </>,
+    );
+    fireEvent.keyDown(screen.getByRole('button', { name: 'cancel' }), { key: 'z', metaKey: true });
+    fireEvent.keyDown(document.body, { key: 'z', metaKey: true });
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it('stops listening after unmount', () => {
     const dispatch = vi.fn();
     render(<Harness dispatch={dispatch} />).unmount();

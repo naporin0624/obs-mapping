@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
-import { historyAction, isTextEntry, type HistoryKeyInput } from './history-keys';
+import { historyAction, isInModal, isTextEntry, type HistoryKeyInput } from './history-keys';
 
 const mount = <T extends HTMLElement>(el: T): T => {
   document.body.append(el);
@@ -55,7 +55,60 @@ describe('isTextEntry', () => {
   });
 });
 
+const inside = <T extends HTMLElement>(container: HTMLElement, el: T): T => {
+  container.append(el);
+  mount(container);
+  return el;
+};
+
+describe('isInModal', () => {
+  it('is true inside an open native dialog', () => {
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('open', '');
+    expect(isInModal(inside(dialog, document.createElement('button')))).toBe(true);
+  });
+
+  it('is true anywhere while a native dialog is open, since the rest of the page is inert', () => {
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('open', '');
+    mount(dialog);
+    expect(isInModal(document.body)).toBe(true);
+    expect(isInModal(mount(document.createElement('button')))).toBe(true);
+  });
+
+  it('is true inside an aria-modal dialog', () => {
+    const modal = document.createElement('div');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    expect(isInModal(inside(modal, document.createElement('button')))).toBe(true);
+  });
+
+  it('is false inside a closed dialog or a non-modal role="dialog" popover', () => {
+    expect(isInModal(inside(document.createElement('dialog'), document.createElement('button')))).toBe(false);
+    const popover = document.createElement('section');
+    popover.setAttribute('role', 'dialog');
+    expect(isInModal(inside(popover, document.createElement('button')))).toBe(false);
+    expect(isInModal(mount(document.createElement('button')))).toBe(false);
+    expect(isInModal(null)).toBe(false);
+    expect(isInModal(window)).toBe(false);
+  });
+});
+
 describe('historyAction', () => {
+  it('ignores Cmd+Z and Cmd+Shift+Z inside an open modal dialog', () => {
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('open', '');
+    const button = inside(dialog, document.createElement('button'));
+    expect(historyAction(press('z', button, { metaKey: true }))).toBeNull();
+    expect(historyAction(press('z', button, { metaKey: true, shiftKey: true }))).toBeNull();
+  });
+
+  it('still maps Cmd+Z inside a non-modal popover dialog', () => {
+    const popover = document.createElement('section');
+    popover.setAttribute('role', 'dialog');
+    expect(historyAction(press('z', inside(popover, document.createElement('button')), { metaKey: true }))).toEqual({ type: 'undo' });
+  });
+
   it('maps Cmd/Ctrl+Z to undo and Cmd/Ctrl+Shift+Z to redo outside text entry', () => {
     const button = mount(document.createElement('button'));
     expect(historyAction(press('z', button, { metaKey: true }))).toEqual({ type: 'undo' });

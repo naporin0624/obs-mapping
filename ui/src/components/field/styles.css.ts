@@ -4,3 +4,4 @@ export const fieldCls = css({ display: 'flex', alignItems: 'center', gap: '1.5',
 export const numberCls = css({ width: '80px' });
 export const glyphCls = css({ display: 'inline-flex', alignItems: 'center' });
 export const srOnlyCls = css({ srOnly: true });
+export const hoverAreaCls = css({ display: 'flex' });

@@ -1,8 +1,8 @@
-import { useState, type ComponentProps, type ReactNode } from 'react';
-import { Focusable, Tooltip, TooltipTrigger } from 'react-aria-components';
+import { useContext, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
+import { Focusable, Group, Tooltip, TooltipTrigger, TooltipTriggerStateContext } from 'react-aria-components';
 import { css } from '../../../styled-system/css';
 import { inputCls, tooltipCls } from '../styles.css';
-import { fieldCls, glyphCls, numberCls, srOnlyCls } from './styles.css';
+import { fieldCls, glyphCls, hoverAreaCls, numberCls, srOnlyCls } from './styles.css';
 
 type TextProps = { label: string; value: string; onCommit: (v: string) => void; disabled?: boolean };
 
@@ -51,14 +51,32 @@ const GlyphLabel = ({ label, icon }: { label: string; icon: ReactNode }) => (
   </span>
 );
 
-const WithTooltip = ({ label, children }: { label: string; children: ComponentProps<typeof Focusable>['children'] }) => (
-  <TooltipTrigger delay={300} closeDelay={0}>
-    <Focusable>{children}</Focusable>
-    <Tooltip className={tooltipCls} placement="bottom" offset={6}>
-      {label}
-    </Tooltip>
-  </TooltipTrigger>
-);
+/** Hovering anywhere on the glyph + input opens the shared tooltip state; the input's own trigger only reacts to focus. */
+const HoverArea = ({ areaRef, children }: { areaRef: RefObject<HTMLDivElement | null>; children: ReactNode }) => {
+  const state = useContext(TooltipTriggerStateContext);
+  return (
+    <Group ref={areaRef} role="presentation" className={hoverAreaCls} onHoverStart={() => state?.open()} onHoverEnd={() => state?.close()}>
+      {children}
+    </Group>
+  );
+};
+
+const GlyphField = ({ label, icon, input }: { label: string; icon: ReactNode; input: ComponentProps<typeof Focusable>['children'] }) => {
+  const areaRef = useRef<HTMLDivElement>(null);
+  return (
+    <TooltipTrigger delay={300} closeDelay={0} trigger="focus">
+      <HoverArea areaRef={areaRef}>
+        <label className={fieldCls}>
+          <GlyphLabel label={label} icon={icon} />
+          <Focusable>{input}</Focusable>
+        </label>
+      </HoverArea>
+      <Tooltip className={tooltipCls} triggerRef={areaRef} placement="bottom" offset={6}>
+        {label}
+      </Tooltip>
+    </TooltipTrigger>
+  );
+};
 
 /** Number input that commits on blur / Enter; ignores non-numeric text. */
 export const NumField = ({ label, value, onCommit, step = 1, disabled = false, describedBy, icon }: NumProps) => {
@@ -90,9 +108,6 @@ export const NumField = ({ label, value, onCommit, step = 1, disabled = false, d
       {input}
     </label>
   ) : (
-    <label className={fieldCls}>
-      <GlyphLabel label={label} icon={icon} />
-      <WithTooltip label={label}>{input}</WithTooltip>
-    </label>
+    <GlyphField label={label} icon={icon} input={input} />
   );
 };
