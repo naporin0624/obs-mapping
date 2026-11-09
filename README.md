@@ -41,34 +41,48 @@ pnpm -C ui typecheck
 
 ## インストール
 
-どの方法でも、OBS を終了してから行います。パッケージは [Releases](https://github.com/naporin0624/obs-mapping/releases) から入手します。ファイル名の `<version>` はリリースのバージョンです。
+OBS を終了してから行います。パッケージは [Releases](https://github.com/naporin0624/obs-mapping/releases) から入手します。ファイル名の `<version>` はリリースのバージョンです。インストーラーにも Apple・Microsoft の署名はありません。
 
-### macOS（リリースから）
+### Windows（インストーラー）
 
-プラグインには Apple の署名と公証がありません。そのため、初回は Gatekeeper に止められます。
+1. `obs-mapping-<version>-windows-x64-installer.exe` をダウンロードして実行する。
+2. SmartScreen の警告が出たら「詳細情報」を押し、「実行」を選ぶ。
+3. 管理者権限の確認（UAC）に許可する。OBS が起動していると、インストーラーは先へ進みません。OBS を終了してからやり直してください。OBS が見つからない場合や 31.1.1 より古い場合は警告が出ます。
 
-- `obs-mapping-<version>-macos-universal.pkg`: インストーラーです。開けない場合は「システム設定 > プライバシーとセキュリティ」で「このまま開く」を押すか、次のコマンドで隔離属性を外してから開きます。インストール先は `~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` です。
+インストール先は `C:\ProgramData\obs-studio\plugins\obs-mapping` です。アンインストールは「設定 > アプリ > インストールされているアプリ」から行います。
 
-  ```sh
-  xattr -dr com.apple.quarantine ~/Downloads/obs-mapping-<version>-macos-universal.pkg
-  ```
+### macOS（インストーラー）
 
-- `obs-mapping-<version>-macos-universal.tar.xz`: プラグイン本体の圧縮ファイルです。展開した `obs-mapping.plugin` を `~/Library/Application Support/obs-studio/plugins/` に置き、隔離属性を外します。
+1. `obs-mapping-<version>-macos-universal.pkg` をダウンロードして開く。
+2. 開発元を確認できないという警告で止められたら、次のどちらかで開く。
+   - macOS 15（Sequoia）以降: 一度開こうとして止められたあと、「システム設定 > プライバシーとセキュリティ」を開き、下の方にある「このまま開く」を押す。Control を押しながらクリックして「開く」を選ぶ方法は、macOS 15 以降では使えません。
+   - macOS 14 以前: pkg を右クリックして「開く」を選ぶ。
+3. 画面の案内に従ってインストールする。
+
+インストール先は `/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` です。古いバージョンが入っている場合、インストーラーが先にそのバンドルを消します。
+
+OBS がプラグインを読み込まない場合は、次のコマンドで隔離属性を外してから、OBS を起動し直してください。
+
+```sh
+sudo xattr -dr com.apple.quarantine "/Library/Application Support/obs-studio/plugins/obs-mapping.plugin"
+```
+
+### 手動で入れたい人向け
+
+どちらも展開した中身を OBS のプラグインフォルダーに置きます。
+
+- macOS: `obs-mapping-<version>-macos-universal.tar.xz` を展開し、`obs-mapping.plugin` を `~/Library/Application Support/obs-studio/plugins/` に置いて、隔離属性を外します。
 
   ```sh
   xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/obs-mapping.plugin
   ```
 
-OBS がプラグインを読み込まない場合は、置いた `obs-mapping.plugin` に対して上の `xattr` を実行してから、OBS を起動し直してください。
+- Windows: `obs-mapping-<version>-windows-x64.zip` を展開し、中の `obs-mapping` フォルダーを `C:\ProgramData\obs-studio\plugins\` に置きます（フォルダーがなければ作ります）。次の配置になれば正しく置けています。
 
-### Windows（リリースから）
-
-`obs-mapping-<version>-windows-x64.zip` を展開し、中の `obs-mapping` フォルダーを `C:\ProgramData\obs-studio\plugins\` に置きます（フォルダーがなければ作ります）。次の配置になれば正しく置けています。
-
-```
-C:\ProgramData\obs-studio\plugins\obs-mapping\bin\64bit\obs-mapping.dll
-C:\ProgramData\obs-studio\plugins\obs-mapping\data\ui\index.html
-```
+  ```
+  C:\ProgramData\obs-studio\plugins\obs-mapping\bin\64bit\obs-mapping.dll
+  C:\ProgramData\obs-studio\plugins\obs-mapping\data\ui\index.html
+  ```
 
 ### macOS（ソースから）
 
@@ -78,6 +92,22 @@ bash scripts/install-macos.sh
 
 スクリプトは、UI のビルド、プラグインのビルド（`cmake --preset macos`）、バンドル内の `Contents/Resources/ui/index.html` の存在確認を順に行い、`~/Library/Application Support/obs-studio/plugins/` に `obs-mapping.plugin` をコピーします。
 
+### 以前の手順で入れていた人へ
+
+- カスタムブラウザドックを手動で登録していた場合: OBS Mapping ドックと 2 つ並ぶので、古い方を「ドック > カスタムブラウザドック」から消してください。URL とパスワードは引き継がれないため、新しいドックで一度入れ直します。
+- `scripts/install-macos.sh` やインストーラー以外の方法で `~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` に入れていた場合: そのフォルダーを消してください。pkg が入れる `/Library/Application Support/...` のものと両方あると、プラグインが二重に読み込まれます。
+
+## 初回の起動とドック
+
+1. OBS を開くと、右側に「OBS Mapping」ドックが出ます。ドックが出るのは初回だけで、2 回目以降は OBS が保存した表示と位置に従います。閉じたり動かしたりした状態は保たれます。
+2. 次の「obs-websocket の有効化」を済ませる。
+3. ドックに URL（既定 `ws://127.0.0.1:4455`）とパスワードを入れて「接続」（English では Connect）を押す。ドックの表示言語は OBS の言語に従い、日本語以外は英語になる。URL とパスワードは保存され、次回以降は自動で再接続します。
+
+保存データはプラグインを消しても残ります。完全に消すには、次のフォルダーを削除してください。初回表示のフラグ（`plugin_config/obs-mapping/dock.json`）も同じ設定ルートにあります。
+
+- macOS: `~/Library/Application Support/obs-studio/plugin_config/obs-browser/obs_mapping_dock/`
+- Windows: `%APPDATA%\obs-studio\plugin_config\obs-browser\obs_mapping_dock\`
+
 ## obs-websocket の有効化
 
 UI は obs-websocket のベンダーリクエストでプラグインと通信します（OBS 28 以降は標準搭載です）。
@@ -86,7 +116,9 @@ UI は obs-websocket のベンダーリクエストでプラグインと通信�
 2. 「WebSocket サーバーを有効にする」をオンにする。
 3. 「サーバーパスワード」を設定（または生成）する。ポート（既定は 4455）を確認する。
 
-## UI をカスタムブラウザドックに登録する
+## ドックが出ない場合（カスタムブラウザドックに登録する）
+
+obs-browser のない OBS など、OBS Mapping ドックが出ない場合の代わりの手段です。
 
 1. 「ドック > カスタムブラウザドック」を開く。
 2. ドック名（例: `obs-mapping`）と次の URL を登録する（スペースは `%20`）。
@@ -95,13 +127,19 @@ UI は obs-websocket のベンダーリクエストでプラグインと通信�
 file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html
 ```
 
+pkg でインストールした場合は、`/Library/Application%20Support/...` から始まる次の URL です。
+
+```
+file:///Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html
+```
+
 Windows では次の URL です。
 
 ```
 file:///C:/ProgramData/obs-studio/plugins/obs-mapping/data/ui/index.html
 ```
 
-3. ドックに URL（既定 `ws://127.0.0.1:4455`）とパスワードを入れて「接続」（English では Connect）を押す。ドックの表示言語は OBS の言語に従い、日本語以外は英語になる。URL とパスワードは保存され、次回以降は自動で再接続します。
+3. ドックに URL とパスワードを入れて「接続」を押す。
 
 `file://` で開けない場合（ドックが空白のままになる場合）は、開発用サーバーで代用します。
 

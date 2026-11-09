@@ -33,14 +33,15 @@ export const en: SiteMessages = {
       heading: 'How to use it',
       install: {
         title: 'Install from Releases',
-        body: 'Quit OBS, then install a package from Releases on GitHub: the .pkg installer or the plugin bundle in a .tar.xz on macOS, or the .zip on Windows.',
-        gatekeeper: 'The macOS build is not signed or notarized by Apple, so Gatekeeper blocks it the first time. Press "Open Anyway" in System Settings > Privacy & Security.',
-        readme: 'The README lists where the files go and how to clear the quarantine attribute.',
+        body: 'Quit OBS, then run the installer from Releases on GitHub: the .pkg on macOS or the .exe on Windows. For a manual install, a .tar.xz (macOS) and a .zip (Windows) are also provided.',
+        gatekeeper:
+          'Neither installer is signed or notarized. On macOS, Gatekeeper blocks it; press "Open Anyway" in System Settings > Privacy & Security. On Windows, choose "More info", then "Run anyway" in SmartScreen.',
+        readme: 'The README covers manual installs and what to do if OBS does not load the plugin.',
       },
       connect: {
-        title: 'Turn on obs-websocket and add the dock',
-        body: `Under Tools > WebSocket Server Settings, enable the server and set a password. Add the plugin's UI under Docks > Custom Browser Docks, then enter the URL and password in the dock and press "${dock.connectConnect}".`,
-        readme: 'The README has the URL to give the dock.',
+        title: 'Turn on obs-websocket and connect the dock',
+        body: `Under Tools > WebSocket Server Settings, enable the server and set a password. When you open OBS, the "OBS Mapping" dock appears on the right. Enter the URL and password in it and press "${dock.connectConnect}".`,
+        readme: 'The README explains how to add the dock by hand if it does not appear.',
       },
       map: {
         title: 'Add a Mapping source and fit the faces',

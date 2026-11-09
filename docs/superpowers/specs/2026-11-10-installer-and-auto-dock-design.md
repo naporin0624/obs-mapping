@@ -56,7 +56,7 @@ obs-mapping を初めて入れる人が、ファイル配置と URL の手入力
   - 2 回目以降と上書きインストール（アップデート）では、プラグインは表示に手を出さない。OBS が保存したドックの状態に従うので、ユーザーが閉じたり動かしたりした状態が保たれる（私の判断）
   - OBS が保存した DockState を正しく当てるには、メインウィンドウがレイアウトを復元する前にドックを登録しておく必要がある。登録のタイミングはこれを満たすように選ぶこと
 - 表示する URL は `obs_module_file("ui/index.html")` から作る。macOS のパスには空白が入るので、`QUrl::fromLocalFile` などで正しい `file://` URL にする
-- **接続情報を残す（必須）:** `create_cookie_manager()` に `obs_module_config_path()` 配下の保存先を渡し、専用のストレージにする。こうして localStorage を OBS の再起動後も残す。既存ユーザーが手動ドックに保存していた URL とパスワードは引き継がれない。新しいドックで一度入れ直してもらう前提とし、README に書く
+- **接続情報を残す（必須）:** `create_cookie_manager()` に保存先を渡し、専用のストレージにする。こうして localStorage を OBS の再起動後も残す。実際の保存先は OBS 設定ルートの `plugin_config/obs-browser/obs_mapping_dock/` 配下（macOS は `~/Library/Application Support/obs-studio/`、Windows は `%APPDATA%\obs-studio\`）で、`obs_module_config_path()` 配下ではない。既存ユーザーが手動ドックに保存していた URL とパスワードは引き継がれない。新しいドックで一度入れ直してもらう前提とし、README に書く
 - **obs-browser がないとき:** `obs_browser_init_panel()` が null を返したら、ログに出してドック登録だけ飛ばす。Mapping ソースと vendor API はそのまま動く。ユーザーは従来どおり手動のカスタムブラウザドックや開発サーバーで使える
 - 終了時はドックとウィジェットを OBS の作法どおりに片付け、終了時にクラッシュしないようにする
 

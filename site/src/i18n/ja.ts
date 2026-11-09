@@ -33,14 +33,15 @@ export const ja: SiteMessages = {
       heading: '使い方',
       install: {
         title: 'Releases から入れる',
-        body: 'OBS を終了してから、GitHub の Releases にあるパッケージを入れます。macOS はインストーラーの .pkg か、プラグイン本体を固めた .tar.xz、Windows は .zip です。',
-        gatekeeper: 'macOS 版には Apple の署名と公証がないため、初回は Gatekeeper に止められます。「システム設定 > プライバシーとセキュリティ」で「このまま開く」を押してください。',
-        readme: '置き場所と隔離属性の外し方は README にあります。',
+        body: 'OBS を終了してから、GitHub の Releases にあるインストーラーを実行します。macOS は .pkg、Windows は .exe です。手動で置きたい場合は .tar.xz（macOS）か .zip（Windows）も用意しています。',
+        gatekeeper:
+          'どちらのインストーラーも署名と公証がありません。macOS は Gatekeeper に止められるので、「システム設定 > プライバシーとセキュリティ」で「このまま開く」を押してください。Windows は SmartScreen で「詳細情報」から「実行」を選びます。',
+        readme: '手動で入れる場所と、OBS が読み込まないときの対処は README にあります。',
       },
       connect: {
-        title: 'obs-websocket を有効にし、ドックを登録する',
-        body: `「ツール > WebSocket サーバー設定」でサーバーを有効にし、パスワードを設定します。「ドック > カスタムブラウザドック」にプラグインの UI を登録し、ドックで URL とパスワードを入れて「${dock.connectConnect}」を押します。`,
-        readme: 'ドックに登録する URL は README にあります。',
+        title: 'obs-websocket を有効にし、ドックに接続する',
+        body: `「ツール > WebSocket サーバー設定」でサーバーを有効にし、パスワードを設定します。OBS を開くと、右側に「OBS Mapping」ドックが出ます。ドックに URL とパスワードを入れて「${dock.connectConnect}」を押します。`,
+        readme: 'ドックが出ない場合の登録手順は README にあります。',
       },
       map: {
         title: 'Mapping ソースを追加し、面を合わせる',
