@@ -31,6 +31,8 @@ export interface ObsClient {
   listInputs(): Promise<string[]>;
   onMappingChanged(cb: MappingChangedHandler): () => void;
   onOverlayChanged(cb: (sourceName: string, enabled: boolean) => void): () => void;
+  /** Fires when the set of OBS inputs (Mapping sources included) may have changed. */
+  onInventoryChanged(cb: () => void): () => void;
 }
 
 const VENDOR = 'obs-mapping';
@@ -106,6 +108,16 @@ const subscribeVendor = (obs: ObsSocket, handler: (ev: VendorEventPayload) => vo
   };
 };
 
+const INVENTORY_EVENTS = ['InputCreated', 'InputRemoved', 'InputNameChanged', 'CurrentSceneCollectionChanged'] as const;
+
+const subscribeInventory = (obs: ObsSocket, cb: () => void): (() => void) => {
+  const handler = (): void => cb();
+  for (const event of INVENTORY_EVENTS) obs.on(event, handler);
+  return () => {
+    for (const event of INVENTORY_EVENTS) obs.off(event, handler);
+  };
+};
+
 /** The slice of OBSWebSocket the client uses (lets tests pass a fake). */
 export type ObsSocket = Pick<OBSWebSocket, 'call' | 'on' | 'off'>;
 
@@ -151,6 +163,7 @@ export const createClient = (obs: ObsSocket): ObsClient => {
     listInputs: () => listInputNames(obs),
     onMappingChanged: (cb) => subscribeVendor(obs, mappingChangedHandler(cb)),
     onOverlayChanged: (cb) => subscribeVendor(obs, overlayChangedHandler(cb)),
+    onInventoryChanged: (cb) => subscribeInventory(obs, cb),
   };
 };
 
