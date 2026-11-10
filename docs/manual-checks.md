@@ -241,6 +241,7 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 - [ ] 3-1: `.exe` を実行し、SmartScreen で「詳細情報 → 実行」→ UAC → 完了まで進む。`C:\ProgramData\obs-studio\plugins\surface-mapper\bin\64bit\surface-mapper.dll` がある。
 - [ ] 3-2: 「アプリと機能」に「Surface Mapper」が 1 件だけ出る。アンインストールすると `C:\ProgramData\obs-studio\plugins\surface-mapper` がフォルダーごと消える。
 - [ ] 3-3: 古い版を入れたフォルダーにダミーファイルを置いてから新しい版を入れると、ダミーファイルが消えている（旧版にしかないファイルが残らない）。
+- [ ] 3-4: obs-mapping 0.6.x をインストーラーで入れた状態で新しい版のインストーラーを実行すると、`C:\ProgramData\obs-studio\plugins\obs-mapping` が消え、`C:\ProgramData\obs-studio\plugins\surface-mapper\bin\64bit\surface-mapper.dll` がある。「インストールされているアプリ」に「Surface Mapper」が 1 件だけ出て、そこからアンインストールできる。
 - [ ] 4-1: OBS を起動したままインストールまたはアンインストールすると、「OBS を閉じてから、もう一度インストーラーを実行してください。」が出て止まる。
 - [ ] 4-2: OBS がない環境（またはレジストリキー `HKLM\SOFTWARE\OBS Studio` を一時的に外した状態）でインストーラーを実行すると警告が出て、「はい」で続行できる。
 - [ ] 4-3: OBS 31.1.1 以降が入っている Windows でインストーラーを実行すると、「OBS Studio 31.1.1 以降が見つかりません」の警告が出ない。
@@ -252,3 +253,4 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 チェック:
 - [ ] 5-1: 旧版を入れた後、OBS を終了した状態で、`~/Library/Application Support/obs-studio/plugins/surface-mapper.plugin` の中にダミーファイルを置いてから新版の pkg を入れると、ダミーファイルが消えている。
 - [ ] 5-2: 署名なしの pkg を開くと止められ、README の手順（Task 6）で入れられる。入れた後の `surface-mapper.plugin` に `com.apple.quarantine` が付いているか（`xattr -l`）を記録する。
+- [ ] 5-3: obs-mapping 0.6.x の pkg を入れた状態で新版の pkg を入れると、`~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` が消え、`surface-mapper.plugin` がある。OBS を起動すると、ドックは「Surface Mapper」だけが出る。
