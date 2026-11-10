@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/naporin0624/surface-mapper/compare/0.6.0...0.7.0) (2026-11-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* ソース種別が surface_mapper_source に、vendor 名が surface-mapper に、 プラグインフォルダーが surface-mapper に変わる。既存のシーンの Mapping ソースは読み込めない。
+
+### Code Refactoring
+
+* 製品名を Surface Mapper に変え、obs-mapping の識別子を置き換える ([30fad8f](https://github.com/naporin0624/surface-mapper/commit/30fad8fdb8fec7704800fbee5f29028b3c48f818))
+
 ## [0.6.0](https://github.com/naporin0624/obs-mapping/compare/0.5.0...0.6.0) (2026-11-09)
 
 
