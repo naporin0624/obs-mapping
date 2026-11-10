@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/naporin0624/surface-mapper/compare/1.0.0...1.1.0) (2026-11-10)
+
+
+### Features
+
+* **skills:** obs-mapping 0.6.x からの移行 skill を足す ([d793be4](https://github.com/naporin0624/surface-mapper/commit/d793be4a379b40bad1a38ab1d09531eb2aece432))
+* **skills:** obs-mapping 0.6.x からの移行 skill を足す ([8a85765](https://github.com/naporin0624/surface-mapper/commit/8a857653ed424c42d872eb06da2d9ef990af986e))
+
 ## [1.0.0](https://github.com/naporin0624/surface-mapper/compare/0.7.1...1.0.0) (2026-11-10)
 
 
