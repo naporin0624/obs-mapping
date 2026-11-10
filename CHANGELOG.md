@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/naporin0624/surface-mapper/compare/0.7.1...1.0.0) (2026-11-10)
+
+
+### Miscellaneous Chores
+
+* 次のリリースを 1.0.0 にする ([9352c13](https://github.com/naporin0624/surface-mapper/commit/9352c138025eac6e6e12ed2ced865b313a4c47d3))
+
 ## [0.7.1](https://github.com/naporin0624/surface-mapper/compare/0.7.0...0.7.1) (2026-11-10)
 
 
