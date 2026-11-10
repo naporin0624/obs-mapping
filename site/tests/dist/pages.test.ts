@@ -7,7 +7,7 @@ import { ja } from '../../src/i18n/ja';
 
 const GITHUB = 'https://github.com/naporin0624/surface-mapper';
 const RELEASES = `${GITHUB}/releases/latest`;
-const SKILL_NAMES = ['driving-surface-mapper-over-websocket', 'writing-mapping-json', 'mapping-led-pixel-maps'] as const;
+const SKILL_NAMES = ['driving-surface-mapper-over-websocket', 'writing-mapping-json', 'mapping-led-pixel-maps', 'upgrading-from-0-6'] as const;
 const SLUGS = ['stairs', 'hexagon', 'drums', 'cubes'] as const;
 
 const page = (path: string): string => readFileSync(fileURLToPath(new URL(`../../dist/${path}`, import.meta.url)), 'utf8');

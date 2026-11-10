@@ -278,7 +278,7 @@ OBS の出力では、形を小さなテクスチャ（一辺 16〜1024px の 2 
 
 ## Claude Code (plugin) / skills CLI
 
-スクリプトやエージェントからマッピングを扱うための Claude Code 用スキルを、プラグインとして配布しています。obs-websocket のベンダーリクエストの使い方、JSON v2 の書き方、LED のピクセルマップ（チャート）からマッピングを作る手順の 3 つです。
+スクリプトやエージェントからマッピングを扱うための Claude Code 用スキルを、プラグインとして配布しています。obs-websocket のベンダーリクエストの使い方、JSON v2 の書き方、LED のピクセルマップ（チャート）からマッピングを作る手順、旧名の obs-mapping からの移行の 4 つです。
 
 ```
 /plugin marketplace add naporin0624/surface-mapper
@@ -291,6 +291,7 @@ Claude Code 以外のエージェント（Codex、GitHub Copilot、Cursor など
 npx skills add naporin0624/surface-mapper@driving-surface-mapper-over-websocket
 npx skills add naporin0624/surface-mapper@writing-mapping-json
 npx skills add naporin0624/surface-mapper@mapping-led-pixel-maps
+npx skills add naporin0624/surface-mapper@upgrading-from-0-6
 ```
 
 `-g` を付けると、プロジェクトではなくユーザー全体に入ります。

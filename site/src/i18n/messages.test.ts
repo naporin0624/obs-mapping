@@ -191,8 +191,8 @@ describe('root page copy', () => {
     for (const skill of SKILLS) expect(list[skill]).not.toBe('');
   });
 
-  it('names the three skills once each', () => {
-    expect(new Set(SKILLS).size).toBe(3);
+  it('names the four skills once each', () => {
+    expect(new Set(SKILLS).size).toBe(4);
   });
 });
 

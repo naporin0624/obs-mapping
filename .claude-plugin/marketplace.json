@@ -12,7 +12,7 @@
     {
       "name": "surface-mapper",
       "source": "./plugins/surface-mapper",
-      "description": "Skills for driving Surface Mapper over obs-websocket, writing mapping JSON v2 (surfaces, crop, corners, masks), and turning LED pixel-map charts into mappings",
+      "description": "Skills for driving Surface Mapper over obs-websocket, writing mapping JSON v2 (surfaces, crop, corners, masks), turning LED pixel-map charts into mappings, and migrating scene collections from obs-mapping",
       "category": "productivity",
       "keywords": [
         "obs",
