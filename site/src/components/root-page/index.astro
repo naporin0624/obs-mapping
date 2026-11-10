@@ -7,7 +7,8 @@ import RootFaq from '../root-faq/index.astro';
 import RootInstall from '../root-install/index.astro';
 import RootSkills from '../root-skills.astro';
 import RootSteps from '../root-steps/index.astro';
-import { actionsCls, bulletsCls, leadCls, linksCls, rootCls, sectionCls } from './styles.css';
+import RootToc from '../root-toc/index.astro';
+import { actionsCls, bodyCls, bulletsCls, introCls, leadCls, linksCls, rootCls, sectionCls, tocSlotCls } from './styles.css';
 
 type Props = { lang: Lang };
 
@@ -19,49 +20,56 @@ const t = messagesFor(lang);
 
 <PageBackdrop />
 <div class={rootCls}>
-  <HeroVideo copy={t.root.video} />
-  <h1>{t.root.title}</h1>
-  <p class={leadCls}>{t.root.description}</p>
-  <p class={actionsCls}>
-    <ExternalLink lang={lang} class="button" href={RELEASES_URL}>{t.root.getPlugin}</ExternalLink>
-    <a href={localePath(lang, '/demo/')}>{t.root.demos}</a>
-  </p>
-
-  <section class={sectionCls} aria-labelledby="can">
-    <h2 id="can">{t.root.can.heading}</h2>
-    <ul class={bulletsCls}>{t.root.can.items.map((item) => <li>{item}</li>)}</ul>
-  </section>
-
-  <section class={sectionCls} aria-labelledby="install">
-    <h2 id="install">{t.root.install.heading}</h2>
-    <RootInstall lang={lang} releasesUrl={RELEASES_URL} />
-  </section>
-
-  <section class={sectionCls} aria-labelledby="how">
-    <h2 id="how">{t.root.how.heading}</h2>
-    <RootSteps lang={lang} />
-  </section>
-
-  <section class={sectionCls} aria-labelledby="faq">
-    <h2 id="faq">{t.root.faq.heading}</h2>
-    <RootFaq lang={lang} />
-  </section>
-
-  <section class={sectionCls} aria-labelledby="skills">
-    <h2 id="skills">{t.root.skills.heading}</h2>
-    <RootSkills lang={lang} />
-  </section>
-
-  <section class={sectionCls} aria-labelledby="env">
-    <h2 id="env">{t.root.env.heading}</h2>
-    <ul class={bulletsCls}>
-      <li>{t.root.env.macos}</li>
-      <li>{t.root.env.windows}</li>
-      <li>{t.root.env.obs}</li>
-    </ul>
-    <p class={linksCls}>
-      <ExternalLink lang={lang} href={GITHUB_URL}>{t.root.github}</ExternalLink>
-      <ExternalLink lang={lang} href={RELEASES_URL}>{t.root.releases}</ExternalLink>
+  <div class={introCls}>
+    <HeroVideo copy={t.root.video} />
+    <h1>{t.root.title}</h1>
+    <p class={leadCls}>{t.root.description}</p>
+    <p class={actionsCls}>
+      <ExternalLink lang={lang} class="button" href={RELEASES_URL}>{t.root.getPlugin}</ExternalLink>
+      <a href={localePath(lang, '/demo/')}>{t.root.demos}</a>
     </p>
-  </section>
+  </div>
+
+  <RootToc lang={lang} class={tocSlotCls} />
+
+  <div class={bodyCls}>
+
+    <section class={sectionCls} aria-labelledby="can">
+      <h2 id="can">{t.root.can.heading}</h2>
+      <ul class={bulletsCls}>{t.root.can.items.map((item) => <li>{item}</li>)}</ul>
+    </section>
+
+    <section class={sectionCls} aria-labelledby="install">
+      <h2 id="install">{t.root.install.heading}</h2>
+      <RootInstall lang={lang} releasesUrl={RELEASES_URL} />
+    </section>
+
+    <section class={sectionCls} aria-labelledby="how">
+      <h2 id="how">{t.root.how.heading}</h2>
+      <RootSteps lang={lang} />
+    </section>
+
+    <section class={sectionCls} aria-labelledby="faq">
+      <h2 id="faq">{t.root.faq.heading}</h2>
+      <RootFaq lang={lang} />
+    </section>
+
+    <section class={sectionCls} aria-labelledby="skills">
+      <h2 id="skills">{t.root.skills.heading}</h2>
+      <RootSkills lang={lang} />
+    </section>
+
+    <section class={sectionCls} aria-labelledby="env">
+      <h2 id="env">{t.root.env.heading}</h2>
+      <ul class={bulletsCls}>
+        <li>{t.root.env.macos}</li>
+        <li>{t.root.env.windows}</li>
+        <li>{t.root.env.obs}</li>
+      </ul>
+      <p class={linksCls}>
+        <ExternalLink lang={lang} href={GITHUB_URL}>{t.root.github}</ExternalLink>
+        <ExternalLink lang={lang} href={RELEASES_URL}>{t.root.releases}</ExternalLink>
+      </p>
+    </section>
+  </div>
 </div>

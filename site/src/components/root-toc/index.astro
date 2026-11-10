@@ -1,0 +1,76 @@
+---
+import { messagesFor, type Lang } from '../../i18n/messages';
+import { asideCls, chevronCls, currentCls, detailsCls, listCls, summaryCls, titleCls } from './styles.css';
+
+type Props = { lang: Lang; class?: string };
+type Link = { id: string; label: string };
+type Entry = Link & { steps: readonly Link[] };
+
+const { lang, class: className } = Astro.props;
+const { toc, can, install, how, faq, skills, env } = messagesFor(lang).root;
+const entries: readonly Entry[] = [
+  { id: 'can', label: can.heading, steps: [] },
+  {
+    id: 'install',
+    label: install.heading,
+    steps: [
+      { id: 'install-download', label: install.download.toc },
+      { id: 'install-run', label: install.run.toc },
+      { id: 'install-open', label: install.open.toc },
+      { id: 'install-connect', label: install.connect.toc },
+    ],
+  },
+  {
+    id: 'how',
+    label: how.heading,
+    steps: [
+      { id: 'how-source', label: how.source.toc },
+      { id: 'how-fit', label: how.fit.toc },
+      { id: 'how-transfer', label: how.transfer.toc },
+    ],
+  },
+  { id: 'faq', label: faq.heading, steps: [] },
+  { id: 'skills', label: skills.heading, steps: [] },
+  { id: 'env', label: env.heading, steps: [] },
+];
+---
+
+<aside class={className === undefined ? asideCls : `${asideCls} ${className}`}>
+  <nav aria-label={toc.label} data-toc>
+    <p class={titleCls} aria-hidden="true">{toc.label}</p>
+    <details class={detailsCls}>
+      <summary class={summaryCls}>
+        {toc.label}: <span class={currentCls} data-toc-current>{can.heading}</span>
+        <span class={chevronCls} data-chevron aria-hidden="true">▾</span>
+      </summary>
+      <ol class={listCls} role="list">
+        {
+          entries.map((entry) => (
+            <li>
+              <a href={`#${entry.id}`} data-toc-level="section">
+                {entry.label}
+              </a>
+              {entry.steps.length > 0 && (
+                <ol role="list">
+                  {entry.steps.map((step) => (
+                    <li>
+                      <a href={`#${step.id}`} data-toc-level="step">
+                        {step.label}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </li>
+          ))
+        }
+      </ol>
+    </details>
+  </nav>
+</aside>
+
+<script>
+  import { mountToc } from './client';
+
+  mountToc(document);
+</script>

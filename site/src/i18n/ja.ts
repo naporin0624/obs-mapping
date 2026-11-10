@@ -21,6 +21,7 @@ export const ja: SiteMessages = {
     github: 'GitHub のリポジトリ',
     releases: 'Releases（ダウンロード）',
     external: '（GitHub）',
+    toc: { label: '目次' },
     can: {
       heading: 'できること',
       items: [
@@ -34,11 +35,13 @@ export const ja: SiteMessages = {
       heading: '導入',
       download: {
         title: 'ダウンロードする',
+        toc: 'ダウンロードする',
         body: 'Releases から、自分の OS 用のファイルを選びます。macOS は .pkg、Windows は .exe です。',
         link: 'Releases を開く',
       },
       run: {
         title: 'OBS を終了して、インストーラーを実行する',
+        toc: 'インストーラーを実行する',
         body: 'インストールの前に、OBS を終了しておきます。Windows のインストーラーは、OBS が起動していると先へ進めません。',
         macos: '15 以降で警告に止められたら、「システム設定 > プライバシーとセキュリティ」を開き、「このまま開く」を押します。',
         macosOld: '14 以前で警告に止められたら、pkg を右クリックして「開く」を選びます。',
@@ -46,6 +49,7 @@ export const ja: SiteMessages = {
       },
       open: {
         title: 'OBS を開く',
+        toc: 'OBS を開く',
         body: '右側に「Surface Mapper」ドックが出ています。ドックが自動で出るのは初回だけです。',
         rows: [
           {
@@ -60,6 +64,7 @@ export const ja: SiteMessages = {
       },
       connect: {
         title: 'WebSocket を有効にして接続する',
+        toc: 'WebSocket で接続する',
         body: 'OBS の WebSocket サーバーを有効にして、ドックからつなぎます。次回からは自動で再接続します。',
         rows: [
           {
@@ -99,6 +104,7 @@ export const ja: SiteMessages = {
       heading: '使い方',
       source: {
         title: 'Mapping ソースを追加する',
+        toc: 'ソースを追加する',
         rows: [
           {
             image: '02-1-add-source',
@@ -125,6 +131,7 @@ export const ja: SiteMessages = {
       },
       fit: {
         title: '面を作って四隅を合わせる',
+        toc: '四隅を合わせる',
         rows: [
           {
             image: '03-1-add-surface',
@@ -151,6 +158,7 @@ export const ja: SiteMessages = {
       },
       transfer: {
         title: 'マッピングを書き出す・読み込む',
+        toc: '書き出す・読み込む',
         rows: [
           {
             image: '04-1-import-export',

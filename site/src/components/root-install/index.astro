@@ -13,7 +13,7 @@ const { download, run, open, connect } = install;
 ---
 
 <ol class={stepListCls}>
-  <li data-step>
+  <li id="install-download" data-step>
     <h3>{download.title}</h3>
     <p>{download.body}</p>
     <p><ExternalLink lang={lang} href={releasesUrl}>{download.link}</ExternalLink></p>
@@ -29,13 +29,13 @@ const { download, run, open, connect } = install;
       <dd>{run.windows}</dd>
     </dl>
   </li>
-  <li data-step>
+  <li id="install-open" data-step>
     <h3>{open.title}</h3>
     <p>{open.body}</p>
     <GuideRows rows={open.rows} labels={guide} />
     <p><a href="#faq-dock">{open.faq}</a></p>
   </li>
-  <li data-step>
+  <li id="install-connect" data-step>
     <h3>{connect.title}</h3>
     <p>{connect.body}</p>
     <GuideRows rows={connect.rows} labels={guide} />

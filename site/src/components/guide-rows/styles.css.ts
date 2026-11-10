@@ -33,8 +33,9 @@ export const triggerCls = css({
   cursor: 'zoom-in',
   _hover: { borderColor: 'accent.border', background: 'bg.pasteboard', color: 'fg.default' },
 });
-// Never wider than the file (strips stay sharp) and never taller than 28rem (the tall properties window).
-export const thumbCls = css({ display: 'block', maxWidth: '100%', maxHeight: '28rem', width: 'auto', height: 'auto' });
+// The width attribute keeps it no wider than the file; the cap below keeps it no taller than 28rem.
+// Sizing from the attributes, not the loaded file, reserves the box before the lazy image arrives.
+export const thumbCls = css({ display: 'block', maxWidth: 'min(100%, calc(28rem * var(--thumb-ratio)))', height: 'auto' });
 export const badgeCls = css({
   position: 'absolute',
   insetBlockStart: '4px',

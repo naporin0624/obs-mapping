@@ -29,7 +29,7 @@ const titleId = (row: GuideRow): string => `guide-${row.image}-title`;
         <li class={rowCls} data-guide-row data-guide-layout={layout} data-guide-media-side={sides[i]}>
           <div class={mediaCls} data-guide-media>
             <button type="button" class={triggerCls} commandfor={dialogId(row)} command="show-modal" aria-label={`${labels.enlarge}: ${row.alt}`} data-guide-open>
-              <Image class={thumbCls} src={src} alt={row.alt} width={inlineWidth(row)} />
+              <Image class={thumbCls} src={src} alt={row.alt} width={inlineWidth(row)} style={`--thumb-ratio: ${src.width} / ${src.height}`} />
               <span class={badgeCls} aria-hidden="true">
                 <svg viewBox="0 0 16 16" focusable="false">
                   <path d="M10 2h4v4M6 14H2v-4M14 2 9 7M2 14l5-5" />
