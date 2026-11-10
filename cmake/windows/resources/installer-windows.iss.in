@@ -11,6 +11,7 @@ AppPublisher=@PLUGIN_AUTHOR@
 AppPublisherURL=@PLUGIN_WEBSITE@
 UninstallDisplayName=@PLUGIN_DISPLAY_NAME@
 DefaultDirName={commonappdata}\obs-studio\plugins\@CMAKE_PROJECT_NAME@
+UsePreviousAppDir=no
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 PrivilegesRequired=admin
@@ -27,6 +28,7 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ja"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [InstallDelete]
+Type: filesandordirs; Name: "{commonappdata}\obs-studio\plugins\obs-mapping"
 Type: filesandordirs; Name: "{app}\bin"
 Type: filesandordirs; Name: "{app}\data"
 
