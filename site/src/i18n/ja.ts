@@ -256,11 +256,12 @@ export const ja: SiteMessages = {
     },
     skills: {
       heading: 'Claude Code / エージェント用スキル',
-      lead: 'スクリプトやエージェントからマッピングを扱うためのスキルを 3 つ配布しています。',
+      lead: 'スクリプトやエージェントからマッピングを扱うためのスキルを 4 つ配布しています。',
       list: {
         'driving-surface-mapper-over-websocket': 'obs-websocket のベンダーリクエストで、Mapping ソースのマッピングを読み書きする。',
         'writing-mapping-json': 'mapping.json（v2）を書く・直す。検証エラーの読み方も含む。',
         'mapping-led-pixel-maps': 'LED のピクセルマップ（チャート）から、画面ごとの面を 1 つのキャンバスに配置する。',
+        'upgrading-from-0-6': '0.6.x 以前で保存し、0.7.0 以降に更新して見つからなくなった Mapping ソースを、シーンコレクションを直して戻す。',
       },
       claudeCode: 'Claude Code では、プラグインとして入れます。',
       others: { before: 'Codex、GitHub Copilot、Cursor など他のエージェントでは、', link: 'skills CLI', after: ' で 1 つずつ入れます。' },

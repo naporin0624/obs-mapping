@@ -261,11 +261,12 @@ export const en: SiteMessages = {
     },
     skills: {
       heading: 'Skills for Claude Code and other agents',
-      lead: 'Three skills let scripts and agents work with mappings.',
+      lead: 'Four skills let scripts and agents work with mappings.',
       list: {
         'driving-surface-mapper-over-websocket': 'Read and write a Mapping source through obs-websocket vendor requests.',
         'writing-mapping-json': 'Write and fix mapping.json (v2), including how to read its validation errors.',
         'mapping-led-pixel-maps': 'Lay out one face per screen on a single canvas from an LED pixel map (chart).',
+        'upgrading-from-0-6': 'Bring back Mapping sources saved by 0.6.x or earlier that show as missing after updating to 0.7.0 or later.',
       },
       claudeCode: 'In Claude Code, install them as a plugin.',
       others: { before: 'For other agents such as Codex, GitHub Copilot and Cursor, install them one at a time with the ', link: 'skills CLI', after: '.' },

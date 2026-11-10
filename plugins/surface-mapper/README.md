@@ -19,6 +19,7 @@ Works with Codex, GitHub Copilot, Amp, Cursor, Antigravity, and others via [skil
 npx skills add naporin0624/surface-mapper@driving-surface-mapper-over-websocket
 npx skills add naporin0624/surface-mapper@writing-mapping-json
 npx skills add naporin0624/surface-mapper@mapping-led-pixel-maps
+npx skills add naporin0624/surface-mapper@upgrading-from-0-6
 ```
 
 Add `-g` to install globally instead of into the current project.
@@ -32,6 +33,7 @@ Skills activate automatically from conversation context — no commands to learn
 | `driving-surface-mapper-over-websocket` | Reading or changing a Mapping source from a script or agent: the `surface-mapper` vendor requests (`ListMappingSources` / `GetMapping` / `SetMapping` / `SetOverlay`), `MappingChanged` / `OverlayChanged` events, creating the source, `ok: false` replies, verifying with screenshots and scene item transforms |
 | `writing-mapping-json` | Authoring or reviewing mapping JSON v2: surfaces, `crop` vs `corners`, ellipse / polygon masks, groups and layers, and the plugin's path-prefixed validation errors |
 | `mapping-led-pixel-maps` | Turning an LED pixel-map chart into a mapping: canvas = processor input, one surface per screen, round-screen masks, and crop recipes (pixel-for-pixel, centre cut, full squeeze) |
+| `upgrading-from-0-6` | Updating from obs-mapping (≤ 0.6.x) to Surface Mapper (≥ 0.7.0): Mapping sources missing or unknown after the update, scene collections still referencing `obs_mapping_source`, the bundled `migrate.py` (dry run, `--apply`, backups, rollback), and the vendor rename to `surface-mapper` |
 
 ## Requirements
 

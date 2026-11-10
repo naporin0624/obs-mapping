@@ -18,3 +18,5 @@ site/.astro/
 site/.vitest/
 site/deploy/node_modules/
 site/deploy/.cloudflare/
+
+__pycache__/
