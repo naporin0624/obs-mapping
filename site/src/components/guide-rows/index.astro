@@ -1,0 +1,67 @@
+---
+import { Image } from 'astro:assets';
+import type { RootCopy } from '../../i18n/messages';
+import { GUIDE_SHOTS, type GuideRow } from '../../i18n/guide';
+import { GUIDE_IMAGES } from './images';
+import { mediaSides } from './layout';
+import { badgeCls, calloutsCls, dialogCls, fullCls, headCls, mediaCls, rowCls, rowsCls, textCls, thumbCls, triggerCls, whereCls, wideCalloutsCls } from './styles.css';
+
+type Props = { rows: readonly GuideRow[]; labels: RootCopy['guide'] };
+
+const { rows, labels } = Astro.props;
+// Twice the widest column the page gives a side screenshot, so it stays sharp on 2x screens; wide strips keep their own width.
+const SIDE_MAX = 720;
+const sides = mediaSides(rows.map((row) => GUIDE_SHOTS[row.image].layout));
+const inlineWidth = (row: GuideRow): number => {
+  const { width } = GUIDE_IMAGES[row.image];
+  return GUIDE_SHOTS[row.image].layout === 'wide' ? width : Math.min(width, SIDE_MAX);
+};
+const dialogId = (row: GuideRow): string => `guide-${row.image}`;
+const titleId = (row: GuideRow): string => `guide-${row.image}-title`;
+---
+
+<ul class={rowsCls}>
+  {
+    rows.map((row, i) => {
+      const src = GUIDE_IMAGES[row.image];
+      const { layout } = GUIDE_SHOTS[row.image];
+      return (
+        <li class={rowCls} data-guide-row data-guide-layout={layout} data-guide-media-side={sides[i]}>
+          <div class={mediaCls} data-guide-media>
+            <button type="button" class={triggerCls} commandfor={dialogId(row)} command="show-modal" aria-label={`${labels.enlarge}: ${row.alt}`} data-guide-open>
+              <Image class={thumbCls} src={src} alt={row.alt} width={inlineWidth(row)} />
+              <span class={badgeCls} aria-hidden="true">
+                <svg viewBox="0 0 16 16" focusable="false">
+                  <path d="M10 2h4v4M6 14H2v-4M14 2 9 7M2 14l5-5" />
+                </svg>
+              </span>
+            </button>
+          </div>
+          <div class={textCls}>
+            <hgroup class={headCls}>
+              <p class={whereCls}>{row.where}</p>
+              <h4 id={titleId(row)}>{row.title}</h4>
+            </hgroup>
+            <ol class={layout === 'wide' ? `${calloutsCls} ${wideCalloutsCls}` : calloutsCls} role="list">
+              {row.items.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ol>
+          </div>
+          <dialog id={dialogId(row)} class={dialogCls} aria-labelledby={titleId(row)} closedby="any">
+            <form method="dialog">
+              <button>{labels.close}</button>
+            </form>
+            <Image class={fullCls} src={src} alt={row.alt} />
+          </dialog>
+        </li>
+      );
+    })
+  }
+</ul>
+
+<script>
+  import { initGuideDialogs } from './client';
+
+  initGuideDialogs(document);
+</script>

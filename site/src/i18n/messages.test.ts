@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { en as dockEn } from '../../../ui/src/i18n/messages/en';
 import { ja as dockJa } from '../../../ui/src/i18n/messages/ja';
 import { DEMO_SOURCE, type DemoSlug, type StepId } from '../scene/spec';
+import { GUIDE_SHOTS, type GuideRow } from './guide';
 import { localePath, messagesFor, SKILLS, type Lang } from './messages';
 
 const docks = { ja: dockJa, en: dockEn } as const;
@@ -125,6 +126,12 @@ describe('messagesFor', () => {
   });
 });
 
+const guideRows = (lang: Lang): readonly GuideRow[] => {
+  const { install, how } = messagesFor(lang).root;
+  return [install.open, install.connect, how.source, how.fit, how.transfer].flatMap((step) => step.rows);
+};
+const rowText = (rows: readonly GuideRow[]): string => rows.flatMap((row) => [row.where, row.title, ...row.items]).join('\n');
+
 describe('root page copy', () => {
   it('has the same root keys in ja and en', () => {
     expect(keyPaths(messagesFor('en').root).toSorted()).toEqual(keyPaths(messagesFor('ja').root).toSorted());
@@ -135,13 +142,38 @@ describe('root page copy', () => {
     for (const item of messagesFor(lang).root.can.items) expect(item).not.toBe('');
   });
 
-  it.each(langs)('%s: the connect step names the dock connect label', (lang) => {
-    expect(messagesFor(lang).root.install.connect.body).toContain(docks[lang].connectConnect);
+  it.each(langs)('%s: the connect step names the dock connect and connected labels', (lang) => {
+    const text = rowText(messagesFor(lang).root.install.connect.rows);
+    expect(text).toContain(docks[lang].connectConnect);
+    expect(text).toContain(docks[lang].connectOpen);
   });
 
-  it.each(langs)('%s: the mapping step names the dock source, add and shape labels', (lang) => {
-    const body = messagesFor(lang).root.how.map.body;
-    for (const label of [docks[lang].source, docks[lang].add, docks[lang].maskHeading]) expect(body).toContain(label);
+  it.each(langs)('%s: the source step names the dock source and reload labels', (lang) => {
+    const text = rowText(messagesFor(lang).root.how.source.rows);
+    for (const label of [docks[lang].source, docks[lang].sourceReload]) expect(text).toContain(label);
+  });
+
+  it.each(langs)('%s: the fit step names the dock add, layers, crop and shape labels', (lang) => {
+    const { fit } = messagesFor(lang).root.how;
+    const text = `${rowText(fit.rows)}\n${fit.mask}`;
+    for (const label of [docks[lang].add, docks[lang].layersHeading, docks[lang].cropHeading, docks[lang].maskHeading]) expect(text).toContain(label);
+  });
+
+  it.each(langs)('%s: the transfer step names import, export and both resolution choices', (lang) => {
+    const text = rowText(messagesFor(lang).root.how.transfer.rows);
+    const dock = docks[lang];
+    for (const label of [dock.importButton, dock.exportButton, dock.importScale, dock.importOverwrite]) expect(text).toContain(label);
+  });
+
+  it.each(langs)('%s: every guide row explains each numbered callout of its screenshot', (lang) => {
+    for (const row of guideRows(lang)) {
+      expect(row.items, row.image).toHaveLength(GUIDE_SHOTS[row.image].callouts);
+      for (const text of [row.alt, row.where, row.title, ...row.items]) expect(text.trim(), row.image).not.toBe('');
+    }
+  });
+
+  it.each(langs)('%s: shows every guide screenshot once, in file order', (lang) => {
+    expect(guideRows(lang).map((row) => row.image)).toEqual(Object.keys(GUIDE_SHOTS));
   });
 
   it.each(langs)('%s: the download step names both installer extensions', (lang) => {
@@ -150,7 +182,7 @@ describe('root page copy', () => {
   });
 
   it.each(langs)('%s: the connect step keeps the default URL', (lang) => {
-    expect(messagesFor(lang).root.install.connect.body).toContain('ws://127.0.0.1:4455');
+    expect(rowText(messagesFor(lang).root.install.connect.rows)).toContain('ws://127.0.0.1:4455');
   });
 
   it.each(langs)('%s: describes every published skill', (lang) => {

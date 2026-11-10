@@ -47,21 +47,124 @@ export const en: SiteMessages = {
       open: {
         title: 'Open OBS',
         body: 'The "Surface Mapper" dock is already on the right. It appears on its own only the first time.',
-        faq: 'If the dock does not appear',
+        rows: [
+          {
+            image: '01-1-dock-menu',
+            alt: 'The Docks menu (in Japanese) with "Surface Mapper" checked',
+            where: 'Docks',
+            title: 'If you cannot find the dock',
+            items: ['From the Docks menu in the menu bar, choose "Surface Mapper" so it is checked.'],
+          },
+        ],
+        faq: 'If Surface Mapper is not in the menu either',
       },
       connect: {
         title: 'Turn on WebSocket and connect',
-        body: `Under Tools > WebSocket Server Settings, enable the server and set a password. Enter that password in the dock and press "${dock.connectConnect}". The URL can stay at the default, ws://127.0.0.1:4455. From the next launch on, the dock reconnects by itself.`,
+        body: "Turn on OBS's WebSocket server, then connect to it from the dock. From the next launch on, the dock reconnects by itself.",
+        rows: [
+          {
+            image: '01-2-tools-websocket',
+            alt: 'The Tools menu (in Japanese) with WebSocket Server Settings highlighted',
+            where: 'Tools',
+            title: 'Open the settings',
+            items: ['From the Tools menu in the menu bar, open WebSocket Server Settings.'],
+          },
+          {
+            image: '01-3-websocket-settings',
+            alt: 'The WebSocket Server Settings window (in Japanese): the enable checkbox, the server port set to 4455, and the server password field',
+            where: 'Tools > WebSocket Server Settings',
+            title: 'Enable the server',
+            items: ['Check "Enable WebSocket server".', 'Check the server port. It is 4455 by default.', 'Note down the server password. You will enter it in the dock to connect.'],
+          },
+          {
+            image: '01-4-dock-connect',
+            alt: 'The connection bar at the top of the dock: URL, password, the connect button and the Connected status',
+            where: 'Surface Mapper dock',
+            title: 'Connect from the dock',
+            items: [
+              'The URL can stay at the default, ws://127.0.0.1:4455. If you changed the port, match the number at the end.',
+              'In "Password", enter the server password you noted down.',
+              `Press the "${dock.connectConnect}" button. Once connected, the same button becomes "${dock.connectDisconnect}".`,
+              `You are done when it says "${dock.connectOpen}".`,
+            ],
+          },
+        ],
       },
     },
     how: {
       heading: 'How to use it',
-      map: {
-        title: 'Add a Mapping source and fit the faces',
-        body: `In OBS, add a Mapping source and choose it in the dock's "${dock.source}". Press "${dock.add}" to create a face, drag its corners onto the corners of the object, and cut it out with an ellipse or polygon under "${dock.maskHeading}".`,
+      source: {
+        title: 'Add a Mapping source',
+        rows: [
+          {
+            image: '02-1-add-source',
+            alt: 'The Add Source window (in Japanese) with Mapping selected in the list on the left and the button that adds a new Mapping at the top right',
+            where: 'Sources > +',
+            title: 'Pick Mapping and add one',
+            items: ['Press "+" under Sources and choose "Mapping" from the list.', 'Press the button at the top that adds a new Mapping.'],
+          },
+          {
+            image: '02-2-source-properties',
+            alt: "The Mapping source's properties window: a preview at the top, the mapping JSON field in the middle, and the OK button at the bottom right",
+            where: 'Mapping source properties',
+            title: 'Close the properties as they are',
+            items: ['Press "OK". You edit the mapping JSON in the dock, so you can leave it alone here.'],
+          },
+          {
+            image: '02-3-dock-select-source',
+            alt: 'The Source field in the dock with the new Mapping source chosen and the reload button beside it',
+            where: 'Surface Mapper dock',
+            title: 'Choose it in the dock',
+            items: [`In "${dock.source}", choose the Mapping source you added.`, `If it is not in the list, press the "${dock.sourceReload}" button.`],
+          },
+        ],
+      },
+      fit: {
+        title: 'Create faces and fit their corners',
+        rows: [
+          {
+            image: '03-1-add-surface',
+            alt: 'The right side of the dock: the source picker, the add button, two faces under Layers, and the crop fields in the properties',
+            where: 'Surface Mapper dock',
+            title: 'Add a face',
+            items: [
+              `Left of "${dock.add}", choose the source to show on the face (for example, a Syphon client).`,
+              `Press "${dock.add}" (+) to create a face.`,
+              `The new face is listed under "${dock.layersHeading}".`,
+              `Under "${dock.cropHeading}", set which part of the source to show, as ratios from 0 to 1.`,
+            ],
+          },
+          {
+            image: '03-2-fit-corners',
+            alt: 'Face corners dragged on the stage to fit two walls, with the corner coordinate fields in the properties',
+            where: 'Surface Mapper dock',
+            title: 'Fit the corners',
+            items: [
+              "Drag the handles at the face's corners onto the corners of the object you project on.",
+              `The selected corner's coordinates also appear as numbers in a field such as "${dock.cornerHeading(2)}" in the properties, where you can edit them.`,
+            ],
+          },
+        ],
+        mask: `Under "${dock.maskHeading}", you can cut a face out with an ellipse or a polygon.`,
         demos: 'Walk through it in the demos',
       },
+      transfer: {
+        title: 'Export and import the mapping',
+        rows: [
+          {
+            image: '04-1-import-export',
+            alt: 'The dock toolbar with the import and export buttons side by side',
+            where: 'Surface Mapper dock',
+            title: 'Pass it on as a file',
+            items: [
+              `"${dock.importButton}" loads a saved mapping.json. If the resolution differs, choose "${dock.importScale}" or "${dock.importOverwrite}". Loading cannot be undone.`,
+              `"${dock.exportButton}" saves the current mapping as mapping.json.`,
+            ],
+          },
+        ],
+      },
     },
+    guide: { enlarge: 'Enlarge image', close: 'Close' },
     faq: {
       heading: 'FAQ',
       groups: [
