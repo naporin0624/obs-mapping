@@ -358,7 +358,7 @@ UI のコードは `pnpm -C ui fmt`（oxlint と oxfmt --write）で整形でき
 1. `main` に [Conventional Commits](https://www.conventionalcommits.org/ja/v1.0.0/) 形式のコミット（`feat:`、`fix:` など）が入ると、release-please がリリース用の PR を作成・更新します。PR には次のバージョン番号、`CHANGELOG.md`、`buildspec.json` の `version` の更新が入ります。
 2. その PR をマージすると、タグ（`v` なしの `0.1.0` 形式）と GitHub Release が作られます。続けて同じワークフローが Release 構成でビルドし、macOS（`.pkg` と `.tar.xz`）と Windows（`.zip`）のパッケージ、`SHA256SUMS.txt` をリリースに添付します。Ubuntu 版は CI で確認のためにビルドしますが、リリースには含めません。
 
-1.0.0 になるまでは、`feat:` でマイナー、`fix:` でパッチが上がります。破壊的変更（`feat!:`）もマイナーです。
+`feat:` でマイナー、`fix:` でパッチ、破壊的変更（`feat!:` や本文の `BREAKING CHANGE:`）でメジャーが上がります。
 
 リポジトリの「Settings > Actions > General」で「Allow GitHub Actions to create and approve pull requests」を有効にしておく必要があります。無効だと release-please が PR を作れません。
 
