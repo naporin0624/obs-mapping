@@ -21,6 +21,7 @@ export const en: SiteMessages = {
     github: 'GitHub repository',
     releases: 'Releases (downloads)',
     external: ' (GitHub)',
+    toc: { label: 'Contents' },
     can: {
       heading: 'What it does',
       items: [
@@ -34,11 +35,13 @@ export const en: SiteMessages = {
       heading: 'Install',
       download: {
         title: 'Download',
+        toc: 'Download',
         body: 'Pick the file for your OS from Releases: the .pkg on macOS, the .exe on Windows.',
         link: 'Open Releases',
       },
       run: {
         title: 'Quit OBS and run the installer',
+        toc: 'Run the installer',
         body: 'Quit OBS before you install. The Windows installer will not continue while OBS is running.',
         macos: 'On 15 or later, if a warning stops you, open System Settings > Privacy & Security and press "Open Anyway".',
         macosOld: 'On 14 or earlier, if a warning stops you, right-click the pkg and choose "Open".',
@@ -46,6 +49,7 @@ export const en: SiteMessages = {
       },
       open: {
         title: 'Open OBS',
+        toc: 'Open OBS',
         body: 'The "Surface Mapper" dock is already on the right. It appears on its own only the first time.',
         rows: [
           {
@@ -60,6 +64,7 @@ export const en: SiteMessages = {
       },
       connect: {
         title: 'Turn on WebSocket and connect',
+        toc: 'Connect over WebSocket',
         body: "Turn on OBS's WebSocket server, then connect to it from the dock. From the next launch on, the dock reconnects by itself.",
         rows: [
           {
@@ -95,6 +100,7 @@ export const en: SiteMessages = {
       heading: 'How to use it',
       source: {
         title: 'Add a Mapping source',
+        toc: 'Add a Mapping source',
         rows: [
           {
             image: '02-1-add-source',
@@ -121,6 +127,7 @@ export const en: SiteMessages = {
       },
       fit: {
         title: 'Create faces and fit their corners',
+        toc: 'Fit the corners',
         rows: [
           {
             image: '03-1-add-surface',
@@ -150,6 +157,7 @@ export const en: SiteMessages = {
       },
       transfer: {
         title: 'Export and import the mapping',
+        toc: 'Export and import',
         rows: [
           {
             image: '04-1-import-export',

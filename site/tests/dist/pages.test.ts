@@ -314,6 +314,65 @@ describe('top page FAQ', () => {
   });
 });
 
+const SECTION_IDS = ['can', 'install', 'how', 'faq', 'skills', 'env'] as const;
+const tocOf = (html: string, label: string): string[] => blocksOf(html, 'nav').filter((n) => attr(n, 'aria-label') === label);
+const textOf = (block: string): string => decode(block.replace(/<[^>]*>/g, '')).trim();
+// The nav source from one section link to the next, which holds that section's nested step links.
+type SectionId = (typeof SECTION_IDS)[number];
+const tocChunk = (nav: string, id: SectionId): string => {
+  const start = nav.indexOf(`href="#${id}"`);
+  const next = SECTION_IDS.slice(SECTION_IDS.indexOf(id) + 1).map((later) => nav.indexOf(`href="#${later}"`));
+  return nav.slice(start, next.find((i) => i > start) ?? nav.length);
+};
+// The chunk starts inside the section link's own tag, so every <a> found in it is a step link.
+const tocSteps = (nav: string, id: SectionId): string[] => blocksOf(tocChunk(nav, id), 'a');
+
+describe('top page table of contents', () => {
+  it.each(GUIDE_PAGES)('%s has one contents nav', (path, copy) => {
+    expect(tocOf(page(path), copy.root.toc.label)).toHaveLength(1);
+  });
+
+  it.each(GUIDE_PAGES)('%s links every section in page order, labelled by its heading', (path, copy) => {
+    const [nav = ''] = tocOf(page(path), copy.root.toc.label);
+    const sections = blocksOf(nav, 'a').filter((a) => attr(a, 'data-toc-level') === 'section');
+    expect(sections.map((a) => attr(a, 'href'))).toEqual(SECTION_IDS.map((id) => `#${id}`));
+    const { can, install, how, faq, skills, env } = copy.root;
+    expect(sections.map(textOf)).toEqual([can, install, how, faq, skills, env].map((s) => s.heading));
+  });
+
+  it.each(GUIDE_PAGES)('%s nests the install and how steps under their sections with short labels', (path, copy) => {
+    const [nav = ''] = tocOf(page(path), copy.root.toc.label);
+    const { download, run, open, connect } = copy.root.install;
+    const { source, fit, transfer } = copy.root.how;
+    expect(tocSteps(nav, 'install').map(textOf)).toEqual([download, run, open, connect].map((s) => s.toc));
+    expect(tocSteps(nav, 'how').map(textOf)).toEqual([source, fit, transfer].map((s) => s.toc));
+    expect(tocChunk(nav, 'install')).toMatch(/<ol\b/);
+    for (const id of ['can', 'faq', 'skills', 'env'] as const) expect(tocSteps(nav, id)).toEqual([]);
+  });
+
+  it.each(GUIDE_PAGES)('%s points each step link at a step in its own section', (path) => {
+    const html = page(path);
+    const [nav = ''] = tocOf(html, path === 'index.html' ? ja.root.toc.label : en.root.toc.label);
+    for (const id of ['install', 'how'] as const) {
+      const stepIds = stepsOf(sectionById(html, id)).map((step) => attr(tagsOf(step, 'li')[0] ?? '', 'id'));
+      expect(tocSteps(nav, id).map((a) => attr(a, 'href'))).toEqual(stepIds.map((stepId) => `#${stepId ?? 'missing'}`));
+    }
+  });
+
+  it.each(GUIDE_PAGES)('%s keeps the existing in-page anchors', (path) => {
+    const html = page(path);
+    for (const id of [...SECTION_IDS, 'install-run', 'faq-dock']) expect(html).toContain(`id="${id}"`);
+    expect(hrefs(sectionById(html, 'faq'))).toContain('#install-run');
+  });
+
+  it.each(GUIDE_PAGES)('%s shows the current section in the narrow bar summary', (path, copy) => {
+    const [nav = ''] = tocOf(page(path), copy.root.toc.label);
+    const [summary = ''] = blocksOf(nav, 'summary');
+    expect(textOf(summary)).toContain(copy.root.toc.label);
+    expect(summary).toContain('data-toc-current');
+  });
+});
+
 describe('top page demo video', () => {
   it.each(HERO_PAGES)('%s loops a muted inline video with its size reserved and no autoplay attribute', (path) => {
     const [video = ''] = tagsOf(heroVideo(page(path)), 'video');
@@ -364,7 +423,7 @@ describe('language switcher', () => {
 
   it('keeps the demo link out of the language navigation', () => {
     const html = page('index.html');
-    const language = blocksOf(html, 'nav').filter((n) => attr(n, 'aria-label') === '言語' || n.includes('<details'));
+    const language = blocksOf(html, 'nav').filter((n) => attr(n, 'aria-label') === '言語');
     expect(language).toHaveLength(1);
     expect(hrefs(language[0] ?? '')).not.toContain('/demo/');
   });

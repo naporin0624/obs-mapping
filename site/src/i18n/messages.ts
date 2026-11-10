@@ -11,9 +11,10 @@ export const SKILLS = ['driving-surface-mapper-over-websocket', 'writing-mapping
 export type Skill = (typeof SKILLS)[number];
 /** Copy that wraps one inline element (a link or a code span) between two runs of text. */
 export type AroundCopy = { before: string; after: string };
-type StepBody = { title: string; body: string };
+/** `toc` is the step's short label in the contents nav. */
+type StepBody = { title: string; toc: string; body: string };
 /** A step shown as screenshots, one row per image. */
-type GuideStep = { title: string; rows: readonly GuideRow[] };
+type GuideStep = { title: string; toc: string; rows: readonly GuideRow[] };
 /** `href` starting with http is an external link; anything else is an in-page anchor. */
 export type FaqLink = { href: string; label: string };
 /** `a` is one paragraph per entry. */
@@ -29,6 +30,8 @@ export type RootCopy = {
   releases: string;
   /** Read after an external link's text; the visible ↗ is hidden from assistive tech. */
   external: string;
+  /** `label` names the contents nav and starts its narrow bar. */
+  toc: { label: string };
   can: { heading: string; items: readonly string[] };
   install: {
     heading: string;

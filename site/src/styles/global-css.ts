@@ -33,5 +33,7 @@ export const globalCss = defineGlobalStyles({
   'button:disabled': { opacity: 'disabled', cursor: 'not-allowed' },
   code: { fontFamily: 'mono', background: 'bg.muted', padding: '0 4px' },
   '[hidden]': { display: 'none !important' },
+  // In-page jumps glide unless the reader asked for less motion.
+  '@media (prefers-reduced-motion: no-preference)': { html: { scrollBehavior: 'smooth' } },
   ...fullHeightViewer,
 });

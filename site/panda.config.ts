@@ -10,4 +10,6 @@ export default defineConfig({
   exclude: ['./src/**/*.test.ts'],
   outdir: 'styled-system',
   globalCss,
+  // The top page puts its contents nav beside the 48rem column once both fit.
+  theme: { extend: { breakpoints: { twoColumn: '64rem' } } },
 });
