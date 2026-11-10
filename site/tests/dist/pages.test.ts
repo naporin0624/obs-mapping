@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { en } from '../../src/i18n/en';
+import { GUIDE_SHOTS, type GuideImage } from '../../src/i18n/guide';
 import { ja } from '../../src/i18n/ja';
 
 const GITHUB = 'https://github.com/naporin0624/surface-mapper';
@@ -125,6 +126,24 @@ describe('top page', () => {
 // The <section aria-labelledby="id"> element; sections on the top page do not nest.
 const sectionById = (html: string, id: string): string => blocksOf(html, 'section').find((s) => new RegExp(`<section\\b[^>]*\\saria-labelledby="${id}"`).test(s)) ?? '';
 
+const GUIDE_PAGES = [
+  ['index.html', ja],
+  ['en/index.html', en],
+] as const;
+
+// Each chunk runs from one marked <li> to the next, so nested lists do not cut it short.
+const chunksAt = (html: string, flag: string): string[] => {
+  const starts = [...html.matchAll(new RegExp(`<li\\b(?:[^>"']|"[^"]*"|'[^']*')*?\\s${flag}(?:=""|[\\s>])`, 'g'))].map((m) => m.index);
+  return starts.map((start, i) => html.slice(start, starts[i + 1] ?? html.length));
+};
+const stepsOf = (section: string): string[] => chunksAt(section, 'data-step');
+const rowsOf = (html: string): string[] => chunksAt(html, 'data-guide-row');
+const triggersOf = (html: string): string[] => tagsOf(html, 'button').filter((b) => attr(b, 'commandfor') !== undefined);
+const guideImageOf = (img: string): GuideImage | undefined => {
+  const name = /^\/_astro\/([\w-]+?)\.[\w-]+\.webp$/.exec(attr(img, 'src') ?? '')?.[1];
+  return Object.keys(GUIDE_SHOTS).find((key): key is GuideImage => key === name);
+};
+
 describe('top page install steps', () => {
   it.each([
     ['index.html', ja],
@@ -134,7 +153,7 @@ describe('top page install steps', () => {
     const { download, run, open, connect } = copy.root.install;
     const titles = blocksOf(section, 'h3').map((h) => decode(h.replace(/<[^>]*>/g, '')));
     expect(titles).toEqual([download.title, run.title, open.title, connect.title]);
-    expect(blocksOf(section, 'li')).toHaveLength(4);
+    expect(stepsOf(section)).toHaveLength(4);
     expect(hrefs(section)).toContain(RELEASES);
     expect(section).toMatch(/\.pkg/);
     expect(section).toMatch(/\.exe/);
@@ -143,7 +162,7 @@ describe('top page install steps', () => {
   });
 
   it.each(['index.html', 'en/index.html'])('%s no longer asks to register a custom browser dock by hand', (path) => {
-    expect(blocksOf(sectionById(page(path), 'how'), 'li')).toHaveLength(1);
+    expect(sectionById(page(path), 'how')).not.toMatch(/カスタムブラウザドック|custom browser dock/i);
   });
 
   it.each(['index.html', 'en/index.html'])('%s orders install before how', (path) => {
@@ -157,6 +176,89 @@ describe('top page install steps', () => {
 
   it.each(['index.html', 'en/index.html'])('%s marks the run step so other sections can link to it', (path) => {
     expect(sectionById(page(path), 'install')).toContain('id="install-run"');
+  });
+});
+
+describe('top page setup guide', () => {
+  it.each(GUIDE_PAGES)('%s shows one screenshot in install step 3 and three in step 4', (path) => {
+    const steps = stepsOf(sectionById(page(path), 'install'));
+    expect(steps.map((step) => triggersOf(step).length)).toEqual([0, 0, 1, 3]);
+  });
+
+  it.each(GUIDE_PAGES)('%s splits how into three steps with 3, 2 and 1 screenshots', (path, copy) => {
+    const steps = stepsOf(sectionById(page(path), 'how'));
+    const { source, fit, transfer } = copy.root.how;
+    expect(steps.map((step) => decode((blocksOf(step, 'h3')[0] ?? '').replace(/<[^>]*>/g, '')))).toEqual([source.title, fit.title, transfer.title]);
+    expect(steps.map((step) => triggersOf(step).length)).toEqual([3, 2, 1]);
+  });
+
+  it.each(GUIDE_PAGES)('%s keeps the demo link in the fit step', (path) => {
+    const [, fit = ''] = stepsOf(sectionById(page(path), 'how'));
+    expect(hrefs(fit)).toContain(path === 'index.html' ? '/demo/' : '/en/demo/');
+  });
+
+  it.each(GUIDE_PAGES)('%s gives every guide image a non-empty alt and a reserved size', (path) => {
+    const imgs = tagsOf(page(path), 'img').filter((img) => guideImageOf(img) !== undefined);
+    expect(imgs.length).toBeGreaterThanOrEqual(10);
+    for (const img of imgs) {
+      expect(attr(img, 'alt')?.trim(), img).toBeTruthy();
+      expect(Number(attr(img, 'width'))).toBeGreaterThan(0);
+      expect(Number(attr(img, 'height'))).toBeGreaterThan(0);
+      expect(attr(img, 'loading')).toBe('lazy');
+    }
+  });
+
+  it.each(GUIDE_PAGES)('%s lists one item per numbered callout under each screenshot', (path) => {
+    const html = page(path);
+    const rows = rowsOf(html);
+    expect(rows).toHaveLength(Object.keys(GUIDE_SHOTS).length);
+    for (const row of rows) {
+      const image = guideImageOf(tagsOf(row, 'img')[0] ?? '');
+      expect(image).toBeDefined();
+      const [list = ''] = blocksOf(row, 'ol');
+      expect(blocksOf(list, 'li'), image).toHaveLength(image === undefined ? -1 : GUIDE_SHOTS[image].callouts);
+      expect(blocksOf(row, 'h4'), image).toHaveLength(1);
+    }
+  });
+
+  it.each(GUIDE_PAGES)('%s opens each screenshot in its own modal dialog', (path) => {
+    const html = page(path);
+    const dialogIds = tagsOf(html, 'dialog').map((d) => attr(d, 'id'));
+    const triggers = triggersOf(html);
+    expect(triggers).toHaveLength(10);
+    for (const trigger of triggers) {
+      expect(attr(trigger, 'type')).toBe('button');
+      expect(attr(trigger, 'command')).toBe('show-modal');
+      expect(dialogIds).toContain(attr(trigger, 'commandfor'));
+    }
+    expect(new Set(triggers.map((t) => attr(t, 'commandfor'))).size).toBe(10);
+  });
+
+  it.each(GUIDE_PAGES)('%s gives the three wide strips a full-width row and keeps the rest side by side', (path) => {
+    const layouts = rowsOf(page(path)).map((row) => {
+      const [tag = ''] = tagsOf(row, 'li');
+      return [guideImageOf(tagsOf(row, 'img')[0] ?? ''), attr(tag, 'data-guide-layout')];
+    });
+    const wide = new Set(['01-4-dock-connect', '02-3-dock-select-source', '04-1-import-export']);
+    expect(layouts).toHaveLength(10);
+    for (const [image, layout] of layouts) expect(layout, image).toBe(wide.has(image ?? '') ? 'wide' : 'side');
+  });
+
+  it.each(GUIDE_PAGES)('%s alternates the side rows of each step, counting only side rows', (path) => {
+    const sides = (html: string): (string | undefined)[] =>
+      rowsOf(html)
+        .map((row) => tagsOf(row, 'li')[0] ?? '')
+        .filter((tag) => attr(tag, 'data-guide-layout') === 'side')
+        .map((tag) => attr(tag, 'data-guide-media-side'));
+    const steps = [...stepsOf(sectionById(page(path), 'install')), ...stepsOf(sectionById(page(path), 'how'))];
+    expect(steps.map(sides)).toEqual([[], [], ['start'], ['start', 'end'], ['start', 'end'], ['start', 'end'], []]);
+  });
+
+  it.each(GUIDE_PAGES)('%s lays the rows out in two columns from a 640px container', (path) => {
+    const css = stylesOf(page(path));
+    expect(css).toMatch(/container-type:inline-size/);
+    expect(css).toMatch(/@container \(width>=640px\)/);
+    expect(css).not.toMatch(/nth-child\((?:even|2n)\)>\[data-guide-media\]/);
   });
 });
 

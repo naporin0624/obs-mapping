@@ -47,21 +47,125 @@ export const ja: SiteMessages = {
       open: {
         title: 'OBS を開く',
         body: '右側に「Surface Mapper」ドックが出ています。ドックが自動で出るのは初回だけです。',
-        faq: 'ドックが出てこないとき',
+        rows: [
+          {
+            image: '01-1-dock-menu',
+            alt: '「ドック」メニューの一覧で、「Surface Mapper」にチェックが入っている',
+            where: 'ドック',
+            title: 'ドックが見当たらないとき',
+            items: ['メニューバーの「ドック」から「Surface Mapper」を選び、チェックを入れます。'],
+          },
+        ],
+        faq: 'メニューにも Surface Mapper がないとき',
       },
       connect: {
         title: 'WebSocket を有効にして接続する',
-        body: `「ツール > WebSocket サーバー設定」でサーバーを有効にし、パスワードを設定します。ドックにそのパスワードを入れて、「${dock.connectConnect}」を押します。URL は既定の ws://127.0.0.1:4455 のままでかまいません。次回からは自動で再接続します。`,
+        body: 'OBS の WebSocket サーバーを有効にして、ドックからつなぎます。次回からは自動で再接続します。',
+        rows: [
+          {
+            image: '01-2-tools-websocket',
+            alt: '「ツール」メニューの一覧にある「WebSocket サーバー設定」',
+            where: 'ツール',
+            title: '設定を開く',
+            items: ['メニューバーの「ツール」から「WebSocket サーバー設定」を開きます。'],
+          },
+          {
+            image: '01-3-websocket-settings',
+            alt: '「WebSocket サーバー設定」の画面。サーバーを有効にするチェック、サーバーポートの 4455、サーバーパスワードの欄',
+            where: 'ツール > WebSocket サーバー設定',
+            title: 'サーバーを有効にする',
+            items: [
+              '「WebSocketサーバーを有効にする」にチェックを入れます。',
+              '「サーバーポート」を確かめます。初期値は 4455 です。',
+              '「サーバーパスワード」を控えます。ドックで接続するときに使います。',
+            ],
+          },
+          {
+            image: '01-4-dock-connect',
+            alt: 'ドック上部の接続欄。URL、パスワード、接続のボタン、「接続済み」の表示',
+            where: 'Surface Mapper ドック',
+            title: 'ドックから接続する',
+            items: [
+              '「URL」は既定の ws://127.0.0.1:4455 のままでかまいません。ポートを変えたときは、末尾の番号をそろえます。',
+              '「パスワード」に、控えたサーバーパスワードを入れます。',
+              `「${dock.connectConnect}」のボタンを押します。つながると、このボタンは「${dock.connectDisconnect}」に変わります。`,
+              `「${dock.connectOpen}」と出れば完了です。`,
+            ],
+          },
+        ],
       },
     },
     how: {
       heading: '使い方',
-      map: {
-        title: 'Mapping ソースを追加し、面を合わせる',
-        body: `OBS で Mapping ソースを追加し、ドックの「${dock.source}」で選びます。「${dock.add}」で面を作って四隅を物体の角に合わせ、「${dock.maskHeading}」で円や多角形に切り抜きます。`,
+      source: {
+        title: 'Mapping ソースを追加する',
+        rows: [
+          {
+            image: '02-1-add-source',
+            alt: '「ソースを追加」の画面。左の一覧で「Mapping」を選び、右上に「新しい Mapping を追加」のボタンがある',
+            where: 'ソース > ＋',
+            title: 'Mapping を選んで追加する',
+            items: ['「ソース」の「＋」を押し、一覧から「Mapping」を選びます。', '「＋ 新しい Mapping を追加」を押します。'],
+          },
+          {
+            image: '02-2-source-properties',
+            alt: 'Mapping ソースのプロパティ画面。上にプレビュー、中ほどにマッピング JSON の欄、右下に OK のボタン',
+            where: 'Mapping ソースのプロパティ',
+            title: 'プロパティはそのまま閉じる',
+            items: ['「OK」を押します。マッピング JSON はドックで編集するので、ここでは触らなくてかまいません。'],
+          },
+          {
+            image: '02-3-dock-select-source',
+            alt: 'ドックの「ソース」欄で、追加した Mapping ソースを選んでいる。右に再読み込みのボタン',
+            where: 'Surface Mapper ドック',
+            title: 'ドックで選ぶ',
+            items: [`「${dock.source}」で、追加した Mapping ソースを選びます。`, `一覧に出ないときは、「${dock.sourceReload}」のボタンを押します。`],
+          },
+        ],
+      },
+      fit: {
+        title: '面を作って四隅を合わせる',
+        rows: [
+          {
+            image: '03-1-add-surface',
+            alt: 'ドックの右側。ソースの選択、追加のボタン、レイヤーに並んだ 2 つの面、プロパティの切り抜きの欄',
+            where: 'Surface Mapper ドック',
+            title: '面を追加する',
+            items: [
+              `「${dock.add}」の左で、面に映すソース（例: サイフォンクライアント）を選びます。`,
+              `「${dock.add}」（＋）を押して面を作ります。`,
+              `作った面は「${dock.layersHeading}」に並びます。`,
+              `「${dock.cropHeading}」で、ソースのどの部分を映すかを 0〜1 の比率で指定します。`,
+            ],
+          },
+          {
+            image: '03-2-fit-corners',
+            alt: 'ステージで面の角をドラッグし、2 面の壁に合わせている。プロパティに角の座標の欄',
+            where: 'Surface Mapper ドック',
+            title: '四隅を合わせる',
+            items: ['面の角にあるハンドルをドラッグして、投影する物体の角に合わせます。', `プロパティの「${dock.cornerHeading(2)}」のような欄では、選んだ角の座標を数値でも直せます。`],
+          },
+        ],
+        mask: `面は「${dock.maskHeading}」で円や多角形に切り抜けます。`,
         demos: 'デモで手順を見る',
       },
+      transfer: {
+        title: 'マッピングを書き出す・読み込む',
+        rows: [
+          {
+            image: '04-1-import-export',
+            alt: 'ドックのツールバー。並んだインポートとエクスポートのボタン',
+            where: 'Surface Mapper ドック',
+            title: 'ファイルで受け渡す',
+            items: [
+              `「${dock.importButton}」で、保存した mapping.json を読み込みます。解像度が違うときは「${dock.importScale}」か「${dock.importOverwrite}」を選びます。読み込みは元に戻せません。`,
+              `「${dock.exportButton}」で、いまのマッピングを mapping.json として保存します。`,
+            ],
+          },
+        ],
+      },
     },
+    guide: { enlarge: '画像を拡大', close: '閉じる' },
     faq: {
       heading: 'よくある質問',
       groups: [

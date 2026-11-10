@@ -1,0 +1,27 @@
+---
+import { localePath, messagesFor, type Lang } from '../../i18n/messages';
+import GuideRows from '../guide-rows/index.astro';
+import { stepListCls } from '../styles.css';
+
+type Props = { lang: Lang };
+
+const { lang } = Astro.props;
+const { how, guide } = messagesFor(lang).root;
+---
+
+<ol class={stepListCls}>
+  <li data-step>
+    <h3>{how.source.title}</h3>
+    <GuideRows rows={how.source.rows} labels={guide} />
+  </li>
+  <li data-step>
+    <h3>{how.fit.title}</h3>
+    <GuideRows rows={how.fit.rows} labels={guide} />
+    <p>{how.fit.mask}</p>
+    <p><a href={localePath(lang, '/demo/')}>{how.fit.demos}</a></p>
+  </li>
+  <li data-step>
+    <h3>{how.transfer.title}</h3>
+    <GuideRows rows={how.transfer.rows} labels={guide} />
+  </li>
+</ol>

@@ -1,5 +1,6 @@
 import type { DemoSlug, StepId } from '../scene/spec';
 import { en } from './en';
+import type { GuideRow } from './guide';
 import { ja } from './ja';
 
 export type Lang = 'ja' | 'en';
@@ -11,6 +12,8 @@ export type Skill = (typeof SKILLS)[number];
 /** Copy that wraps one inline element (a link or a code span) between two runs of text. */
 export type AroundCopy = { before: string; after: string };
 type StepBody = { title: string; body: string };
+/** A step shown as screenshots, one row per image. */
+type GuideStep = { title: string; rows: readonly GuideRow[] };
 /** `href` starting with http is an external link; anything else is an in-page anchor. */
 export type FaqLink = { href: string; label: string };
 /** `a` is one paragraph per entry. */
@@ -33,10 +36,13 @@ export type RootCopy = {
     /** `macos` and `macosOld` are the two macOS warnings; each reads on from the OS name shown before it. */
     run: StepBody & { macos: string; macosOld: string; windows: string };
     /** `faq` is the label of the link from this step to the dock answer in the FAQ. */
-    open: StepBody & { faq: string };
-    connect: StepBody;
+    open: StepBody & GuideStep & { faq: string };
+    connect: StepBody & GuideStep;
   };
-  how: { heading: string; map: StepBody & { demos: string } };
+  /** `fit.mask` follows its screenshots and points on to the masks; `fit.demos` labels the demo link. */
+  how: { heading: string; source: GuideStep; fit: GuideStep & { mask: string; demos: string }; transfer: GuideStep };
+  /** `enlarge` is read before a screenshot's alt on the button that opens it; `close` labels the dialog's button. */
+  guide: { enlarge: string; close: string };
   faq: { heading: string; groups: readonly FaqGroup[] };
   skills: {
     heading: string;

@@ -1,21 +1,24 @@
 ---
 import { messagesFor, type Lang } from '../../i18n/messages';
 import ExternalLink from '../external-link.astro';
-import { listCls, warningsCls } from './styles.css';
+import GuideRows from '../guide-rows/index.astro';
+import { stepListCls } from '../styles.css';
+import { warningsCls } from './styles.css';
 
 type Props = { lang: Lang; releasesUrl: string };
 
 const { lang, releasesUrl } = Astro.props;
-const { download, run, open, connect } = messagesFor(lang).root.install;
+const { install, guide } = messagesFor(lang).root;
+const { download, run, open, connect } = install;
 ---
 
-<ol class={listCls}>
-  <li>
+<ol class={stepListCls}>
+  <li data-step>
     <h3>{download.title}</h3>
     <p>{download.body}</p>
     <p><ExternalLink lang={lang} href={releasesUrl}>{download.link}</ExternalLink></p>
   </li>
-  <li id="install-run">
+  <li id="install-run" data-step>
     <h3>{run.title}</h3>
     <p>{run.body}</p>
     <dl class={warningsCls}>
@@ -26,13 +29,15 @@ const { download, run, open, connect } = messagesFor(lang).root.install;
       <dd>{run.windows}</dd>
     </dl>
   </li>
-  <li>
+  <li data-step>
     <h3>{open.title}</h3>
     <p>{open.body}</p>
+    <GuideRows rows={open.rows} labels={guide} />
     <p><a href="#faq-dock">{open.faq}</a></p>
   </li>
-  <li>
+  <li data-step>
     <h3>{connect.title}</h3>
     <p>{connect.body}</p>
+    <GuideRows rows={connect.rows} labels={guide} />
   </li>
 </ol>
