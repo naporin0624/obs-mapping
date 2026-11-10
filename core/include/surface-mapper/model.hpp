@@ -8,7 +8,7 @@
 #include <variant>
 #include <vector>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 struct Point {
 	double x = 0;
@@ -85,4 +85,4 @@ struct Mapping {
 	bool operator==(const Mapping &) const = default;
 };
 
-} // namespace obs_mapping
+} // namespace surface_mapper

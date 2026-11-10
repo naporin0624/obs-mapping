@@ -6,10 +6,10 @@ import ExternalLink from './external-link.astro';
 
 type Props = { lang: Lang };
 
-const REPO = 'naporin0624/obs-mapping';
+const REPO = 'naporin0624/surface-mapper';
 const { lang } = Astro.props;
 const { skills } = messagesFor(lang).root;
-const pluginCommands = [`/plugin marketplace add ${REPO}`, `/plugin install obs-mapping@obs-mapping`];
+const pluginCommands = [`/plugin marketplace add ${REPO}`, `/plugin install surface-mapper@surface-mapper`];
 const cliCommands = SKILLS.map((skill) => `npx skills add ${REPO}@${skill}`);
 
 const list = css({

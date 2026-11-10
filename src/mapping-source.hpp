@@ -11,8 +11,8 @@
 #include <string_view>
 #include <vector>
 
-#include "obs-mapping/homography.hpp"
-#include "obs-mapping/mapping_json.hpp"
+#include "surface-mapper/homography.hpp"
+#include "surface-mapper/mapping_json.hpp"
 #include "mask-textures.hpp"
 #include "overlay.hpp"
 #include "source-cache.hpp"
@@ -25,9 +25,9 @@ using RequestId = std::optional<std::string>;
 // Immutable view of the applied mapping plus per-surface inverse homographies
 // (canvas px -> unit square). Swapped atomically; readers keep their own pointer.
 struct MappingSnapshot {
-	obs_mapping::Mapping mapping;
-	std::vector<std::optional<obs_mapping::Mat3>> inv_h; // parallel to mapping.surfaces
-	std::vector<bool> visible;                           // parallel to mapping.surfaces
+	surface_mapper::Mapping mapping;
+	std::vector<std::optional<surface_mapper::Mat3>> inv_h; // parallel to mapping.surfaces
+	std::vector<bool> visible;                              // parallel to mapping.surfaces
 };
 
 struct MappingSource {
@@ -39,10 +39,11 @@ struct MappingSource {
 	MappingSource &operator=(const MappingSource &) = delete;
 
 	// Any thread.
-	obs_mapping::Mapping current() const;
+	surface_mapper::Mapping current() const;
 	// Any thread. Validates first; on failure nothing changes. With a request_id the change hook also fires
 	// when the mapping is unchanged, so the sender can acknowledge its own request.
-	std::expected<void, obs_mapping::ParseError> set_mapping_json(std::string_view json, RequestId request_id = {});
+	std::expected<void, surface_mapper::ParseError> set_mapping_json(std::string_view json,
+									 RequestId request_id = {});
 
 	// Any thread. Replaces the selection; `enabled` (when given) also updates the overlay flag, which is
 	// mirrored into the `overlay` setting and announced through the overlay hook only when it changes.
@@ -63,9 +64,9 @@ private:
 	std::shared_ptr<const MappingSnapshot> snapshot() const;
 	std::shared_ptr<const OverlayState> overlay() const;
 	// Caller holds write_mutex_. Returns whether the applied mapping changed.
-	std::expected<bool, obs_mapping::ParseError> apply_json(std::string_view json);
+	std::expected<bool, surface_mapper::ParseError> apply_json(std::string_view json);
 	// Caller holds write_mutex_. apply_json + queue the text (and last-valid copy) into the settings.
-	std::expected<bool, obs_mapping::ParseError> apply_and_store(std::string_view json);
+	std::expected<bool, surface_mapper::ParseError> apply_and_store(std::string_view json);
 	void load_effect();
 
 	mutable std::mutex state_mutex_;

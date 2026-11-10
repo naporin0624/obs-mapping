@@ -4,11 +4,11 @@
 
 OBS の実機でしか確認できない項目。ビルドと `obs_module_load` のエクスポートは Task 1 の時点で確認済み。
 
-前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する（既存の `obs-mapping.plugin` は置き換えられる）。
+前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する（既存の `surface-mapper.plugin` は置き換えられる）。
 
 - [ ] OBS を起動し、ソースの追加メニューに「Mapping」が出る。
 - [ ] 追加すると 1920x1080 の透明なソースになる（プロパティには幅・高さがなく、「マッピング JSON」（英語環境では Mapping JSON）と「編集オーバーレイを表示」（英語環境では Edit overlay）だけが並ぶ。解像度は JSON の canvas で決まる）。
-- [ ] OBS のログ（ヘルプ > ログファイル）に `[obs-mapping] loaded` が出る。
+- [ ] OBS のログ（ヘルプ > ログファイル）に `[surface-mapper] loaded` が出る。
 - [ ] OBS を日本語で起動したとき、ログに `Failed to load 'ja-JP' text` が出ず、プロパティに「マッピング JSON」「編集オーバーレイを表示」が出る。
 
 ## Task 4
@@ -71,20 +71,20 @@ OBS の実機でしか確認できない項目。ビルドとコアのテスト�
 前提:
 - OBS を終了してから `bash scripts/install-macos.sh` を実行し、OBS を起動する。
 - OBS の「ツール > WebSocket サーバー設定」でサーバーを有効にし、ポートとパスワードを確認する。
-- Mapping ソースを 1 つ作っておく（複数ある場合は `OBS_MAPPING_SOURCE` で指定する）。
+- Mapping ソースを 1 つ作っておく（複数ある場合は `SURFACE_MAPPER_SOURCE` で指定する）。
 - 初回のみ `cd scripts && pnpm install`。
 
 実行:
 
 ```sh
-OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD='<パスワード>' OBS_MAPPING_SOURCE='<ソース名>' node scripts/vendor-smoke.mjs
+OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD='<パスワード>' SURFACE_MAPPER_SOURCE='<ソース名>' node scripts/vendor-smoke.mjs
 ```
 
 - [ ] (a) `smoke: all passed` が出て終了コードが 0 になる。途中で失敗した場合も `restored the original mapping` が出て、マッピングが元に戻っている。
-- [ ] (b) OBS のログに `obs-websocket vendor "obs-mapping" registered` が出ていて、警告 `obs-websocket not found` は出ていない。
-- [ ] (c) obs-websocket を無効にした状態（またはモジュールを外した状態）で OBS を起動しても、Mapping ソースは今まで通り使える。ログに `obs-websocket not found; the obs-mapping vendor API is unavailable` の警告だけが出る。
+- [ ] (b) OBS のログに `obs-websocket vendor "surface-mapper" registered` が出ていて、警告 `obs-websocket not found` は出ていない。
+- [ ] (c) obs-websocket を無効にした状態（またはモジュールを外した状態）で OBS を起動しても、Mapping ソースは今まで通り使える。ログに `obs-websocket not found; the surface-mapper vendor API is unavailable` の警告だけが出る。
 - [ ] (d) ペイロード形式の確認: マッピングと選択状態は JSON 文字列で運ぶ（`mappingJson` / `selectionJson`）。スモークテストはこの形式を使っている。
-- [ ] (e) `MappingChanged` イベント（`{sourceName, mappingJson}`）: スモークテストとは別に、`obs-websocket-js` などで `VendorEvent`（`vendorName: "obs-mapping"`）を購読しておく。Mapping ソースのプロパティの `mapping_json` 欄を編集して OK を押すと、`MappingChanged` が 1 回届き、`mappingJson` の内容が編集後の JSON になっている。内容が変わらない編集（同じ JSON のまま OK）では届かない。
+- [ ] (e) `MappingChanged` イベント（`{sourceName, mappingJson}`）: スモークテストとは別に、`obs-websocket-js` などで `VendorEvent`（`vendorName: "surface-mapper"`）を購読しておく。Mapping ソースのプロパティの `mapping_json` 欄を編集して OK を押すと、`MappingChanged` が 1 回届き、`mappingJson` の内容が編集後の JSON になっている。内容が変わらない編集（同じ JSON のまま OK）では届かない。
 - [ ] (f) 面に割り当てているソースの名前を変更すると、その面を持つ Mapping ソースから `MappingChanged` が 1 回届き、`mappingJson` の `source` が新しい名前になっている。割り当てていないソースの名前変更では届かない。
 - [ ] (g) `requestId`（#4）: (e) と同じ購読で、同じ内容の `SetMapping` を `requestId` だけ変えて 2 回送る（例: `a-1` と `a-2`）。`MappingChanged` がちょうど 2 回届き、`requestId` がそれぞれ `a-1`、`a-2` になっている。内容が変わらない 2 回目も届く。`requestId` なしで同じ内容を送ると届かない。プロパティ欄の編集やソース名の変更で届く `MappingChanged` には `requestId` がない。
 - [ ] (h) ドックでの確認（#4）: 面を動かしてすぐに Undo（A → B → A）しても、表示が一瞬 B になってちらつかない。ドックを 2 つ開いて片方で編集すると、もう片方にはそのまま反映される。
@@ -98,8 +98,8 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 - Mapping ソースを 1 つ以上作っておく。
 
 手順:
-- OBS の「ドック > カスタムブラウザドック」を開き、ドック名（例: `obs-mapping`）と次の URL を登録する（スペースは `%20` にする）:
-  `file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html`
+- OBS の「ドック > カスタムブラウザドック」を開き、ドック名（例: `surface-mapper`）と次の URL を登録する（スペースは `%20` にする）:
+  `file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/surface-mapper.plugin/Contents/Resources/ui/index.html`
 
 チェック:
 - [ ] (a) ドックが空白にならず、URL（既定 `ws://127.0.0.1:4455`）とパスワード欄、「接続」ボタンが表示される。
@@ -215,7 +215,7 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する。手動で登録したカスタムブラウザドックがあれば、区別できるよう先に消しておく。
 
 チェック:
-- [ ] 1-1: OBS を起動すると「ドック」メニューに「OBS Mapping」があり、開くと UI が表示される（空白にならない）。
+- [ ] 1-1: OBS を起動すると「ドック」メニューに「Surface Mapper」があり、開くと UI が表示される（空白にならない）。
 - [ ] 1-2: URL とパスワードを入れて接続し、OBS を再起動すると、入力なしで再接続する。
 - [ ] 1-3: `obs-browser` プラグインを一時的に外して起動すると、ログに `obs-browser unavailable; dock disabled` が出る。Mapping ソースは追加でき、OBS は落ちない。
 - [ ] 1-4: ドックを開いたまま OBS を終了しても、クラッシュせず 5 秒以内に終わる。
@@ -223,7 +223,7 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 
 ## 初回起動時のドック表示
 
-前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する。フラグファイルは `plugin_config/obs-mapping/dock.json`（macOS では `~/Library/Application Support/obs-studio/plugin_config/obs-mapping/dock.json`）。
+前提: OBS を終了してから `bash scripts/install-macos.sh` を実行する。フラグファイルは `plugin_config/surface-mapper/dock.json`（macOS では `~/Library/Application Support/obs-studio/plugin_config/surface-mapper/dock.json`）。
 
 チェック:
 - [ ] 2-1: `dock.json` を消して OBS を起動すると、ドックが右側に組み込まれた状態で出ている。
@@ -235,11 +235,11 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 
 ## Windows インストーラー
 
-前提: OBS を終了してから、CI の artifact にある `obs-mapping-<version>-windows-x64-installer.exe` を Windows 実機で実行する。
+前提: OBS を終了してから、CI の artifact にある `surface-mapper-<version>-windows-x64-installer.exe` を Windows 実機で実行する。
 
 チェック:
-- [ ] 3-1: `.exe` を実行し、SmartScreen で「詳細情報 → 実行」→ UAC → 完了まで進む。`C:\ProgramData\obs-studio\plugins\obs-mapping\bin\64bit\obs-mapping.dll` がある。
-- [ ] 3-2: 「アプリと機能」に「OBS Mapping」が 1 件だけ出る。アンインストールすると `C:\ProgramData\obs-studio\plugins\obs-mapping` がフォルダーごと消える。
+- [ ] 3-1: `.exe` を実行し、SmartScreen で「詳細情報 → 実行」→ UAC → 完了まで進む。`C:\ProgramData\obs-studio\plugins\surface-mapper\bin\64bit\surface-mapper.dll` がある。
+- [ ] 3-2: 「アプリと機能」に「Surface Mapper」が 1 件だけ出る。アンインストールすると `C:\ProgramData\obs-studio\plugins\surface-mapper` がフォルダーごと消える。
 - [ ] 3-3: 古い版を入れたフォルダーにダミーファイルを置いてから新しい版を入れると、ダミーファイルが消えている（旧版にしかないファイルが残らない）。
 - [ ] 4-1: OBS を起動したままインストールまたはアンインストールすると、「OBS を閉じてから、もう一度インストーラーを実行してください。」が出て止まる。
 - [ ] 4-2: OBS がない環境（またはレジストリキー `HKLM\SOFTWARE\OBS Studio` を一時的に外した状態）でインストーラーを実行すると警告が出て、「はい」で続行できる。
@@ -247,8 +247,8 @@ OBS の実機でしか確認できない項目。UI のビルド・型検査・l
 
 ## macOS pkg
 
-前提: OBS を終了してから、CI の artifact にある `obs-mapping-<version>-macos-universal.pkg` を実機で開く。
+前提: OBS を終了してから、CI の artifact にある `surface-mapper-<version>-macos-universal.pkg` を実機で開く。
 
 チェック:
-- [ ] 5-1: 旧版を入れた後、OBS を終了した状態で、`~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` の中にダミーファイルを置いてから新版の pkg を入れると、ダミーファイルが消えている。
-- [ ] 5-2: 署名なしの pkg を開くと止められ、README の手順（Task 6）で入れられる。入れた後の `obs-mapping.plugin` に `com.apple.quarantine` が付いているか（`xattr -l`）を記録する。
+- [ ] 5-1: 旧版を入れた後、OBS を終了した状態で、`~/Library/Application Support/obs-studio/plugins/surface-mapper.plugin` の中にダミーファイルを置いてから新版の pkg を入れると、ダミーファイルが消えている。
+- [ ] 5-2: 署名なしの pkg を開くと止められ、README の手順（Task 6）で入れられる。入れた後の `surface-mapper.plugin` に `com.apple.quarantine` が付いているか（`xattr -l`）を記録する。

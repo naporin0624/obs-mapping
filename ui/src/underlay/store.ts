@@ -9,7 +9,7 @@ export type UnderlayStore = {
   remove: (source: string) => Promise<void>;
 };
 
-const DB_NAME = 'obs-mapping';
+const DB_NAME = 'surface-mapper';
 const DB_VERSION = 2;
 const IMAGES = 'underlay-images';
 const SETTINGS = 'underlay-settings';

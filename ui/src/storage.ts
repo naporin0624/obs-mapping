@@ -1,8 +1,8 @@
 // localStorage access; every call is guarded because storage can throw (private windows, blocked data).
 export const STORAGE_KEYS = {
-  url: 'obs-mapping.url',
-  password: 'obs-mapping.password',
-  source: 'obs-mapping.source',
+  url: 'surface-mapper.url',
+  password: 'surface-mapper.password',
+  source: 'surface-mapper.source',
 } as const;
 
 export const DEFAULT_URL = 'ws://127.0.0.1:4455';

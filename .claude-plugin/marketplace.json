@@ -1,18 +1,18 @@
 {
-  "name": "obs-mapping",
+  "name": "surface-mapper",
   "owner": {
     "name": "naporin0624",
     "url": "https://github.com/naporin0624"
   },
   "metadata": {
-    "description": "Claude Code plugins for obs-mapping — an OBS Studio plugin that warps OBS sources onto quads for projection and LED mapping",
+    "description": "Claude Code plugins for Surface Mapper — an OBS Studio plugin that warps OBS sources onto quads for projection and LED mapping",
     "version": "0.1.0"
   },
   "plugins": [
     {
-      "name": "obs-mapping",
-      "source": "./plugins/obs-mapping",
-      "description": "Skills for driving obs-mapping over obs-websocket, writing mapping JSON v2 (surfaces, crop, corners, masks), and turning LED pixel-map charts into mappings",
+      "name": "surface-mapper",
+      "source": "./plugins/surface-mapper",
+      "description": "Skills for driving Surface Mapper over obs-websocket, writing mapping JSON v2 (surfaces, crop, corners, masks), and turning LED pixel-map charts into mappings",
       "category": "productivity",
       "keywords": [
         "obs",

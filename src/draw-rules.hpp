@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <utility>
 
-#include "obs-mapping/model.hpp"
+#include "surface-mapper/model.hpp"
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 inline bool should_draw_surface(const Surface &surface, bool visible, uint32_t src_w, uint32_t src_h,
 				bool has_homography)
@@ -38,4 +38,4 @@ inline std::pair<uint32_t, uint32_t> mask_texture_size(double box_w, double box_
 	return {detail::mask_side(box_w), detail::mask_side(box_h)};
 }
 
-} // namespace obs_mapping
+} // namespace surface_mapper

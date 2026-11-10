@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.28...3.30)
 
 if(NOT DEFINED PROJECT_NAME OR PROJECT_NAME STREQUAL "")
-  project(obs_mapping_core LANGUAGES CXX)
+  project(surface_mapper_core LANGUAGES CXX)
 endif()
 
 include(FetchContent)
@@ -18,7 +18,7 @@ if(NOT TARGET nlohmann_json::nlohmann_json)
 endif()
 
 add_library(
-  obs_mapping_core
+  surface_mapper_core
   STATIC
   src/mapping_json.cpp
   src/layers_json.cpp
@@ -27,15 +27,15 @@ add_library(
   src/selection.cpp
   src/mask.cpp
 )
-target_include_directories(obs_mapping_core PUBLIC include)
-target_link_libraries(obs_mapping_core PUBLIC nlohmann_json::nlohmann_json)
+target_include_directories(surface_mapper_core PUBLIC include)
+target_link_libraries(surface_mapper_core PUBLIC nlohmann_json::nlohmann_json)
 set_target_properties(
-  obs_mapping_core
+  surface_mapper_core
   PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF POSITION_INDEPENDENT_CODE ON
 )
 
-option(OBS_MAPPING_TESTS "Build obs_mapping_core tests" OFF)
-if(OBS_MAPPING_TESTS)
+option(SURFACE_MAPPER_TESTS "Build surface_mapper_core tests" OFF)
+if(SURFACE_MAPPER_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()

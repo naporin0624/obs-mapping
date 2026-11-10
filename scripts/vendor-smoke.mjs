@@ -1,12 +1,12 @@
-// Smoke test for the obs-mapping obs-websocket vendor API.
+// Smoke test for the surface-mapper obs-websocket vendor API.
 // Mutates the chosen Mapping source (and restores it at the end), so only run it against an OBS you can spare.
-//   OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD=... [OBS_MAPPING_SOURCE=name] node scripts/vendor-smoke.mjs
+//   OBS_WS_URL=ws://127.0.0.1:4455 OBS_WS_PASSWORD=... [SURFACE_MAPPER_SOURCE=name] node scripts/vendor-smoke.mjs
 import OBSWebSocket from "obs-websocket-js";
 
-const VENDOR = "obs-mapping";
+const VENDOR = "surface-mapper";
 const url = process.env.OBS_WS_URL ?? "ws://127.0.0.1:4455";
 const password = process.env.OBS_WS_PASSWORD || undefined;
-const wantedSource = process.env.OBS_MAPPING_SOURCE || undefined;
+const wantedSource = process.env.SURFACE_MAPPER_SOURCE || undefined;
 
 const obs = new OBSWebSocket();
 const events = [];

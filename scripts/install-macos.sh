@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Install the built obs-mapping.plugin into the user's OBS plugin directory.
+# Install the built surface-mapper.plugin into the user's OBS plugin directory.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-src="${root}/build_macos/RelWithDebInfo/obs-mapping.plugin"
+src="${root}/build_macos/RelWithDebInfo/surface-mapper.plugin"
 dest_dir="${HOME}/Library/Application Support/obs-studio/plugins"
 
 # Order matters: the UI is emitted to data/ui, and cmake copies data/ into Contents/Resources.
@@ -21,6 +21,6 @@ if [[ ! -f "${src}/Contents/Resources/ui/index.html" ]]; then
 fi
 
 mkdir -p "${dest_dir}"
-rm -rf "${dest_dir}/obs-mapping.plugin"
+rm -rf "${dest_dir}/surface-mapper.plugin"
 cp -R "${src}" "${dest_dir}/"
-echo "installed: ${dest_dir}/obs-mapping.plugin"
+echo "installed: ${dest_dir}/surface-mapper.plugin"

@@ -1,5 +1,5 @@
 {
-  "name": "obs-mapping-scripts",
+  "name": "surface-mapper-scripts",
   "private": true,
   "type": "module",
   "dependencies": {

@@ -9,11 +9,11 @@
 #include <graphics/matrix4.h>
 
 #include "draw-rules.hpp"
-#include "obs-mapping/visibility.hpp"
+#include "surface-mapper/visibility.hpp"
 #include "plugin-support.h"
 
-using obs_mapping::Mapping;
-using obs_mapping::ParseError;
+using surface_mapper::Mapping;
+using surface_mapper::ParseError;
 
 namespace {
 
@@ -55,18 +55,18 @@ std::shared_ptr<const MappingSnapshot> make_snapshot(Mapping mapping)
 	auto snap = std::make_shared<MappingSnapshot>();
 	snap->inv_h.reserve(mapping.surfaces.size());
 	for (const auto &surface : mapping.surfaces) {
-		std::optional<obs_mapping::Mat3> inv;
-		if (auto h = obs_mapping::unit_square_to_quad(surface.corners))
-			inv = obs_mapping::invert(*h);
+		std::optional<surface_mapper::Mat3> inv;
+		if (auto h = surface_mapper::unit_square_to_quad(surface.corners))
+			inv = surface_mapper::invert(*h);
 		snap->inv_h.push_back(inv);
 	}
-	snap->visible = obs_mapping::effective_visibility(mapping);
+	snap->visible = surface_mapper::effective_visibility(mapping);
 	snap->mapping = std::move(mapping);
 	return snap;
 }
 
 // The shader multiplies mul(inv_h, v); libobs uploads matrix4 rows transposed, so store H^-1 transposed.
-matrix4 to_shader_matrix(const obs_mapping::Mat3 &m)
+matrix4 to_shader_matrix(const surface_mapper::Mat3 &m)
 {
 	matrix4 out;
 	matrix4_identity(&out);
@@ -81,7 +81,7 @@ struct PixelBox {
 	int x = 0, y = 0, w = 0, h = 0;
 };
 
-PixelBox canvas_bounds(const obs_mapping::Surface &s, uint32_t canvas_w, uint32_t canvas_h)
+PixelBox canvas_bounds(const surface_mapper::Surface &s, uint32_t canvas_w, uint32_t canvas_h)
 {
 	double min_x = s.corners[0].x, max_x = min_x, min_y = s.corners[0].y, max_y = min_y;
 	for (const auto &p : s.corners) {
@@ -97,12 +97,12 @@ PixelBox canvas_bounds(const obs_mapping::Surface &s, uint32_t canvas_w, uint32_
 	return {static_cast<int>(x0), static_cast<int>(y0), static_cast<int>(x1 - x0), static_cast<int>(y1 - y0)};
 }
 
-gs_texture_t *surface_mask(MaskTextures &masks, const obs_mapping::Surface &surface)
+gs_texture_t *surface_mask(MaskTextures &masks, const surface_mapper::Surface &surface)
 {
 	if (!surface.mask)
 		return nullptr;
-	const auto [extent_w, extent_h] = obs_mapping::corner_extent(surface);
-	const auto [w, h] = obs_mapping::mask_texture_size(extent_w, extent_h);
+	const auto [extent_w, extent_h] = surface_mapper::corner_extent(surface);
+	const auto [w, h] = surface_mapper::mask_texture_size(extent_w, extent_h);
 	return masks.get(surface.id, *surface.mask, w, h);
 }
 
@@ -129,14 +129,14 @@ void rename_signal_cb(void *param, calldata_t *cd)
 
 MappingSource::MappingSource(obs_source_t *src, obs_data_t *settings) : source(src), cache_(src)
 {
-	snapshot_ = make_snapshot(obs_mapping::default_mapping(kDefaultWidth, kDefaultHeight));
+	snapshot_ = make_snapshot(surface_mapper::default_mapping(kDefaultWidth, kDefaultHeight));
 	overlay_ = std::make_shared<const OverlayState>();
 	// Handles must never reappear after a restart or scene collection load: the first update() reads this.
 	obs_data_set_bool(settings, kOverlayKey, false);
 
 	const char *json = obs_data_get_string(settings, kJsonKey);
 	if (!json || !*json) {
-		const std::string text = obs_mapping::serialize_mapping(snapshot_->mapping);
+		const std::string text = surface_mapper::serialize_mapping(snapshot_->mapping);
 		obs_data_set_string(settings, kJsonKey, text.c_str());
 	} else {
 		std::lock_guard lock(write_mutex_);
@@ -196,7 +196,7 @@ Mapping MappingSource::current() const
 
 std::expected<bool, ParseError> MappingSource::apply_json(std::string_view json)
 {
-	auto parsed = obs_mapping::parse_mapping(json);
+	auto parsed = surface_mapper::parse_mapping(json);
 	if (!parsed)
 		return std::unexpected(std::move(parsed.error()));
 
@@ -217,7 +217,7 @@ std::expected<bool, ParseError> MappingSource::apply_and_store(std::string_view 
 	// OBS_SOURCE_VIDEO sources get their update deferred to the next tick;
 	// that update re-parses this same text and finds nothing to change.
 	const std::string text(json);
-	const std::string last_valid = obs_mapping::serialize_mapping(snapshot()->mapping);
+	const std::string last_valid = surface_mapper::serialize_mapping(snapshot()->mapping);
 	obs_data_t *patch = obs_data_create();
 	obs_data_set_string(patch, kJsonKey, text.c_str());
 	obs_data_set_string(patch, kLastValidKey, last_valid.c_str());
@@ -300,7 +300,7 @@ void MappingSource::update(obs_data_t *settings)
 		std::string json = raw ? raw : "";
 		if (json.empty()) {
 			// "Defaults" (or a cleared field) must not persist an empty mapping: write the live one back.
-			json = obs_mapping::serialize_mapping(snapshot()->mapping);
+			json = surface_mapper::serialize_mapping(snapshot()->mapping);
 			obs_data_set_string(settings, kJsonKey, json.c_str());
 		}
 		auto applied = apply_json(json);
@@ -308,7 +308,7 @@ void MappingSource::update(obs_data_t *settings)
 			obs_log(LOG_WARNING, "ignoring invalid mapping_json: %s", applied.error().message.c_str());
 		} else {
 			changed = *applied;
-			const std::string last_valid = obs_mapping::serialize_mapping(snapshot()->mapping);
+			const std::string last_valid = surface_mapper::serialize_mapping(snapshot()->mapping);
 			obs_data_set_string(settings, kLastValidKey, last_valid.c_str());
 		}
 	}
@@ -325,9 +325,9 @@ void MappingSource::on_source_renamed(const char *prev_name, const char *new_nam
 		// Read, rename and apply under one lock so a concurrent SetMapping cannot be overwritten.
 		std::lock_guard lock(write_mutex_);
 		Mapping mapping = snapshot()->mapping;
-		if (!obs_mapping::rename_source(mapping, prev_name, new_name))
+		if (!surface_mapper::rename_source(mapping, prev_name, new_name))
 			return;
-		auto saved = apply_and_store(obs_mapping::serialize_mapping(mapping));
+		auto saved = apply_and_store(surface_mapper::serialize_mapping(mapping));
 		if (!saved) {
 			obs_log(LOG_WARNING, "failed to save renamed source: %s", saved.error().message.c_str());
 			return;
@@ -397,8 +397,8 @@ void MappingSource::video_render()
 		const auto &surface = mapping.surfaces[i];
 		const RenderedChild &frame = frames[i];
 		const bool has_texture = frame.texture != nullptr;
-		if (!obs_mapping::should_draw_surface(surface, snap->visible[i], has_texture ? frame.width : 0,
-						      has_texture ? frame.height : 0, snap->inv_h[i].has_value()))
+		if (!surface_mapper::should_draw_surface(surface, snap->visible[i], has_texture ? frame.width : 0,
+							 has_texture ? frame.height : 0, snap->inv_h[i].has_value()))
 			continue;
 
 		const PixelBox box = canvas_bounds(surface, mapping.width, mapping.height);
@@ -447,7 +447,7 @@ MappingSource *mapping_source_from(obs_source_t *src)
 	if (!src)
 		return nullptr;
 	const char *id = obs_source_get_unversioned_id(src);
-	if (!id || std::string_view(id) != "obs_mapping_source")
+	if (!id || std::string_view(id) != "surface_mapper_source")
 		return nullptr;
 	return static_cast<MappingSource *>(obs_obj_get_data(src));
 }
@@ -528,7 +528,7 @@ void mapping_enum_active_sources(void *data, obs_source_enum_proc_t callback, vo
 
 struct obs_source_info mapping_source_info = []() {
 	obs_source_info info = {};
-	info.id = "obs_mapping_source";
+	info.id = "surface_mapper_source";
 	info.type = OBS_SOURCE_TYPE_INPUT;
 	info.output_flags = OBS_SOURCE_VIDEO | OBS_SOURCE_CUSTOM_DRAW;
 	info.get_name = mapping_get_name;

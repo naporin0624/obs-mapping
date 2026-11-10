@@ -2,7 +2,7 @@
 
 #include "../../src/overlay-geometry.hpp"
 
-using namespace obs_mapping;
+using namespace surface_mapper;
 
 TEST_CASE("dash_segments splits a 100px edge with an 8on/6off pattern")
 {

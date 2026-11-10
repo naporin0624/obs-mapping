@@ -1,8 +1,8 @@
 {
-  "name": "obs-mapping-site",
+  "name": "surface-mapper-site",
   "version": "0.0.1",
   "private": true,
-  "description": "obs-mapping demo site (Astro + three.js)",
+  "description": "Surface Mapper demo site (Astro + three.js)",
   "type": "module",
   "scripts": {
     "prepare": "panda codegen",

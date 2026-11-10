@@ -96,7 +96,7 @@
 <aside>
   <header>
     <h1>Projection Room</h1>
-    <p>obs-mapping の出力を、部屋の角の壁 2 面いっぱいに投影したときの見え方。</p>
+    <p>Surface Mapper の出力を、部屋の角の壁 2 面いっぱいに投影したときの見え方。</p>
   </header>
 
   <section aria-labelledby="src-h">
@@ -119,7 +119,7 @@
 
   <section aria-labelledby="coords-h">
     <h2 id="coords-h">面の座標</h2>
-    <p class="status">obs-mapping の各面の角に、この座標を入れると壁にぴったり合います（左上・右上・右下・左下の順）。</p>
+    <p class="status">Surface Mapper の各面の角に、この座標を入れると壁にぴったり合います（左上・右上・右下・左下の順）。</p>
     <div class="size"><label for="cw">キャンバス</label><input type="number" id="cw" value="1920" min="16" step="1"><span>×</span><input type="number" id="ch" value="1080" min="16" step="1" aria-label="キャンバスの高さ"></div>
     <div class="coords"><table><thead><tr><th>面</th><th>左上</th><th>右上</th><th>右下</th><th>左下</th></tr></thead><tbody id="coords"></tbody></table></div>
     <button type="button" id="copy">座標を JSON でコピー</button>
@@ -128,7 +128,7 @@
   <section aria-labelledby="how-h">
     <h2 id="how-h">OBS からつなぐ</h2>
     <ol>
-      <li>OBS で obs-mapping の面を上の座標に合わせる。</li>
+      <li>OBS で Surface Mapper の面を上の座標に合わせる。</li>
       <li>OBS の「仮想カメラ開始」を押す。</li>
       <li>ここで「OBS 仮想カメラ」を選び、カメラの使用を許可する。</li>
     </ol>

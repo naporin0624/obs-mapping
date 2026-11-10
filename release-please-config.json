@@ -7,7 +7,7 @@
   "initial-version": "0.1.0",
   "packages": {
     ".": {
-      "package-name": "obs-mapping",
+      "package-name": "surface-mapper",
       "exclude-paths": ["site"],
       "extra-files": [
         {

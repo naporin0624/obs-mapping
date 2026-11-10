@@ -1,10 +1,10 @@
-#include "obs-mapping/mask.hpp"
+#include "surface-mapper/mask.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <numbers>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 namespace {
 
@@ -129,4 +129,4 @@ std::vector<Point> mask_outline(const Mask &m, int ellipse_segments)
 	return std::get<PolygonMask>(m).points;
 }
 
-} // namespace obs_mapping
+} // namespace surface_mapper

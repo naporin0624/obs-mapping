@@ -1,13 +1,13 @@
 ---
-name: driving-obs-mapping-over-websocket
-description: Use when a script, agent or app needs to read or change an obs-mapping Mapping source from outside the dock — calling CallVendorRequest with vendor "obs-mapping", creating a Mapping source over obs-websocket, listening for MappingChanged / OverlayChanged, a SetMapping that returns ok:false, a mapping that was sent but the output looks unchanged, or Program showing only part (e.g. a quarter) of a mapping that looks correct in a source screenshot.
+name: driving-surface-mapper-over-websocket
+description: Use when a script, agent or app needs to read or change a Surface Mapper Mapping source from outside the dock — calling CallVendorRequest with vendor "surface-mapper", creating a Mapping source over obs-websocket, listening for MappingChanged / OverlayChanged, a SetMapping that returns ok:false, a mapping that was sent but the output looks unchanged, or Program showing only part (e.g. a quarter) of a mapping that looks correct in a source screenshot.
 ---
 
-# Driving obs-mapping over obs-websocket
+# Driving Surface Mapper over obs-websocket
 
 ## Overview
 
-obs-mapping exposes one obs-websocket **vendor** named `obs-mapping`. Everything the dock does — list Mapping sources, read a mapping, replace it, toggle the editing overlay — goes through four vendor requests. Payloads that are JSON documents travel as **strings** (`mappingJson`, `selectionJson`), not objects.
+Surface Mapper exposes one obs-websocket **vendor** named `surface-mapper`. Everything the dock does — list Mapping sources, read a mapping, replace it, toggle the editing overlay — goes through four vendor requests. Payloads that are JSON documents travel as **strings** (`mappingJson`, `selectionJson`), not objects.
 
 For the content of `mappingJson` see `writing-mapping-json`. For building a mapping from an LED chart see `mapping-led-pixel-maps`.
 
@@ -23,7 +23,7 @@ await obs.connect("ws://127.0.0.1:4455", password || undefined);
 
 const call = async (requestType: string, requestData: Record<string, unknown>) => {
   const res = await obs.call("CallVendorRequest", {
-    vendorName: "obs-mapping",
+    vendorName: "surface-mapper",
     requestType,
     requestData,
   });
@@ -74,7 +74,7 @@ A successful `SetMapping` is persisted into the source's settings (and so into t
 
 ## Events
 
-Subscribe to obs-websocket `VendorEvent` and filter `vendorName === "obs-mapping"`.
+Subscribe to obs-websocket `VendorEvent` and filter `vendorName === "surface-mapper"`.
 
 | `eventType` | `eventData` | Fires when |
 |---|---|---|
@@ -85,18 +85,18 @@ Subscribe to obs-websocket `VendorEvent` and filter `vendorName === "obs-mapping
 
 ## Creating a Mapping source
 
-The input kind is `obs_mapping_source`. A new source starts with a 1920×1080 canvas and no surfaces.
+The input kind is `surface_mapper_source`. A new source starts with a 1920×1080 canvas and no surfaces.
 
 ```typescript
 await obs.call("CreateInput", {
   sceneName: "Mapping",           // the scene the user names
   inputName: "LED Wall",
-  inputKind: "obs_mapping_source",
+  inputKind: "surface_mapper_source",
 });
 const r = await call("SetMapping", { sourceName: "LED Wall", mappingJson });
 ```
 
-Find existing ones with `ListMappingSources`, or `GetInputList` filtered by `inputKind === "obs_mapping_source"`.
+Find existing ones with `ListMappingSources`, or `GetInputList` filtered by `inputKind === "surface_mapper_source"`.
 
 Do **not** write the mapping through `CreateInput`'s `inputSettings.mapping_json` or `SetInputSettings`: that path only logs a warning on invalid JSON and keeps the old mapping, so the client never sees the error. Create the source, then `SetMapping`.
 

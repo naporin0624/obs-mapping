@@ -2,7 +2,7 @@
 
 class QDockWidget;
 
-// Registers the "OBS Mapping" browser dock. Call from obs_module_post_load only, so OBS
+// Registers the "Surface Mapper" browser dock. Call from obs_module_post_load only, so OBS
 // restores the saved DockState onto it. Without obs-browser this logs a warning and does nothing.
 void register_mapping_dock();
 // Stops listening to frontend events. Call from obs_module_unload.

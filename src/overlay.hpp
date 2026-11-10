@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "obs-mapping/model.hpp"
+#include "surface-mapper/model.hpp"
 
 struct OverlayState {
 	bool enabled = false;
@@ -14,4 +14,4 @@ struct OverlayState {
 };
 
 // Draws the grid, surface outlines and corner handles in canvas px. Graphics thread only.
-void draw_overlay(const obs_mapping::Mapping &mapping, const OverlayState &state);
+void draw_overlay(const surface_mapper::Mapping &mapping, const OverlayState &state);

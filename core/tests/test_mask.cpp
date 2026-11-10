@@ -1,10 +1,10 @@
 #include <doctest/doctest.h>
 
-#include "obs-mapping/mask.hpp"
+#include "surface-mapper/mask.hpp"
 
 #include <cmath>
 
-using namespace obs_mapping;
+using namespace surface_mapper;
 
 namespace {
 

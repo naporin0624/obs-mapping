@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     environment:
       name: production
-      url: https://obs-mapping.napochaan.dev
+      url: https://surface-mapper.napochaan.dev
     concurrency:
       group: site-deploy-production
       cancel-in-progress: false
@@ -125,7 +125,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
         run: |
-          marker='<!-- obs-mapping-site-preview -->'
+          marker='<!-- surface-mapper-site-preview -->'
           body="$(printf '%s\n### Site preview\n\n| | |\n|---|---|\n| URL | %s |\n| Commit | %s |\n' "${marker}" "${PREVIEW_URL}" "${HEAD_SHA}")"
           comment_id="$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
             --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"${marker}\"))) | .id" | head -n 1)"
@@ -173,6 +173,6 @@ jobs:
       - name: Delete Preview 🧹
         # A PR whose preview never deployed has nothing to delete.
         run: |
-          if ! pnpm --dir site/deploy exec cf previews delete "${PREVIEW_NAME}" --worker obs-mapping-site --force; then
+          if ! pnpm --dir site/deploy exec cf previews delete "${PREVIEW_NAME}" --worker surface-mapper-site --force; then
             echo "::warning::Could not delete preview ${PREVIEW_NAME}; it may never have been deployed."
           fi

@@ -8,10 +8,10 @@
 #include <optional>
 #include <vector>
 
-#include "obs-mapping/homography.hpp"
-#include "obs-mapping/model.hpp"
+#include "surface-mapper/homography.hpp"
+#include "surface-mapper/model.hpp"
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 struct DashSegment {
 	double start = 0;
@@ -67,4 +67,4 @@ inline std::vector<Point> warp_points(const Mat3 &h, const std::vector<Point> &u
 	return out;
 }
 
-} // namespace obs_mapping
+} // namespace surface_mapper

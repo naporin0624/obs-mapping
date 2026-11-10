@@ -35,8 +35,8 @@ export interface ObsClient {
   onInventoryChanged(cb: () => void): () => void;
 }
 
-const VENDOR = 'obs-mapping';
-const MAPPING_INPUT_KIND = 'obs_mapping_source';
+const VENDOR = 'surface-mapper';
+const MAPPING_INPUT_KIND = 'surface_mapper_source';
 /** obs-websocket close code for AuthenticationFailed */
 export const AUTH_FAILED_CODE = 4009;
 

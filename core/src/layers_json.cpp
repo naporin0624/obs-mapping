@@ -4,7 +4,7 @@
 
 #include <algorithm>
 
-namespace obs_mapping::detail {
+namespace surface_mapper::detail {
 
 using nlohmann::ordered_json;
 
@@ -267,4 +267,4 @@ ordered_json layers_to_json(const std::vector<LayerNode> &layers)
 	return arr;
 }
 
-} // namespace obs_mapping::detail
+} // namespace surface_mapper::detail

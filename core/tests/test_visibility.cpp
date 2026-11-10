@@ -1,8 +1,8 @@
 #include <doctest/doctest.h>
 
-#include "obs-mapping/visibility.hpp"
+#include "surface-mapper/visibility.hpp"
 
-using namespace obs_mapping;
+using namespace surface_mapper;
 
 namespace {
 

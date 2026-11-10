@@ -13,7 +13,7 @@ target_include_directories(doctest INTERFACE ${doctest_SOURCE_DIR})
 
 # Add new test files here (one per line).
 add_executable(
-  obs_mapping_core_tests
+  surface_mapper_core_tests
   main.cpp
   test_mapping_json.cpp
   test_homography.cpp
@@ -23,9 +23,9 @@ add_executable(
   test_visibility.cpp
   test_mask.cpp
 )
-target_link_libraries(obs_mapping_core_tests PRIVATE obs_mapping_core doctest::doctest)
+target_link_libraries(surface_mapper_core_tests PRIVATE surface_mapper_core doctest::doctest)
 set_target_properties(
-  obs_mapping_core_tests
+  surface_mapper_core_tests
   PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF
 )
-add_test(NAME obs_mapping_core_tests COMMAND obs_mapping_core_tests)
+add_test(NAME surface_mapper_core_tests COMMAND surface_mapper_core_tests)

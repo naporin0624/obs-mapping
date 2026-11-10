@@ -1,4 +1,4 @@
-# obs-mapping
+# Surface Mapper
 
 OBS Studio 用のプロジェクションマッピング・プラグインです。「Mapping ソース」を追加し、OBS 内の別ソース（カメラ、メディア、シーンなど）を四角形の面にワープして貼り付けます。面の配置は、OBS のカスタムブラウザドックで動く専用 UI から、obs-websocket 経由で操作します。
 
@@ -26,7 +26,7 @@ UI を先にビルドしておかないと、バンドルに UI が入りませ�
 コア（JSON の検証など、OBS に依存しない部分）の単体テスト:
 
 ```sh
-cmake -S core -B build_core -DOBS_MAPPING_TESTS=ON
+cmake -S core -B build_core -DSURFACE_MAPPER_TESTS=ON
 cmake --build build_core
 ctest --test-dir build_core --output-on-failure
 ```
@@ -41,47 +41,47 @@ pnpm -C ui typecheck
 
 ## インストール
 
-OBS を終了してから行います。パッケージは [Releases](https://github.com/naporin0624/obs-mapping/releases) から入手します。ファイル名の `<version>` はリリースのバージョンです。インストーラーにも Apple・Microsoft の署名はありません。
+OBS を終了してから行います。パッケージは [Releases](https://github.com/naporin0624/surface-mapper/releases) から入手します。ファイル名の `<version>` はリリースのバージョンです。インストーラーにも Apple・Microsoft の署名はありません。
 
 ### Windows（インストーラー）
 
-1. `obs-mapping-<version>-windows-x64-installer.exe` をダウンロードして実行する。
+1. `surface-mapper-<version>-windows-x64-installer.exe` をダウンロードして実行する。
 2. SmartScreen の警告が出たら「詳細情報」を押し、「実行」を選ぶ。
 3. 管理者権限の確認（UAC）に許可する。OBS が起動していると、インストーラーは先へ進みません。OBS を終了してからやり直してください。OBS が見つからない場合や 31.1.1 より古い場合は警告が出ます。
 
-インストール先は `C:\ProgramData\obs-studio\plugins\obs-mapping` です。アンインストールは「設定 > アプリ > インストールされているアプリ」から行います。OBS が起動していると、アンインストールも止められます。
+インストール先は `C:\ProgramData\obs-studio\plugins\surface-mapper` です。アンインストールは「設定 > アプリ > インストールされているアプリ」から行います。OBS が起動していると、アンインストールも止められます。
 
 ### macOS（インストーラー）
 
-1. `obs-mapping-<version>-macos-universal.pkg` をダウンロードして開く。
+1. `surface-mapper-<version>-macos-universal.pkg` をダウンロードして開く。
 2. 開発元を確認できないという警告で止められたら、次のどちらかで開く。
    - macOS 15（Sequoia）以降: 一度開こうとして止められたあと、「システム設定 > プライバシーとセキュリティ」を開き、下の方にある「このまま開く」を押す。Control を押しながらクリックして「開く」を選ぶ方法は、macOS 15 以降では使えません。
    - macOS 14 以前: pkg を右クリックして「開く」を選ぶ。
 3. 画面の案内に従ってインストールする。
 
-インストール先は、インストールしたユーザーの `~/Library/Application Support/obs-studio/plugins/obs-mapping.plugin` です。古いバージョンが入っている場合、インストーラーが先にそのバンドルを消します。`scripts/install-macos.sh` で入れた人は、そのまま pkg を上から入れられます。
+インストール先は、インストールしたユーザーの `~/Library/Application Support/obs-studio/plugins/surface-mapper.plugin` です。古いバージョンが入っている場合、インストーラーが先にそのバンドルを消します。`scripts/install-macos.sh` で入れた人は、そのまま pkg を上から入れられます。
 
 OBS がプラグインを読み込まない場合は、次のコマンドで隔離属性を外してから、OBS を起動し直してください。
 
 ```sh
-xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/obs-mapping.plugin
+xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/surface-mapper.plugin
 ```
 
 ### 手動で入れたい人向け
 
 どちらも展開した中身を OBS のプラグインフォルダーに置きます。
 
-- macOS: `obs-mapping-<version>-macos-universal.tar.xz` を展開し、`obs-mapping.plugin` を `~/Library/Application Support/obs-studio/plugins/` に置いて、隔離属性を外します。
+- macOS: `surface-mapper-<version>-macos-universal.tar.xz` を展開し、`surface-mapper.plugin` を `~/Library/Application Support/obs-studio/plugins/` に置いて、隔離属性を外します。
 
   ```sh
-  xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/obs-mapping.plugin
+  xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins/surface-mapper.plugin
   ```
 
-- Windows: `obs-mapping-<version>-windows-x64.zip` を展開し、中の `obs-mapping` フォルダーを `C:\ProgramData\obs-studio\plugins\` に置きます（フォルダーがなければ作ります）。次の配置になれば正しく置けています。
+- Windows: `surface-mapper-<version>-windows-x64.zip` を展開し、中の `surface-mapper` フォルダーを `C:\ProgramData\obs-studio\plugins\` に置きます（フォルダーがなければ作ります）。次の配置になれば正しく置けています。
 
   ```
-  C:\ProgramData\obs-studio\plugins\obs-mapping\bin\64bit\obs-mapping.dll
-  C:\ProgramData\obs-studio\plugins\obs-mapping\data\ui\index.html
+  C:\ProgramData\obs-studio\plugins\surface-mapper\bin\64bit\surface-mapper.dll
+  C:\ProgramData\obs-studio\plugins\surface-mapper\data\ui\index.html
   ```
 
 ### macOS（ソースから）
@@ -90,22 +90,22 @@ xattr -dr com.apple.quarantine ~/Library/Application\ Support/obs-studio/plugins
 bash scripts/install-macos.sh
 ```
 
-スクリプトは、UI のビルド、プラグインのビルド（`cmake --preset macos`）、バンドル内の `Contents/Resources/ui/index.html` の存在確認を順に行い、`~/Library/Application Support/obs-studio/plugins/` に `obs-mapping.plugin` をコピーします。
+スクリプトは、UI のビルド、プラグインのビルド（`cmake --preset macos`）、バンドル内の `Contents/Resources/ui/index.html` の存在確認を順に行い、`~/Library/Application Support/obs-studio/plugins/` に `surface-mapper.plugin` をコピーします。
 
 ### 以前の手順で入れていた人へ
 
-- カスタムブラウザドックを手動で登録していた場合: OBS Mapping ドックと 2 つ並ぶので、古い方を「ドック > カスタムブラウザドック」から消してください。URL とパスワードは引き継がれないため、新しいドックで一度入れ直します。
+- カスタムブラウザドックを手動で登録していた場合: Surface Mapper ドックと 2 つ並ぶので、古い方を「ドック > カスタムブラウザドック」から消してください。URL とパスワードは引き継がれないため、新しいドックで一度入れ直します。
 
 ## 初回の起動とドック
 
-1. OBS を開くと、右側に「OBS Mapping」ドックが出ます。ドックが出るのは初回だけで、2 回目以降は OBS が保存した表示と位置に従います。閉じたり動かしたりした状態は保たれます。
+1. OBS を開くと、右側に「Surface Mapper」ドックが出ます。ドックが出るのは初回だけで、2 回目以降は OBS が保存した表示と位置に従います。閉じたり動かしたりした状態は保たれます。
 2. 次の「obs-websocket の有効化」を済ませる。
 3. ドックに URL（既定 `ws://127.0.0.1:4455`）とパスワードを入れて「接続」（English では Connect）を押す。ドックの表示言語は OBS の言語に従い、日本語以外は英語になる。URL とパスワードは保存され、次回以降は自動で再接続します。
 
-保存データはプラグインを消しても残ります。完全に消すには、次のフォルダーを削除してください。初回表示のフラグ（`plugin_config/obs-mapping/dock.json`）も同じ設定ルートにあります。
+保存データはプラグインを消しても残ります。完全に消すには、次のフォルダーを削除してください。初回表示のフラグ（`plugin_config/surface-mapper/dock.json`）も同じ設定ルートにあります。
 
-- macOS: `~/Library/Application Support/obs-studio/plugin_config/obs-browser/obs_mapping_dock/`
-- Windows: `%APPDATA%\obs-studio\plugin_config\obs-browser\obs_mapping_dock\`
+- macOS: `~/Library/Application Support/obs-studio/plugin_config/obs-browser/surface_mapper_dock/`
+- Windows: `%APPDATA%\obs-studio\plugin_config\obs-browser\surface_mapper_dock\`
 
 ## obs-websocket の有効化
 
@@ -117,19 +117,19 @@ UI は obs-websocket のベンダーリクエストでプラグインと通信�
 
 ## ドックが出ない場合（カスタムブラウザドックに登録する）
 
-obs-browser のない OBS など、OBS Mapping ドックが出ない場合の代わりの手段です。
+obs-browser のない OBS など、Surface Mapper ドックが出ない場合の代わりの手段です。
 
 1. 「ドック > カスタムブラウザドック」を開く。
-2. ドック名（例: `obs-mapping`）と次の URL を登録する（スペースは `%20`）。
+2. ドック名（例: `surface-mapper`）と次の URL を登録する（スペースは `%20`）。
 
 ```
-file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/obs-mapping.plugin/Contents/Resources/ui/index.html
+file:///Users/<ユーザー名>/Library/Application%20Support/obs-studio/plugins/surface-mapper.plugin/Contents/Resources/ui/index.html
 ```
 
 Windows では次の URL です。
 
 ```
-file:///C:/ProgramData/obs-studio/plugins/obs-mapping/data/ui/index.html
+file:///C:/ProgramData/obs-studio/plugins/surface-mapper/data/ui/index.html
 ```
 
 3. ドックに URL とパスワードを入れて「接続」を押す。
@@ -251,7 +251,7 @@ OBS の出力では、形を小さなテクスチャ（一辺 16〜1024px の 2 
 
 ## ベンダー API（obs-websocket）
 
-ベンダー名は `obs-mapping` です。ペイロードの JSON は文字列として渡します（obs_data が、オブジェクト以外の配列を保持できないためです）。
+ベンダー名は `surface-mapper` です。ペイロードの JSON は文字列として渡します（obs_data が、オブジェクト以外の配列を保持できないためです）。
 
 | リクエスト | 入力 | 応答 |
 |---|---|---|
@@ -281,21 +281,21 @@ OBS の出力では、形を小さなテクスチャ（一辺 16〜1024px の 2 
 スクリプトやエージェントからマッピングを扱うための Claude Code 用スキルを、プラグインとして配布しています。obs-websocket のベンダーリクエストの使い方、JSON v2 の書き方、LED のピクセルマップ（チャート）からマッピングを作る手順の 3 つです。
 
 ```
-/plugin marketplace add naporin0624/obs-mapping
-/plugin install obs-mapping@obs-mapping
+/plugin marketplace add naporin0624/surface-mapper
+/plugin install surface-mapper@surface-mapper
 ```
 
-Claude Code 以外のエージェント（Codex、GitHub Copilot、Cursor など）では、[skills CLI](https://skills.sh/naporin0624/obs-mapping) で 1 つずつ入れます。1 回のコマンドで複数を指定すると、最初の 1 つしか入りません。
+Claude Code 以外のエージェント（Codex、GitHub Copilot、Cursor など）では、[skills CLI](https://skills.sh/naporin0624/surface-mapper) で 1 つずつ入れます。1 回のコマンドで複数を指定すると、最初の 1 つしか入りません。
 
 ```bash
-npx skills add naporin0624/obs-mapping@driving-obs-mapping-over-websocket
-npx skills add naporin0624/obs-mapping@writing-mapping-json
-npx skills add naporin0624/obs-mapping@mapping-led-pixel-maps
+npx skills add naporin0624/surface-mapper@driving-surface-mapper-over-websocket
+npx skills add naporin0624/surface-mapper@writing-mapping-json
+npx skills add naporin0624/surface-mapper@mapping-led-pixel-maps
 ```
 
 `-g` を付けると、プロジェクトではなくユーザー全体に入ります。
 
-スキルの一覧は [plugins/obs-mapping/README.md](plugins/obs-mapping/README.md) にあります。
+スキルの一覧は [plugins/surface-mapper/README.md](plugins/surface-mapper/README.md) にあります。
 
 ## デモサイト
 
@@ -312,7 +312,7 @@ Cloudflare Workers（静的アセット）へのデプロイは `cf` CLI で行�
 
 デプロイは GitHub Actions の `.github/workflows/site-deploy.yaml` が行います。サイトの検査（lint、typecheck、test）は `.github/workflows/site-checks.yaml` が別に実行し、デプロイはその結果を待ちません。
 
-- `main` への push: 本番（`obs-mapping.napochaan.dev`）へ `cf deploy` します。
+- `main` への push: 本番（`surface-mapper.napochaan.dev`）へ `cf deploy` します。
 - PR: `pr-<番号>` という名前の Preview をデプロイし、URL を PR のコメントに書きます（コメントは 1 つで、push のたびに更新します）。fork からの PR ではデプロイしません。
 - PR を閉じたとき: その Preview を削除します。
 
@@ -328,7 +328,7 @@ pnpm -C site deploy:dry                  # build して設定を検証する（�
 pnpm -C site deploy:prod                 # build して公開する
 ```
 
-公開先は Worker `obs-mapping-site`、ドメインは `obs-mapping.napochaan.dev` です。
+公開先は Worker `surface-mapper-site`、ドメインは `surface-mapper.napochaan.dev` です。
 
 ## 今後の予定（未実装）
 

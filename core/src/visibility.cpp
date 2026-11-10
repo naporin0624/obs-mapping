@@ -1,9 +1,9 @@
-#include "obs-mapping/visibility.hpp"
+#include "surface-mapper/visibility.hpp"
 
 #include <string>
 #include <unordered_map>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 namespace {
 
@@ -46,4 +46,4 @@ std::vector<bool> effective_visibility(const Mapping &m)
 	return out;
 }
 
-} // namespace obs_mapping
+} // namespace surface_mapper

@@ -2,11 +2,11 @@
 
 #include <vector>
 
-#include "obs-mapping/model.hpp"
+#include "surface-mapper/model.hpp"
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 // Parallel to m.surfaces: the surface is visible and every ancestor group is visible.
 std::vector<bool> effective_visibility(const Mapping &m);
 
-} // namespace obs_mapping
+} // namespace surface_mapper

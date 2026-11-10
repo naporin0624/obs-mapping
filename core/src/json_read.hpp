@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace obs_mapping::detail {
+namespace surface_mapper::detail {
 
 using nlohmann::json;
 
@@ -51,4 +51,4 @@ inline std::string str(const json &v, const std::string &path)
 	return v.get<std::string>();
 }
 
-} // namespace obs_mapping::detail
+} // namespace surface_mapper::detail

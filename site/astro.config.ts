@@ -1,7 +1,7 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
-  site: 'https://obs-mapping.napochaan.dev',
+  site: 'https://surface-mapper.napochaan.dev',
   output: 'static',
   vite: {
     // three.js alone is ~700 kB minified; the demo page cannot render without it.

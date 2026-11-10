@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 struct ParseError {
 	std::string message;
@@ -19,4 +19,4 @@ Mapping default_mapping(uint32_t width, uint32_t height); // grid 20, no surface
 // Returns true if at least one surface was changed.
 bool rename_source(Mapping &, std::string_view from, std::string_view to);
 
-} // namespace obs_mapping
+} // namespace surface_mapper

@@ -2,7 +2,7 @@
 
 #include "../../src/draw-rules.hpp"
 
-using namespace obs_mapping;
+using namespace surface_mapper;
 
 namespace {
 Surface drawable_surface()

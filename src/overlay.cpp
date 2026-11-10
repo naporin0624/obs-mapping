@@ -6,11 +6,11 @@
 #include <array>
 #include <vector>
 
-#include "obs-mapping/homography.hpp"
-#include "obs-mapping/mask.hpp"
+#include "surface-mapper/homography.hpp"
+#include "surface-mapper/mask.hpp"
 #include "overlay-geometry.hpp"
 
-using obs_mapping::Point;
+using surface_mapper::Point;
 
 namespace {
 
@@ -54,7 +54,7 @@ struct Painter {
 
 	void line(Point a, Point b, double thickness) const
 	{
-		if (auto q = obs_mapping::line_strip(a, b, thickness))
+		if (auto q = surface_mapper::line_strip(a, b, thickness))
 			strip(*q);
 	}
 
@@ -67,8 +67,8 @@ struct Painter {
 	void dashed_line(Point a, Point b, double thickness) const
 	{
 		const double len = std::hypot(b.x - a.x, b.y - a.y);
-		for (const auto &seg : obs_mapping::dash_segments(len, kDashOn, kDashOff))
-			line(obs_mapping::point_along(a, b, seg.start), obs_mapping::point_along(a, b, seg.end),
+		for (const auto &seg : surface_mapper::dash_segments(len, kDashOn, kDashOff))
+			line(surface_mapper::point_along(a, b, seg.start), surface_mapper::point_along(a, b, seg.end),
 			     thickness);
 	}
 };
@@ -81,18 +81,19 @@ bool is_selected(const OverlayState &state, const std::string &id)
 
 constexpr int kMaskOutlineSegments = 64;
 
-void draw_mask_outline(const Painter &p, const obs_mapping::Surface &surface)
+void draw_mask_outline(const Painter &p, const surface_mapper::Surface &surface)
 {
 	if (!surface.mask)
 		return;
-	const auto h = obs_mapping::unit_square_to_quad(surface.corners);
+	const auto h = surface_mapper::unit_square_to_quad(surface.corners);
 	if (!h)
 		return;
-	p.closed_loop(obs_mapping::warp_points(*h, obs_mapping::mask_outline(*surface.mask, kMaskOutlineSegments)),
+	p.closed_loop(surface_mapper::warp_points(*h,
+						  surface_mapper::mask_outline(*surface.mask, kMaskOutlineSegments)),
 		      kOutlineThickness);
 }
 
-void draw_grid(const Painter &p, const obs_mapping::Mapping &m)
+void draw_grid(const Painter &p, const surface_mapper::Mapping &m)
 {
 	if (!(m.grid_size > 0))
 		return;
@@ -108,7 +109,7 @@ void draw_grid(const Painter &p, const obs_mapping::Mapping &m)
 
 } // namespace
 
-void draw_overlay(const obs_mapping::Mapping &mapping, const OverlayState &state)
+void draw_overlay(const surface_mapper::Mapping &mapping, const OverlayState &state)
 {
 	gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_SOLID);
 	if (!effect)
@@ -125,7 +126,7 @@ void draw_overlay(const obs_mapping::Mapping &mapping, const OverlayState &state
 		draw_grid(painter, mapping);
 
 		for (const auto &surface : mapping.surfaces) {
-			const bool convex = obs_mapping::is_convex_quad(surface.corners);
+			const bool convex = surface_mapper::is_convex_quad(surface.corners);
 			painter.set_color(!convex ? kInvalidColor
 						  : (is_selected(state, surface.id) ? kSelectedColor : kOutlineColor));
 			for (size_t i = 0; i < 4; ++i) {
@@ -144,8 +145,8 @@ void draw_overlay(const obs_mapping::Mapping &mapping, const OverlayState &state
 						      state.selected_corner->first == surface.id &&
 						      state.selected_corner->second == static_cast<int>(i);
 				painter.set_color(selected ? kSelectedCornerColor : kHandleColor);
-				painter.strip(obs_mapping::square_strip(surface.corners[i],
-									selected ? kSelectedHandleSize : kHandleSize));
+				painter.strip(surface_mapper::square_strip(
+					surface.corners[i], selected ? kSelectedHandleSize : kHandleSize));
 			}
 		}
 	}
