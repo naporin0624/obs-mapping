@@ -49,7 +49,7 @@ OBS を終了してから行います。パッケージは [Releases](https://gi
 2. SmartScreen の警告が出たら「詳細情報」を押し、「実行」を選ぶ。
 3. 管理者権限の確認（UAC）に許可する。OBS が起動していると、インストーラーは先へ進みません。OBS を終了してからやり直してください。OBS が見つからない場合や 31.1.1 より古い場合は警告が出ます。
 
-インストール先は `C:\ProgramData\obs-studio\plugins\surface-mapper` です。アンインストールは「設定 > アプリ > インストールされているアプリ」から行います。OBS が起動していると、アンインストールも止められます。
+インストール先は `C:\ProgramData\obs-studio\plugins\surface-mapper` です。旧名の obs-mapping から更新した場合は、古い `obs-mapping` フォルダーを消します。アンインストールは「設定 > アプリ > インストールされているアプリ」から行います。OBS が起動していると、アンインストールも止められます。
 
 ### macOS（インストーラー）
 
@@ -59,7 +59,7 @@ OBS を終了してから行います。パッケージは [Releases](https://gi
    - macOS 14 以前: pkg を右クリックして「開く」を選ぶ。
 3. 画面の案内に従ってインストールする。
 
-インストール先は、インストールしたユーザーの `~/Library/Application Support/obs-studio/plugins/surface-mapper.plugin` です。古いバージョンが入っている場合、インストーラーが先にそのバンドルを消します。`scripts/install-macos.sh` で入れた人は、そのまま pkg を上から入れられます。
+インストール先は、インストールしたユーザーの `~/Library/Application Support/obs-studio/plugins/surface-mapper.plugin` です。古いバージョンが入っている場合、インストーラーが先にそのバンドルと、旧名の `obs-mapping.plugin` を消します。`scripts/install-macos.sh` で入れた人は、そのまま pkg を上から入れられます。
 
 OBS がプラグインを読み込まない場合は、次のコマンドで隔離属性を外してから、OBS を起動し直してください。
 
