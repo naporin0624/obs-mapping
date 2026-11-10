@@ -11,13 +11,13 @@
 #include <obs-websocket-api.h>
 
 #include "mapping-source.hpp"
-#include "obs-mapping/mapping_json.hpp"
-#include "obs-mapping/selection.hpp"
+#include "surface-mapper/mapping_json.hpp"
+#include "surface-mapper/selection.hpp"
 #include "plugin-support.h"
 
 namespace {
 
-constexpr const char *kVendorName = "obs-mapping";
+constexpr const char *kVendorName = "surface-mapper";
 
 obs_websocket_vendor g_vendor = nullptr;
 
@@ -82,7 +82,7 @@ void list_mapping_sources(obs_data_t *, obs_data_t *response, void *)
 void get_mapping(obs_data_t *request, obs_data_t *response, void *)
 {
 	with_mapping_source(request, response, [&](MappingSource &ms) {
-		const std::string json = obs_mapping::serialize_mapping(ms.current());
+		const std::string json = surface_mapper::serialize_mapping(ms.current());
 		obs_data_set_string(response, "mappingJson", json.c_str());
 		obs_data_set_bool(response, "overlayEnabled", ms.overlay_enabled());
 		respond_ok(response);
@@ -122,7 +122,7 @@ void set_overlay(obs_data_t *request, obs_data_t *response, void *)
 
 		// An absent selectionJson means an empty selection.
 		if (obs_data_has_user_value(request, "selectionJson")) {
-			auto selection = obs_mapping::parse_selection(obs_data_get_string(request, "selectionJson"));
+			auto selection = surface_mapper::parse_selection(obs_data_get_string(request, "selectionJson"));
 			if (!selection)
 				return respond_error(response, selection.error().message);
 			state.selected_surface_ids = std::move(selection->surface_ids);
@@ -138,7 +138,7 @@ void emit_mapping_changed(MappingSource &ms, const RequestId &request_id)
 {
 	if (!g_vendor)
 		return;
-	const std::string json = obs_mapping::serialize_mapping(ms.current());
+	const std::string json = surface_mapper::serialize_mapping(ms.current());
 	obs_data_t *event = obs_data_create();
 	obs_data_set_string(event, "sourceName", obs_source_get_name(ms.source));
 	obs_data_set_string(event, "mappingJson", json.c_str());

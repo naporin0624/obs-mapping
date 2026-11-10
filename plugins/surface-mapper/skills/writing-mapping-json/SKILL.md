@@ -1,6 +1,6 @@
 ---
 name: writing-mapping-json
-description: Use when writing, generating, editing or reviewing an obs-mapping mapping JSON (version 2) — surfaces, crop, corners, masks, groups, layers — or when SetMapping / Import rejects a document with a path-prefixed error such as "surfaces[0].crop: must satisfy …", "surfaces: order must match the depth-first order of layers", "layers: surface \"x\" is missing from the tree" or "surfaces[1].mask: expected object", or when a surface shows the wrong part of its source, appears in the wrong place, or does not draw at all.
+description: Use when writing, generating, editing or reviewing a Surface Mapper mapping JSON (version 2) — surfaces, crop, corners, masks, groups, layers — or when SetMapping / Import rejects a document with a path-prefixed error such as "surfaces[0].crop: must satisfy …", "surfaces: order must match the depth-first order of layers", "layers: surface \"x\" is missing from the tree" or "surfaces[1].mask: expected object", or when a surface shows the wrong part of its source, appears in the wrong place, or does not draw at all.
 ---
 
 # Writing mapping JSON (v2)
@@ -9,7 +9,7 @@ description: Use when writing, generating, editing or reviewing an obs-mapping m
 
 A mapping is one JSON document per Mapping source. The plugin validates the **whole** document and either applies all of it or rejects it with the **first** error, prefixed with its JSON path. Unknown fields are ignored.
 
-To send it, see `driving-obs-mapping-over-websocket`. For LED charts, see `mapping-led-pixel-maps`.
+To send it, see `driving-surface-mapper-over-websocket`. For LED charts, see `mapping-led-pixel-maps`.
 
 ## Two coordinate systems — don't mix them
 

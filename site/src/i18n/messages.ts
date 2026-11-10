@@ -6,7 +6,7 @@ export type Lang = 'ja' | 'en';
 export type StepCopy = { title: string; body: string };
 export type DemoCopy = { title: string; description: string };
 
-export const SKILLS = ['driving-obs-mapping-over-websocket', 'writing-mapping-json', 'mapping-led-pixel-maps'] as const;
+export const SKILLS = ['driving-surface-mapper-over-websocket', 'writing-mapping-json', 'mapping-led-pixel-maps'] as const;
 export type Skill = (typeof SKILLS)[number];
 /** Copy that wraps one inline element (a link or a code span) between two runs of text. */
 export type AroundCopy = { before: string; after: string };

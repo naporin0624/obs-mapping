@@ -1,4 +1,4 @@
-#include "obs-mapping/mapping_json.hpp"
+#include "surface-mapper/mapping_json.hpp"
 
 #include "json_read.hpp"
 #include "layers_json.hpp"
@@ -10,7 +10,7 @@
 #include <variant>
 #include <string_view>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 using nlohmann::json;
 using nlohmann::ordered_json;
@@ -265,4 +265,4 @@ bool rename_source(Mapping &m, std::string_view from, std::string_view to)
 	return changed;
 }
 
-} // namespace obs_mapping
+} // namespace surface_mapper

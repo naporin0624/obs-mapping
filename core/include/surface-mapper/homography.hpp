@@ -3,9 +3,9 @@
 #include <array>
 #include <optional>
 
-#include "obs-mapping/model.hpp"
+#include "surface-mapper/model.hpp"
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 using Mat3 = std::array<double, 9>; // row-major
 
@@ -23,4 +23,4 @@ std::optional<Point> apply(const Mat3 &m, Point p);
 // True only for strictly convex, non-self-intersecting, non-degenerate quads.
 bool is_convex_quad(const std::array<Point, 4> &q);
 
-} // namespace obs_mapping
+} // namespace surface_mapper

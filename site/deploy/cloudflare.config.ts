@@ -8,9 +8,9 @@ if (accountId === undefined || accountId === '') {
 export default defineConfig({
   accountId,
   worker: {
-    name: 'obs-mapping-site',
+    name: 'surface-mapper-site',
     compatibilityDate: '2026-11-04',
-    domains: ['obs-mapping.napochaan.dev'],
+    domains: ['surface-mapper.napochaan.dev'],
     workersDev: false,
     previewUrls: true,
     assets: { htmlHandling: 'auto-trailing-slash', notFoundHandling: '404-page' },

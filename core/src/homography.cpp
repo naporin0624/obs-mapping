@@ -1,8 +1,8 @@
-#include "obs-mapping/homography.hpp"
+#include "surface-mapper/homography.hpp"
 
 #include <cmath>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 namespace {
 constexpr double kEps = 1e-12;
@@ -80,4 +80,4 @@ bool is_convex_quad(const std::array<Point, 4> &q)
 	return pos == 4 || neg == 4;
 }
 
-} // namespace obs_mapping
+} // namespace surface_mapper

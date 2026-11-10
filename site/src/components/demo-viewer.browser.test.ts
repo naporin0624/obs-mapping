@@ -85,7 +85,7 @@ const buildDom = (): HTMLElement => {
     </fieldset>
     <input type="checkbox" checked data-beam>
     <button type="button" data-reset-view>reset</button>
-    <a data-download href="/demo/stairs.mapping.json" download="obs-mapping-demo-stairs.json">download</a>
+    <a data-download href="/demo/stairs.mapping.json" download="surface-mapper-demo-stairs.json">download</a>
   `;
   document.body.append(root);
   return root;

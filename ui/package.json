@@ -1,8 +1,8 @@
 {
-  "name": "obs-mapping-ui",
+  "name": "surface-mapper-ui",
   "version": "0.0.1",
   "private": true,
-  "description": "obs-mapping editor UI (OBS custom browser dock)",
+  "description": "Surface Mapper editor UI (OBS custom browser dock)",
   "type": "module",
   "scripts": {
     "prepare": "panda codegen && cd .. && husky ui/.husky",

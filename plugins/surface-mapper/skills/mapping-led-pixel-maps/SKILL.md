@@ -1,20 +1,20 @@
 ---
 name: mapping-led-pixel-maps
-description: Use when turning an LED pixel-map chart, LED processor input layout or venue screen drawing (per-screen pixel rectangles on one output canvas) into an obs-mapping mapping — placing several LED screens on one canvas, round or circular LED screens, deciding how content should fill screens of different aspect ratios, content looking stretched or squashed on a screen, or the LED output being offset, scaled or showing the wrong region.
+description: Use when turning an LED pixel-map chart, LED processor input layout or venue screen drawing (per-screen pixel rectangles on one output canvas) into a Surface Mapper mapping — placing several LED screens on one canvas, round or circular LED screens, deciding how content should fill screens of different aspect ratios, content looking stretched or squashed on a screen, or the LED output being offset, scaled or showing the wrong region.
 ---
 
 # Mapping LED pixel maps
 
 ## Overview
 
-An LED pixel map says: "the processor takes one video input of W×H; screen A is the rectangle (x, y, w, h) of it, screen B is …". In obs-mapping that is exactly one Mapping source:
+An LED pixel map says: "the processor takes one video input of W×H; screen A is the rectangle (x, y, w, h) of it, screen B is …". In Surface Mapper that is exactly one Mapping source:
 
 - `canvas` = the processor's input resolution.
 - One surface per screen, `corners` = that screen's rectangle.
 - `crop` decides **which part of the content** each screen shows.
 - Round screens get an ellipse `mask`.
 
-Field rules are in `writing-mapping-json`; sending and verifying are in `driving-obs-mapping-over-websocket`.
+Field rules are in `writing-mapping-json`; sending and verifying are in `driving-surface-mapper-over-websocket`.
 
 **Never commit a client's chart or any numbers derived from it** (screen rectangles, canvas size, the finished mapping JSON) to a repository, issue, or doc. Keep them local to the user's machine. Examples here use invented numbers.
 

@@ -2,7 +2,7 @@ import { ja as dock } from '../../../ui/src/i18n/messages/ja';
 import { DEMO_SOURCE } from '../scene/spec';
 import type { SiteMessages, StepCopy } from './messages';
 
-const GITHUB_URL = 'https://github.com/naporin0624/obs-mapping';
+const GITHUB_URL = 'https://github.com/naporin0624/surface-mapper';
 const target = { stairs: '階段', hexagon: '六角形のパネル', drums: '太鼓', cubes: '積み重ねた立方体' } as const;
 
 const holeStep: StepCopy = {
@@ -14,7 +14,7 @@ export const ja: SiteMessages = {
   htmlLang: 'ja',
   langSwitch: { label: '言語', ja: '日本語', en: 'English' },
   root: {
-    title: 'obs-mapping',
+    title: 'Surface Mapper',
     description: 'OBS の映像を、立体物に合わせて投影マッピングするプラグインです。',
     getPlugin: 'プラグインを入手',
     demos: 'デモを見る',
@@ -46,7 +46,7 @@ export const ja: SiteMessages = {
       },
       open: {
         title: 'OBS を開く',
-        body: '右側に「OBS Mapping」ドックが出ています。ドックが自動で出るのは初回だけです。',
+        body: '右側に「Surface Mapper」ドックが出ています。ドックが自動で出るのは初回だけです。',
         faq: 'ドックが出てこないとき',
       },
       connect: {
@@ -146,7 +146,7 @@ export const ja: SiteMessages = {
       heading: 'Claude Code / エージェント用スキル',
       lead: 'スクリプトやエージェントからマッピングを扱うためのスキルを 3 つ配布しています。',
       list: {
-        'driving-obs-mapping-over-websocket': 'obs-websocket のベンダーリクエストで、Mapping ソースのマッピングを読み書きする。',
+        'driving-surface-mapper-over-websocket': 'obs-websocket のベンダーリクエストで、Mapping ソースのマッピングを読み書きする。',
         'writing-mapping-json': 'mapping.json（v2）を書く・直す。検証エラーの読み方も含む。',
         'mapping-led-pixel-maps': 'LED のピクセルマップ（チャート）から、画面ごとの面を 1 つのキャンバスに配置する。',
       },
@@ -214,7 +214,7 @@ export const ja: SiteMessages = {
     view: { heading: '表示', beam: '投影範囲を表示', reset: '視点をリセット' },
     connect: {
       heading: 'OBS でつなぐ',
-      importIt: `obs-mapping のドックで「${dock.importButton}」を押し、mapping.json を読み込む。`,
+      importIt: `Surface Mapper のドックで「${dock.importButton}」を押し、mapping.json を読み込む。`,
       startCamera: 'OBS の「仮想カメラ開始」を押す。',
       chooseHere: 'このページの「入力」で「OBS 仮想カメラ」を選ぶ。',
     },

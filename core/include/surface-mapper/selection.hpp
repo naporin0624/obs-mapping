@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 struct Selection {
 	std::vector<std::string> surface_ids;
@@ -20,4 +20,4 @@ struct Selection {
 // Both keys are optional. Errors read "selectionJson: <reason>".
 std::expected<Selection, ParseError> parse_selection(std::string_view json);
 
-} // namespace obs_mapping
+} // namespace surface_mapper

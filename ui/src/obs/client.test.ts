@@ -30,7 +30,7 @@ const fakeSocket = () => {
   return { socket, call, emit, fire, listenerCount, reply };
 };
 
-const vendorEvent = (eventType: string, eventData: unknown, vendorName = 'obs-mapping') => ({ vendorName, eventType, eventData });
+const vendorEvent = (eventType: string, eventData: unknown, vendorName = 'surface-mapper') => ({ vendorName, eventType, eventData });
 
 describe('obs client', () => {
   it('setMapping sends the mapping as a JSON string', async () => {
@@ -168,7 +168,7 @@ describe('obs client', () => {
     ['InputCreated', { inputName: 'Spout2 Capture', inputUuid: 'u1', inputKind: 'spout_capture' }],
     ['InputRemoved', { inputName: 'Camera', inputUuid: 'u2' }],
     ['InputNameChanged', { inputUuid: 'u3', oldInputName: 'Cam', inputName: 'Camera' }],
-    ['CurrentSceneCollectionChanged', { sceneCollectionName: 'obs-mapping' }],
+    ['CurrentSceneCollectionChanged', { sceneCollectionName: 'surface-mapper' }],
   ])('onInventoryChanged fires on %s', (event, data) => {
     const f = fakeSocket();
     const cb = vi.fn();

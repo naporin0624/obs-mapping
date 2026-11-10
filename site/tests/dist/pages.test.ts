@@ -1,12 +1,12 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { en } from '../../src/i18n/en';
 import { ja } from '../../src/i18n/ja';
 
-const GITHUB = 'https://github.com/naporin0624/obs-mapping';
+const GITHUB = 'https://github.com/naporin0624/surface-mapper';
 const RELEASES = `${GITHUB}/releases/latest`;
-const SKILL_NAMES = ['driving-obs-mapping-over-websocket', 'writing-mapping-json', 'mapping-led-pixel-maps'] as const;
+const SKILL_NAMES = ['driving-surface-mapper-over-websocket', 'writing-mapping-json', 'mapping-led-pixel-maps'] as const;
 const SLUGS = ['stairs', 'hexagon', 'drums', 'cubes'] as const;
 
 const page = (path: string): string => readFileSync(fileURLToPath(new URL(`../../dist/${path}`, import.meta.url)), 'utf8');
@@ -101,9 +101,9 @@ describe('top page', () => {
 
   it.each(['index.html', 'en/index.html'])('%s lists the Claude Code and skills CLI commands in pre blocks', (path) => {
     const pres = blocksOf(page(path), 'pre').map(decode).join('\n');
-    expect(pres).toContain('/plugin marketplace add naporin0624/obs-mapping');
-    expect(pres).toContain('/plugin install obs-mapping@obs-mapping');
-    for (const skill of SKILL_NAMES) expect(pres).toContain(`npx skills add naporin0624/obs-mapping@${skill}`);
+    expect(pres).toContain('/plugin marketplace add naporin0624/surface-mapper');
+    expect(pres).toContain('/plugin install surface-mapper@surface-mapper');
+    for (const skill of SKILL_NAMES) expect(pres).toContain(`npx skills add naporin0624/surface-mapper@${skill}`);
   });
 
   it.each(['index.html', 'en/index.html'])('%s makes the command blocks keyboard scrollable', (path) => {
@@ -112,7 +112,7 @@ describe('top page', () => {
 
   it.each(['index.html', 'en/index.html'])('%s links the skills CLI page and the repository', (path) => {
     const links = hrefs(page(path));
-    expect(links).toContain('https://skills.sh/naporin0624/obs-mapping');
+    expect(links).toContain('https://skills.sh/naporin0624/surface-mapper');
     expect(links).toContain(GITHUB);
   });
 
@@ -315,9 +315,9 @@ describe('document head', () => {
   });
 
   it.each([
-    ['index.html', 'https://obs-mapping.napochaan.dev/', 'ja_JP'],
-    ['en/index.html', 'https://obs-mapping.napochaan.dev/en/', 'en_US'],
-    ['en/demo/stairs/index.html', 'https://obs-mapping.napochaan.dev/en/demo/stairs/', 'en_US'],
+    ['index.html', 'https://surface-mapper.napochaan.dev/', 'ja_JP'],
+    ['en/index.html', 'https://surface-mapper.napochaan.dev/en/', 'en_US'],
+    ['en/demo/stairs/index.html', 'https://surface-mapper.napochaan.dev/en/demo/stairs/', 'en_US'],
   ])('%s carries Open Graph and Twitter card tags', (path, url, locale) => {
     const html = page(path);
     expect(metaContent(html, 'property', 'og:url')).toBe(url);
@@ -325,7 +325,7 @@ describe('document head', () => {
     expect(metaContent(html, 'property', 'og:type')).toBe('website');
     expect(metaContent(html, 'property', 'og:title')).not.toBe('');
     expect(metaContent(html, 'property', 'og:description')).not.toBe('');
-    expect(metaContent(html, 'property', 'og:image')).toMatch(/^https:\/\/obs-mapping\.napochaan\.dev\/_astro\/mapping-demo\.[\w-]+\.jpg$/);
+    expect(metaContent(html, 'property', 'og:image')).toMatch(/^https:\/\/surface-mapper\.napochaan\.dev\/_astro\/mapping-demo\.[\w-]+\.jpg$/);
     expect(metaContent(html, 'name', 'twitter:card')).toBe('summary_large_image');
   });
 
@@ -333,6 +333,20 @@ describe('document head', () => {
     const [logo] = tagsOf(page('index.html'), 'img').filter((img) => (attr(img, 'src') ?? '').startsWith('/_astro/icon.'));
     expect(logo).toMatch(/\salt(=""|[\s>])/);
     expect(logo === undefined ? undefined : attr(logo, 'width')).toBe('28');
+  });
+});
+
+describe('product name', () => {
+  const htmlFiles = readdirSync(fileURLToPath(new URL('../../dist/', import.meta.url)), { recursive: true, encoding: 'utf8' }).filter((f) => f.endsWith('.html'));
+
+  it.each(['index.html', 'en/index.html', 'demo/index.html', 'en/demo/stairs/index.html', '404.html'])('%s names Surface Mapper in its title', (path) => {
+    const [title] = blocksOf(page(path), 'title');
+    expect(title).toContain('Surface Mapper');
+  });
+
+  it('never shows the old product name or identifier', () => {
+    expect(htmlFiles.length).toBeGreaterThan(0);
+    for (const f of htmlFiles) expect(page(f), f).not.toMatch(/obs[-_ ]?mapping/i);
   });
 });
 

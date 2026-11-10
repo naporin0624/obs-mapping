@@ -1,0 +1,20 @@
+{
+  "name": "surface-mapper",
+  "version": "0.1.0",
+  "description": "Usage skills for Surface Mapper — read and write projection/LED mappings over obs-websocket, author mapping JSON v2, and build mappings from LED pixel-map charts",
+  "author": {
+    "name": "naporin0624",
+    "url": "https://github.com/naporin0624"
+  },
+  "homepage": "https://github.com/naporin0624/surface-mapper",
+  "repository": "https://github.com/naporin0624/surface-mapper",
+  "license": "GPL-2.0",
+  "keywords": [
+    "obs",
+    "obs-websocket",
+    "projection-mapping",
+    "led",
+    "pixel-map",
+    "mapping-json"
+  ]
+}

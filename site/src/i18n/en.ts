@@ -2,7 +2,7 @@ import { en as dock } from '../../../ui/src/i18n/messages/en';
 import { DEMO_SOURCE } from '../scene/spec';
 import type { SiteMessages, StepCopy } from './messages';
 
-const GITHUB_URL = 'https://github.com/naporin0624/obs-mapping';
+const GITHUB_URL = 'https://github.com/naporin0624/surface-mapper';
 const target = { stairs: 'the stairs', hexagon: 'the hexagon panels', drums: 'the drums', cubes: 'the stacked cubes' } as const;
 
 const holeStep: StepCopy = {
@@ -14,7 +14,7 @@ export const en: SiteMessages = {
   htmlLang: 'en',
   langSwitch: { label: 'Language', ja: '日本語', en: 'English' },
   root: {
-    title: 'obs-mapping',
+    title: 'Surface Mapper',
     description: 'An OBS plugin that projection-maps your video onto physical objects.',
     getPlugin: 'Get the plugin',
     demos: 'See the demos',
@@ -46,7 +46,7 @@ export const en: SiteMessages = {
       },
       open: {
         title: 'Open OBS',
-        body: 'The "OBS Mapping" dock is already on the right. It appears on its own only the first time.',
+        body: 'The "Surface Mapper" dock is already on the right. It appears on its own only the first time.',
         faq: 'If the dock does not appear',
       },
       connect: {
@@ -152,7 +152,7 @@ export const en: SiteMessages = {
       heading: 'Skills for Claude Code and other agents',
       lead: 'Three skills let scripts and agents work with mappings.',
       list: {
-        'driving-obs-mapping-over-websocket': 'Read and write a Mapping source through obs-websocket vendor requests.',
+        'driving-surface-mapper-over-websocket': 'Read and write a Mapping source through obs-websocket vendor requests.',
         'writing-mapping-json': 'Write and fix mapping.json (v2), including how to read its validation errors.',
         'mapping-led-pixel-maps': 'Lay out one face per screen on a single canvas from an LED pixel map (chart).',
       },
@@ -220,7 +220,7 @@ export const en: SiteMessages = {
     view: { heading: 'View', beam: 'Show projection area', reset: 'Reset view' },
     connect: {
       heading: 'Connect OBS',
-      importIt: `In the obs-mapping dock, press "${dock.importButton}" and load the mapping.json.`,
+      importIt: `In the Surface Mapper dock, press "${dock.importButton}" and load the mapping.json.`,
       startCamera: 'In OBS, press "Start Virtual Camera".',
       chooseHere: 'Under "Input" on this page, choose "OBS Virtual Camera".',
     },

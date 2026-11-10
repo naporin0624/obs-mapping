@@ -21,10 +21,10 @@
 
 namespace {
 
-constexpr const char *kDockId = "obs-mapping";
-constexpr const char *kDockTitle = "OBS Mapping";
+constexpr const char *kDockId = "surface-mapper";
+constexpr const char *kDockTitle = "Surface Mapper";
 // Relative to obs-browser's cookie root, like OBS's own "obs_profile_cookies/<id>".
-constexpr const char *kCookieStoragePath = "obs_mapping_dock";
+constexpr const char *kCookieStoragePath = "surface_mapper_dock";
 constexpr const char *kRevealFlagFile = "dock.json";
 constexpr const char *kRevealedKey = "revealed";
 

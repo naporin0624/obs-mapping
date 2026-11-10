@@ -2,9 +2,9 @@
 
 #include <cmath>
 
-#include "obs-mapping/homography.hpp"
+#include "surface-mapper/homography.hpp"
 
-using namespace obs_mapping;
+using namespace surface_mapper;
 
 namespace {
 using Quad = std::array<Point, 4>;

@@ -3,14 +3,14 @@
 #include <cstdint>
 #include <vector>
 
-#include "obs-mapping/mask.hpp"
+#include "surface-mapper/mask.hpp"
 #include "plugin-support.h"
 
 namespace {
 
-gs_texture_t *create_mask_texture(const obs_mapping::Mask &mask, uint32_t width, uint32_t height)
+gs_texture_t *create_mask_texture(const surface_mapper::Mask &mask, uint32_t width, uint32_t height)
 {
-	const std::vector<uint8_t> coverage = obs_mapping::rasterize_mask(mask, width, height);
+	const std::vector<uint8_t> coverage = surface_mapper::rasterize_mask(mask, width, height);
 	const uint8_t *data = coverage.data();
 	gs_texture_t *texture = gs_texture_create(width, height, GS_R8, 1, &data, 0);
 	if (!texture)
@@ -20,7 +20,7 @@ gs_texture_t *create_mask_texture(const obs_mapping::Mask &mask, uint32_t width,
 
 } // namespace
 
-gs_texture_t *MaskTextures::get(const std::string &surface_id, const obs_mapping::Mask &mask, uint32_t width,
+gs_texture_t *MaskTextures::get(const std::string &surface_id, const surface_mapper::Mask &mask, uint32_t width,
 				uint32_t height)
 {
 	auto it = entries_.find(surface_id);

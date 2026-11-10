@@ -1,8 +1,8 @@
-#include "obs-mapping/selection.hpp"
+#include "surface-mapper/selection.hpp"
 
 #include <nlohmann/json.hpp>
 
-namespace obs_mapping {
+namespace surface_mapper {
 
 using nlohmann::json;
 
@@ -50,4 +50,4 @@ std::expected<Selection, ParseError> parse_selection(std::string_view text)
 	return out;
 }
 
-} // namespace obs_mapping
+} // namespace surface_mapper

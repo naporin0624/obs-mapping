@@ -1,6 +1,6 @@
 #pragma once
 
-#include "obs-mapping/model.hpp"
+#include "surface-mapper/model.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace obs_mapping::detail {
+namespace surface_mapper::detail {
 
 constexpr int kMaxTreeDepth = 16;
 
@@ -21,4 +21,4 @@ std::vector<LayerNode> flat_layers(const std::vector<Surface> &surfaces);
 nlohmann::ordered_json groups_to_json(const std::vector<Group> &groups);
 nlohmann::ordered_json layers_to_json(const std::vector<LayerNode> &layers);
 
-} // namespace obs_mapping::detail
+} // namespace surface_mapper::detail

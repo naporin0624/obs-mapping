@@ -1,8 +1,8 @@
 #include <doctest/doctest.h>
 
-#include "obs-mapping/selection.hpp"
+#include "surface-mapper/selection.hpp"
 
-using namespace obs_mapping;
+using namespace surface_mapper;
 
 TEST_CASE("parse_selection reads ids and a corner")
 {

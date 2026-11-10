@@ -1,10 +1,10 @@
 #include <doctest/doctest.h>
 
-#include "obs-mapping/mapping_json.hpp"
+#include "surface-mapper/mapping_json.hpp"
 
 #include <string>
 
-using namespace obs_mapping;
+using namespace surface_mapper;
 
 namespace {
 

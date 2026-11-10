@@ -39,7 +39,7 @@ if(ENABLE_QT)
 endif()
 
 add_subdirectory(core)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE obs_mapping_core)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE surface_mapper_core)
 
 target_sources(
   ${CMAKE_PROJECT_NAME}
