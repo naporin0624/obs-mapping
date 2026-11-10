@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.1](https://github.com/naporin0624/surface-mapper/compare/0.7.0...0.7.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* **macos:** obs-mapping からの更新で旧 obs-mapping.plugin を消す ([b1198d2](https://github.com/naporin0624/surface-mapper/commit/b1198d206e2aa57ffd160cea4f7ee487f1d0674a))
+* **macos:** obs-mapping からの更新で旧 obs-mapping.plugin を消す ([1e773b5](https://github.com/naporin0624/surface-mapper/commit/1e773b5553677654a46a0b2aa598edbf06078be2))
+* **windows:** obs-mapping からの更新でも surface-mapper フォルダに入れる ([fb57fbf](https://github.com/naporin0624/surface-mapper/commit/fb57fbf3a138d2344af2a0bd80c5c84f19353564))
+* **windows:** obs-mapping からの更新でも surface-mapper フォルダに入れる ([162a93f](https://github.com/naporin0624/surface-mapper/commit/162a93ff484d37b2f4e23c945fc5a8e1acd7ac9d))
+
 ## [0.7.0](https://github.com/naporin0624/surface-mapper/compare/0.6.0...0.7.0) (2026-11-10)
 
 
